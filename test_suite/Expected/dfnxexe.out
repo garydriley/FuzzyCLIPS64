@@ -2,19 +2,19 @@ TRUE
 FuzzyCLIPS> (batch "dfnxexe.bat")
 TRUE
 FuzzyCLIPS> (deffunction print-args (?a ?b $?c)
-   (printout t ?a " " ?b " and " (length ?c) " extras: " ?c crlf))
+   (printout t ?a " " ?b " and " (length$ ?c) " extras: " ?c crlf))
 FuzzyCLIPS> (print-args 1 2)
 1 2 and 0 extras: ()
 FuzzyCLIPS> (print-args 1 2 3 4)
 1 2 and 2 extras: (3 4)
-FuzzyCLIPS> (print-args 1 2 (mv-append a b c) (mv-append d e f) 1 2 3 4)
+FuzzyCLIPS> (print-args 1 2 (create$ a b c) (create$ d e f) 1 2 3 4)
 1 2 and 10 extras: (a b c d e f 1 2 3 4)
 FuzzyCLIPS> (deffunction test-return ()
    (+ (eval "(gensym)") 2)
    TRUE)
 FuzzyCLIPS> (test-return)
-[ARGACCES5] Function + expected argument #1 to be of type integer or float
-[PRCCODE4] Execution halted during the actions of deffunction test-return.
+[ARGACCES2] Function '+' expected argument #1 to be of type integer or float.
+[PRCCODE4] Execution halted during the actions of deffunction 'test-return'.
 FALSE
 FuzzyCLIPS> (deffunction test-return ()
   1 2 3 4)

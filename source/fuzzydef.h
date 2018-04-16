@@ -54,9 +54,9 @@ struct fuzzyData
       defuzzificztion is undefined (e.g. moment-defuzzify being done
       for a fuzzy set that has zero area)
    */
-   intBool is_last_defuzzify_valid;
+   bool is_last_defuzzify_valid;
    /* saveFactsInProgress is TRUE temporarily during save-facts command */
-   int saveFactsInProgress;
+   bool saveFactsInProgress;
 
    struct modifierListItem *ListOfModifierFunctions;
    double S_array[ArraySIZE];

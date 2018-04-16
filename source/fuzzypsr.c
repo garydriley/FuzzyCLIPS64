@@ -107,25 +107,25 @@
  
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-  static struct fuzzyLv       *parseUniverse(void *theEnv,const char *read_source, struct token *inputToken, 
-                                             int *DeftemplateError);
-  static void                  parsePrimaryTermList(void *theEnv,const char *in_file, struct token *inputToken, 
-                                             int *DeftemplateError, struct fuzzyLv *u);
-  static struct primary_term  *parsePrimaryTerm(void *theEnv,const char *readSource, 
-                                                struct token *inputToken, int *DeftemplateError,
+  static struct fuzzyLv       *parseUniverse(Environment *theEnv,const char *read_source, struct token *inputToken,
+                                             bool *DeftemplateError);
+  static void                  parsePrimaryTermList(Environment *theEnv,const char *in_file, struct token *inputToken,
+                                             bool *DeftemplateError, struct fuzzyLv *u);
+  static struct primary_term  *parsePrimaryTerm(Environment *theEnv,const char *readSource,
+                                                struct token *inputToken, bool *DeftemplateError,
                                                 struct fuzzyLv *u);
-  static struct fuzzy_value   *parseTemplateFuzzyValue(void *theEnv,const char *readSource, struct token *inputToken, 
-                                             int  *DeftemplateError, struct fuzzyLv *u);
-  static struct fuzzy_value   *parseSingletonFuzzyValue(void *theEnv,const char *readSource, 
+  static struct fuzzy_value   *parseTemplateFuzzyValue(Environment *theEnv,const char *readSource, struct token *inputToken,
+                                             bool  *DeftemplateError, struct fuzzyLv *u);
+  static struct fuzzy_value   *parseSingletonFuzzyValue(Environment *theEnv,const char *readSource,
                                                       struct token *inputToken,
-                                                      int  *DeftemplateError,
+                                                      bool  *DeftemplateError,
                                                       struct fuzzyLv *u);
-  static struct fuzzy_value   *parseStandardFuzzyValue(void *theEnv,const char *readSource, 
+  static struct fuzzy_value   *parseStandardFuzzyValue(Environment *theEnv,const char *readSource,
                                                      struct token *inputToken,
-                                                     int  *DeftemplateError,
+                                                     bool  *DeftemplateError,
                                                      struct fuzzyLv *u);
 #endif
-  static void                  rtnPrimaryTermList(void *theEnv,struct primary_term *pt);
+  static void                  rtnPrimaryTermList(Environment *theEnv,struct primary_term *pt);
 
 
 /******************************************************************
@@ -168,7 +168,7 @@
 /***********************************/
 /* S - Standard_function:          */
 /***********************************/
-globle double sFunction(
+double sFunction(
   double x,
   double alfa,
   double beta,
@@ -197,9 +197,9 @@ globle double sFunction(
 /* the functions. Just use a 0 to 1 range n calculations  */
 /**********************************************************/
 
-globle void Init_S_Z_PI_yvalues(
-   void *theEnv)
-   {
+void Init_S_Z_PI_yvalues(
+  Environment *theEnv)
+  {
      int i;
      int ArraySzBy2 = ArraySIZE/2;
      int ArraySzMinus1 = ArraySIZE - 1;
@@ -246,13 +246,13 @@ globle void Init_S_Z_PI_yvalues(
 /* x and y values for the S, PI or Z function             */
 /**********************************************************/
 
-globle struct fuzzy_value *Get_S_Z_or_PI_FuzzyValue(
-  void *theEnv,
+struct fuzzy_value *Get_S_Z_or_PI_FuzzyValue(
+  Environment *theEnv,
   double alfa,
   double beta,
   double gamma,
   int   function_type)
-{
+  {
     struct fuzzy_value *fv;
     double h, deltah;
     double gPlusb;
@@ -370,23 +370,24 @@ globle struct fuzzy_value *Get_S_Z_or_PI_FuzzyValue(
 /* The list of primary terms and a list of modifiers and the     */
 /* universe of discourse are saved.                              */
 /*****************************************************************/
-globle struct fuzzyLv *ParseFuzzyTemplate(
-  void *theEnv,
+struct fuzzyLv *ParseFuzzyTemplate(
+  Environment *theEnv,
   const char *readSource,
   struct token *inputToken,
-  int *DeftemplateError)
+  bool *DeftemplateError)
   {
-   struct fuzzyLv      *new_lv  = NULL;
+   struct fuzzyLv *new_lv  = NULL;
 
 
    /*========================================*/
    /* Parse the universe of discourse        */
    /*========================================*/
 
-   if (inputToken->type == FLOAT || inputToken->type == INTEGER)  
+   if (inputToken->tknType == FLOAT_TOKEN ||
+       inputToken->tknType == INTEGER_TOKEN)
      {
-      new_lv = parseUniverse(theEnv,readSource, inputToken, DeftemplateError);
-      if (*DeftemplateError == TRUE) 
+      new_lv = parseUniverse(theEnv,readSource, inputToken,DeftemplateError);
+      if (*DeftemplateError == true) 
           { 
             return(NULL); 
           }
@@ -396,18 +397,18 @@ globle struct fuzzyLv *ParseFuzzyTemplate(
    /* Check that next token is a '('.        */
    /*========================================*/
    
-   if (inputToken->type != LPAREN) 
+   if (inputToken->tknType != LEFT_PARENTHESIS_TOKEN)
      {
       SyntaxErrorMessage(theEnv,"Deftemplate (Expecting Fuzzy Term List)");
-      *DeftemplateError = TRUE;
+      *DeftemplateError = true;
       /* need to return the fuzzyLv struct */
       rtn_struct(theEnv,fuzzyLv, new_lv);
       return(NULL);
      }
    else
      {
-      parsePrimaryTermList(theEnv,readSource, inputToken, DeftemplateError, new_lv);
-      if (*DeftemplateError == TRUE) 
+      parsePrimaryTermList(theEnv,readSource,inputToken,DeftemplateError, new_lv);
+      if (*DeftemplateError == true) 
            { 
              /* need to return the universe of discourse struct */
              rtn_struct(theEnv,fuzzyLv, new_lv);
@@ -417,10 +418,10 @@ globle struct fuzzyLv *ParseFuzzyTemplate(
 
    GetToken(theEnv,readSource,inputToken);
 
-   if (inputToken->type != RPAREN)
+   if (inputToken->tknType != RIGHT_PARENTHESIS_TOKEN)
      {
       SyntaxErrorMessage(theEnv,"Deftemplate (Closing ')' for deftemplate expected)");
-      *DeftemplateError = TRUE;
+      *DeftemplateError = true;
       /* must return universe of discourse and primary term structs */
       rtnPrimaryTermList(theEnv,new_lv->primary_term_list);
       rtn_struct(theEnv,fuzzyLv, new_lv);
@@ -442,10 +443,10 @@ globle struct fuzzyLv *ParseFuzzyTemplate(
 /*                                                   */
 /*****************************************************/
 static struct fuzzyLv *parseUniverse(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *inputToken,
-  int *DeftemplateError)
+  bool *DeftemplateError)
   {
    double f, t;       /* from and to values */
    struct fuzzyLv *u; /* universe of discourse is in fuzzyLv struct */
@@ -453,22 +454,22 @@ static struct fuzzyLv *parseUniverse(
    SavePPBuffer(theEnv," ");
    
    /* inputToken has an integer or a float at this point */
-   f = (inputToken->type == FLOAT) ? ValueToDouble(inputToken->value) : 
-                                        (double)ValueToInteger(inputToken->value);
+   f = (inputToken->tknType == FLOAT_TOKEN) ? inputToken->floatValue->contents :
+                                              (double) inputToken->integerValue->contents;
    GetToken(theEnv,readSource,inputToken);
-   if (inputToken->type != FLOAT && inputToken->type != INTEGER) 
+   if (inputToken->tknType != FLOAT_TOKEN && inputToken->tknType != INTEGER_TOKEN)
      {
       SyntaxErrorMessage(theEnv,"Deftemplate: Number Expected ('to' part of Universe)");
-      *DeftemplateError = TRUE;
+      *DeftemplateError = true;
       return(NULL);
      }
    
-   t = (inputToken->type == FLOAT) ? ValueToDouble(inputToken->value) : 
-                                        (double)ValueToInteger(inputToken->value);
+   t = (inputToken->tknType == FLOAT_TOKEN) ? inputToken->floatValue->contents :
+                                              (double) inputToken->integerValue->contents;
    if (f > t) 
      {
       SyntaxErrorMessage(theEnv,"Deftemplate: Invalid interval for Universe of Discourse");
-      *DeftemplateError = TRUE;
+      *DeftemplateError = true;
       return(NULL);
      }
      
@@ -480,9 +481,10 @@ static struct fuzzyLv *parseUniverse(
    
    SavePPBuffer(theEnv," ");
    GetToken(theEnv,readSource,inputToken);
-   if ((inputToken->type == STRING) || (inputToken->type ==  SYMBOL))
+   if ((inputToken->tknType == STRING_TOKEN) ||
+       (inputToken->tknType ==  SYMBOL_TOKEN))
      {
-       u->units = (SYMBOL_HN *) inputToken->value;
+       u->units = inputToken->lexemeValue;
        PPCRAndIndent(theEnv);
        SavePPBuffer(theEnv," ");
        GetToken(theEnv,readSource,inputToken);
@@ -507,10 +509,10 @@ static struct fuzzyLv *parseUniverse(
 /*  Should eat up the closing ')' of list            */
 /*****************************************************/
 static void parsePrimaryTermList(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *inputToken,  
-  int  *DeftemplateError,
+  bool *DeftemplateError,
   struct fuzzyLv *new_lv)
   {
    struct primary_term *last_one, *next_one, *assert_list;
@@ -525,13 +527,13 @@ static void parsePrimaryTermList(
       { char *thisName;
         struct primary_term *ptPtr = assert_list;
 
-        thisName  = (ValueToFuzzyValue(next_one->fuzzy_value_description))->name;
+        thisName  = next_one->fuzzy_value_description->contents->name;
 
         while (ptPtr != NULL)
           {
-            if (strcmp(thisName,(ValueToFuzzyValue(ptPtr->fuzzy_value_description))->name) == 0)
+            if (strcmp(thisName,ptPtr->fuzzy_value_description->contents->name) == 0)
               {
-                *DeftemplateError = TRUE;
+                *DeftemplateError = true;
                 SyntaxErrorMessage(theEnv,"Deftemplate (duplicate TERM being defined)");
                 rtn_struct(theEnv,primary_term,next_one);
                 rtnPrimaryTermList(theEnv,assert_list);                
@@ -554,7 +556,7 @@ static void parsePrimaryTermList(
      { /* need to free any allocated primary term structs */
        if (assert_list == NULL)
           {
-            *DeftemplateError = TRUE;
+            *DeftemplateError = true;
             SyntaxErrorMessage(theEnv,"Deftemplate (At least one primary term must be defined)");
           }
        else
@@ -573,12 +575,12 @@ static void parsePrimaryTermList(
 /* DeftemplateError flag is set to true if an error occurs.    */
 /***************************************************************/
 static struct primary_term *parsePrimaryTerm(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *inputToken,
-  int *DeftemplateError,
+  bool *DeftemplateError,
   struct fuzzyLv *new_lv) 
-{
+  {
    struct primary_term *ptr;
    const char *pt_name;
    struct fuzzy_value *fuzzy_value_dsc;
@@ -589,7 +591,7 @@ static struct primary_term *parsePrimaryTerm(
    
    GetToken(theEnv,readSource,inputToken);
       
-   if (inputToken->type == RPAREN) 
+   if (inputToken->tknType == RIGHT_PARENTHESIS_TOKEN)
      {
        PPBackup(theEnv);
        PPBackup(theEnv);
@@ -597,10 +599,10 @@ static struct primary_term *parsePrimaryTerm(
        return(NULL);
      }
       
-   if (inputToken->type != LPAREN)
+   if (inputToken->tknType != LEFT_PARENTHESIS_TOKEN)
      {
        SyntaxErrorMessage(theEnv,"Deftemplate (Expected primary term)");
-       *DeftemplateError = TRUE;
+       *DeftemplateError = true;
        return(NULL);
      }
    
@@ -610,14 +612,14 @@ static struct primary_term *parsePrimaryTerm(
      
    GetToken(theEnv,readSource,inputToken);
    
-   if (inputToken->type == SYMBOL)
+   if (inputToken->tknType == SYMBOL_TOKEN)
      {
-      pt_name = ((SYMBOL_HN *)inputToken->value)->contents;
+      pt_name = inputToken->lexemeValue->contents;
      }
    else 
      {
       SyntaxErrorMessage(theEnv,"Deftemplate (Expected primary term name)");
-      *DeftemplateError = TRUE;
+      *DeftemplateError = true;
       return(NULL);
      }
      
@@ -628,14 +630,14 @@ static struct primary_term *parsePrimaryTerm(
    SavePPBuffer(theEnv," ");
    fuzzy_value_dsc = parseTemplateFuzzyValue(theEnv,readSource,inputToken,DeftemplateError,new_lv);
 
-   if (fuzzy_value_dsc != NULL && inputToken->type == RPAREN)
+   if (fuzzy_value_dsc != NULL && inputToken->tknType == RIGHT_PARENTHESIS_TOKEN)
      {
       ptr = get_struct(theEnv,primary_term);
       if (fuzzy_value_dsc->name != NULL) rm(theEnv,fuzzy_value_dsc->name, strlen(fuzzy_value_dsc->name)+1);
       fuzzy_value_dsc->name = (char *) gm2(theEnv,strlen(pt_name)+1);
       strcpy(fuzzy_value_dsc->name, pt_name);
-      ptr->fuzzy_value_description = (FUZZY_VALUE_HN *)AddFuzzyValue(theEnv,fuzzy_value_dsc);
-      /* AddFuzzyValue makes a copy of the Fuzzy Value so we need to return this one */
+      ptr->fuzzy_value_description = (CLIPSFuzzyValue *)CreateFuzzyValue(theEnv,fuzzy_value_dsc);
+      /* CreateFuzzyValue makes a copy of the Fuzzy Value so we need to return this one */
       rtnFuzzyValue(theEnv,fuzzy_value_dsc);
       ptr->next = NULL;
       PPCRAndIndent(theEnv);
@@ -644,7 +646,7 @@ static struct primary_term *parsePrimaryTerm(
      }
    else
      {
-      *DeftemplateError = TRUE;
+      *DeftemplateError = true;
       rtnFuzzyValue(theEnv,fuzzy_value_dsc);
       SyntaxErrorMessage(theEnv,"Deftemplate (expected ')' )");
       return(NULL);
@@ -655,26 +657,26 @@ static struct primary_term *parsePrimaryTerm(
 /* parseTemplateFuzzyValue:        */
 /***********************************/
 static struct fuzzy_value *parseTemplateFuzzyValue(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *inputToken,
-  int  *DeftemplateError,
+  bool *DeftemplateError,
   struct fuzzyLv *new_lv)
-{
+  {
    struct fuzzy_value *fv_ptr = NULL;
 
       GetToken(theEnv,readSource,inputToken);
       
-      if (inputToken->type == LPAREN)
+      if (inputToken->tknType == LEFT_PARENTHESIS_TOKEN)
          {
            if (new_lv == NULL)
               {
-                *DeftemplateError = TRUE;
+                *DeftemplateError = true;
                 SyntaxErrorMessage(theEnv,"Deftemplate (Missing universe of discourse description)");
                 return(NULL);
               }        
            GetToken(theEnv,readSource,inputToken);
-           if (inputToken->type == FLOAT || inputToken->type == INTEGER)
+           if (inputToken->tknType == FLOAT_TOKEN || inputToken->tknType == INTEGER_TOKEN)
               { fv_ptr = parseSingletonFuzzyValue(theEnv,readSource,inputToken,DeftemplateError,new_lv); }
            else
               { fv_ptr = parseStandardFuzzyValue(theEnv,readSource,inputToken,DeftemplateError,new_lv); }
@@ -686,18 +688,18 @@ static struct fuzzy_value *parseTemplateFuzzyValue(
           */
           if (new_lv == NULL || new_lv->primary_term_list == NULL)
             {
-              *DeftemplateError = TRUE;
+              *DeftemplateError = true;
               SyntaxErrorMessage(theEnv,"Deftemplate (Expecting linguistic expression and no terms defined");
             }
           else
             {
               fv_ptr = ParseLinguisticExpr(theEnv,readSource,inputToken,new_lv,DeftemplateError);
-              if (*DeftemplateError == TRUE)
+              if (*DeftemplateError == true)
                  SyntaxErrorMessage(theEnv,"Deftemplate (Fuzzy set description or linguistic expression expected)");
             }
         }
         
-      if (*DeftemplateError == TRUE)
+      if (*DeftemplateError == true)
         {
           rtnFuzzyValue(theEnv,fv_ptr);
           return(NULL);
@@ -705,7 +707,6 @@ static struct fuzzy_value *parseTemplateFuzzyValue(
       else     
         { return(fv_ptr); }
   }
-
 
 /******************************************************************/    
 /* parseSingletonFuzzyValue:                                      */
@@ -716,13 +717,12 @@ static struct fuzzy_value *parseTemplateFuzzyValue(
 /******************************************************************/    
 
 static struct fuzzy_value *parseSingletonFuzzyValue(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *inputToken,
-  int  *DeftemplateError,
+  bool *DeftemplateError,
   struct fuzzyLv *u)
   {
-   
     struct fuzzy_value *fv;
     double  previous;
     int i, count, maxlength = 10, increment = 10;
@@ -748,18 +748,19 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
     previous =  u->from - 1.0;
     count = 0;
     
-    while (inputToken->type == FLOAT || inputToken->type == INTEGER)
+    while (inputToken->tknType == FLOAT_TOKEN ||
+           inputToken->tknType == INTEGER_TOKEN)
          {
           /************************************************
            Token should be x coordinate.
           ************************************************/
-          newx = (inputToken->type == FLOAT) ? (double)ValueToDouble(inputToken->value) : 
-                                               (double)ValueToInteger(inputToken->value);
+          newx = (inputToken->tknType == FLOAT_TOKEN) ? inputToken->floatValue->contents :
+                                                        (double) inputToken->integerValue->contents;
           if (newx < u->from)
             {
               if (u->from - newx > xtolerance)
                 {
-                 *DeftemplateError = TRUE;
+                 *DeftemplateError = true;
                  SyntaxErrorMessage(theEnv,"Deftemplate (X value out of range (too small))");
                  rtnFuzzyValue(theEnv,fv);
                  return(NULL);
@@ -770,7 +771,7 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
             {
               if (newx - u->to > xtolerance)
                 {
-                 *DeftemplateError = TRUE;
+                 *DeftemplateError = true;
                  SyntaxErrorMessage(theEnv,"Deftemplate (X value out of range (too large))");
                  rtnFuzzyValue(theEnv,fv);
                  return(NULL);
@@ -786,7 +787,7 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
             {
              if (previous - newx > FUZZY_TOLERANCE)
                {
-                *DeftemplateError = TRUE;
+                *DeftemplateError = true;
                 SyntaxErrorMessage(theEnv,"Deftemplate (Singleton x values must be in increasing order)");
                 rtnFuzzyValue(theEnv,fv);
                 return(NULL);
@@ -801,13 +802,14 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
           *************************************************/
           GetToken(theEnv,readSource,inputToken);
         
-          if (inputToken->type == FLOAT || inputToken->type == INTEGER)
-            { newy = (inputToken->type == FLOAT) ? (double)ValueToDouble(inputToken->value) : 
-                                                   (double)ValueToInteger(inputToken->value);
+          if (inputToken->tknType == FLOAT_TOKEN ||
+              inputToken->tknType == INTEGER_TOKEN)
+            { newy = (inputToken->tknType == FLOAT_TOKEN) ? inputToken->floatValue->contents :
+                                                            (double) inputToken->integerValue->contents;
             }
           else
             {
-              *DeftemplateError = TRUE;
+              *DeftemplateError = true;
               SyntaxErrorMessage(theEnv,"Deftemplate (Number expected)");
               rtnFuzzyValue(theEnv,fv);
               return(NULL);
@@ -816,7 +818,7 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
             {
               if (newy < -FUZZY_TOLERANCE)
                 {
-                  *DeftemplateError = TRUE;
+                  *DeftemplateError = true;
                   SyntaxErrorMessage(theEnv,"Deftemplate (Membership value must be >= 0.0)");
                   rtnFuzzyValue(theEnv,fv);
                   return(NULL);
@@ -827,7 +829,7 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
             {
               if (newy-1.0 > FUZZY_TOLERANCE)
                 {
-                  *DeftemplateError = TRUE;
+                  *DeftemplateError = true;
                   SyntaxErrorMessage(theEnv,"Deftemplate (Membership must be <= 1.0)");
                   rtnFuzzyValue(theEnv,fv);
                   return(NULL);
@@ -839,7 +841,7 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
            Get the next token, which should be closing bracket
           *************************************************/
           GetToken(theEnv,readSource,inputToken);
-          if (inputToken->type == RPAREN)
+          if (inputToken->tknType == RIGHT_PARENTHESIS_TOKEN)
            {
             /* if this point same as last don't store it */
             if (count == 0 || !FZ_EQUAL(newx, fv->x[count-1]) || !FZ_EQUAL(newy,fv->y[count-1]))
@@ -901,7 +903,7 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
            }     
           else
            {
-             *DeftemplateError = TRUE;
+             *DeftemplateError = true;
              SyntaxErrorMessage(theEnv,"Deftemplate ( ')' expected)");
              rtnFuzzyValue(theEnv,fv);
              return(NULL);
@@ -914,14 +916,15 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
            the start of another (x,y) pair.
           ***********************************************/
           GetToken(theEnv,readSource, inputToken);
-          if ((inputToken->type == RPAREN) || (inputToken->type == STOP))
+          if ((inputToken->tknType == RIGHT_PARENTHESIS_TOKEN) ||
+              (inputToken->tknType == STOP_TOKEN))
             {
               fv->n = count;
               return(fv);
             }
-          else if (inputToken->type != LPAREN)
+          else if (inputToken->tknType != LEFT_PARENTHESIS_TOKEN)
             {
-              *DeftemplateError = TRUE;
+              *DeftemplateError = true;
               SyntaxErrorMessage(theEnv,"Deftemplate ( '(' expected)");
               rtnFuzzyValue(theEnv,fv);
               return(NULL);
@@ -931,7 +934,7 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
               GetToken(theEnv,readSource, inputToken);
            }
          }
-     *DeftemplateError = TRUE;
+     *DeftemplateError = true;
      SyntaxErrorMessage(theEnv,"Deftemplate (Number expected)");
      rtnFuzzyValue(theEnv,fv);
      return(NULL);
@@ -948,39 +951,39 @@ static struct fuzzy_value *parseSingletonFuzzyValue(
 /******************************************************************/
 
 static struct fuzzy_value *parseStandardFuzzyValue(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *inputToken,
-  int  *DeftemplateError,
+  bool *DeftemplateError,
   struct fuzzyLv *u)
   {
     struct fuzzy_value *fv;
-    double alfa, beta, gamma;
+    double alfa, beta = 0.0, gamma;
     const char *name;
-    int z_function=FALSE, s_function=FALSE, pi_function=FALSE;
+    int z_function=false, s_function=false, pi_function=false;
     double xtolerance;
     
     /* get the name of the standard fuction */
-    if ((inputToken->type != SYMBOL) && (inputToken->type != STRING))
+    if ((inputToken->tknType != SYMBOL_TOKEN) && (inputToken->tknType != STRING_TOKEN))
       {
-        *DeftemplateError = TRUE;
+        *DeftemplateError = true;
          SyntaxErrorMessage(theEnv,"Deftemplate (Fuzzy standard function expected)");
          return(NULL);
       }
        
-    name = ValueToString(inputToken->value);
+    name = inputToken->lexemeValue->contents;
     /* classify the function */
     if ( (strcmp(name,"S")==0) || (strcmp(name,"s")==0) )
-        s_function = TRUE;
+        s_function = true;
     else if ( (strcmp(name,"Z")==0) || (strcmp(name,"z")==0) )
-        z_function = TRUE;
+        z_function = true;
     else if ( (strcmp(name, "PI") == 0) || (strcmp(name, "pi") == 0) )
-        pi_function = TRUE;
+        pi_function = true;
         
     /* check for valid function */
     if ( !s_function && !z_function && !pi_function)
       {
-         *DeftemplateError = TRUE;
+         *DeftemplateError = true;
          SyntaxErrorMessage(theEnv,"Deftemplate (Fuzzy standard function name expected)");
          return(NULL);
       }
@@ -999,20 +1002,20 @@ static struct fuzzy_value *parseStandardFuzzyValue(
 
     /* get first parameter */  
     GetToken(theEnv,readSource, inputToken);
-    if (inputToken->type != FLOAT && inputToken->type != INTEGER)
+    if (inputToken->tknType != FLOAT_TOKEN && inputToken->tknType != INTEGER_TOKEN)
        {
-         *DeftemplateError = TRUE;
+         *DeftemplateError = true;
          SyntaxErrorMessage(theEnv,"Deftemplate (Number expected)");
          return(NULL);
        }
     SavePPBuffer(theEnv," ");
-    alfa = (inputToken->type == FLOAT) ? (double)ValueToDouble(inputToken->value) : 
-                                         (double)ValueToInteger(inputToken->value);
+    alfa = (inputToken->tknType == FLOAT_TOKEN) ? inputToken->floatValue->contents :
+                                                  (double) inputToken->integerValue->contents;
     if  (pi_function)
       {
         if (alfa < 0.0)
            {
-              *DeftemplateError = TRUE;
+              *DeftemplateError = true;
               SyntaxErrorMessage(theEnv,"Deftemplate (PI function 1st parameter must be >= 0)");
                return(NULL);
            }
@@ -1022,7 +1025,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
       {
         if (u->from - alfa > xtolerance)
           {
-           *DeftemplateError = TRUE;
+           *DeftemplateError = true;
             SyntaxErrorMessage(theEnv,"Deftemplate (s or z function 1st parameter out of range (too small))");
             return(NULL);
           }
@@ -1032,7 +1035,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
       {
         if (alfa - u->to > xtolerance)
           {
-           *DeftemplateError = TRUE;
+           *DeftemplateError = true;
             SyntaxErrorMessage(theEnv,"Deftemplate (s or z function 1st parameter out of range (too large))");
             return(NULL);
           }
@@ -1041,20 +1044,20 @@ static struct fuzzy_value *parseStandardFuzzyValue(
 
     /* get 2nd parameter */   
     GetToken(theEnv,readSource, inputToken);
-    if (inputToken->type != FLOAT && inputToken->type != INTEGER)
+    if (inputToken->tknType != FLOAT_TOKEN && inputToken->tknType != INTEGER_TOKEN)
        {
-         *DeftemplateError = TRUE;
+         *DeftemplateError = true;
          SyntaxErrorMessage(theEnv,"Deftemplate (Number expected for standard function parameter)");
          return(NULL);
        }
     SavePPBuffer(theEnv," ");
-    gamma = (inputToken->type == FLOAT) ? (double)ValueToDouble(inputToken->value) : 
-                                            (double)ValueToInteger(inputToken->value);
+    gamma = (inputToken->tknType == FLOAT_TOKEN) ? inputToken->floatValue->contents :
+                                                   (double) inputToken->integerValue->contents;
     if (pi_function)
        { 
          if ((gamma > u->to) || (gamma < u->from))
            {
-             *DeftemplateError = TRUE;
+             *DeftemplateError = true;
              SyntaxErrorMessage(theEnv,"Deftemplate (pi function produces x values out of range)");
              return(NULL);
            }
@@ -1062,7 +1065,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
            {
              if (u->from - (gamma - beta) > xtolerance)
                {
-                 *DeftemplateError = TRUE;
+                 *DeftemplateError = true;
                  SyntaxErrorMessage(theEnv,"Deftemplate (pi function produces x values too small)");
                  return(NULL);
                }
@@ -1072,7 +1075,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
            {
              if (gamma + beta - u->to > xtolerance)
                {
-                 *DeftemplateError = TRUE;
+                 *DeftemplateError = true;
                  SyntaxErrorMessage(theEnv,"Deftemplate (pi function produces x values too large)");
                  return(NULL);
                }
@@ -1081,7 +1084,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
         }
      else if (gamma < alfa)
         {
-          *DeftemplateError = TRUE;
+          *DeftemplateError = true;
           SyntaxErrorMessage(theEnv,"Deftemplate (s or z function 2nd parameter must be >= 1st parameter)");
           return(NULL);
         }
@@ -1089,7 +1092,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
         {
          if (gamma - u->to > xtolerance)
            {
-            *DeftemplateError = TRUE;
+            *DeftemplateError = true;
             SyntaxErrorMessage(theEnv,"Deftemplate (S or Z function 2nd parameter out of range (too large))\n");
             return(NULL);
           }
@@ -1097,7 +1100,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
         }
 
      GetToken(theEnv,readSource, inputToken);
-     if (inputToken->type == RPAREN)
+     if (inputToken->tknType == RIGHT_PARENTHESIS_TOKEN)
         {
           int ftype;
           
@@ -1112,7 +1115,7 @@ static struct fuzzy_value *parseStandardFuzzyValue(
         }
      else
         {
-          *DeftemplateError = TRUE;
+          *DeftemplateError = true;
           SyntaxErrorMessage(theEnv,"Deftemplate ( ')' expected)");
           return(NULL);
         }
@@ -1134,83 +1137,76 @@ static struct fuzzy_value *parseStandardFuzzyValue(
 /*                                                                */
 /*                                                                */
 /******************************************************************/
-globle void InstallFuzzyTemplate(
+void InstallFuzzyTemplate(
   struct deftemplate *theDeftemplate)
-{
+  {
    struct primary_term *pt;
    struct fuzzyLv *fzTemplate = theDeftemplate->fuzzyTemplate;
 
    if (fzTemplate != NULL)
-      {
-       if (fzTemplate->units != NULL)
-          IncrementSymbolCount(fzTemplate->units);
+     {
+      if (fzTemplate->units != NULL)
+        { RetainLexeme(theDeftemplate->header.env,fzTemplate->units); }
           
-       pt = fzTemplate->primary_term_list;
-       while (pt != NULL)
-          {
-            /* set each whichDeftemplate field for each fuzzy value */
-            ((struct fuzzy_value *)ValueToFuzzyValue(pt->fuzzy_value_description))
-                           ->whichDeftemplate = theDeftemplate;
-            /* and install the fuzzy value */
-            InstallFuzzyValue((void *)pt->fuzzy_value_description);
-            /* NOTE: must decrease the busyCount of the deftemplate
+      pt = fzTemplate->primary_term_list;
+      while (pt != NULL)
+        {
+         /* set each whichDeftemplate field for each fuzzy value */
+         pt->fuzzy_value_description->contents->whichDeftemplate = theDeftemplate;
+         /* and install the fuzzy value */
+         InstallFuzzyValue((void *)pt->fuzzy_value_description);
+         /* NOTE: must decrease the busyCount of the deftemplate
                      that was just incremented by InstallFuzzyValue
                      because these are already associated with the
                      deftemplate and don't hold it busy -- in fact
                      if they do increment the busy count we can't
                      undeftemplate or redefine the deftemplate 
                      when it is not being used anywhere else!!
-            */
-            theDeftemplate->busyCount--;
-            pt = pt->next;
-          }
-      }  
-}
+         */
+         theDeftemplate->busyCount--;
+         pt = pt->next;
+        }
+     }
+  }
 
 
-globle void DeinstallFuzzyTemplate(
-  void *theEnv,
+void DeinstallFuzzyTemplate(
+  Environment *theEnv,
   struct fuzzyLv *fzTemplate)
-{
+  {
    struct primary_term *pt, *this_pt;
 
    if (fzTemplate != NULL)
-      {
-       if (fzTemplate->units != NULL)
-         {
-           DecrementSymbolCount(theEnv,fzTemplate->units);
-         }
+     {
+      if (fzTemplate->units != NULL)
+        { ReleaseLexeme(theEnv,fzTemplate->units); }
           
-       pt = fzTemplate->primary_term_list;
-       while (pt != NULL)
-          {
-            DeinstallFuzzyValue(theEnv,(void *)pt->fuzzy_value_description);
-            /* NOTE: must increase the busyCount of the deftemplate
-                     that was just deccremented by DeinstallFuzzyValue
-                     because these are already associated with the
-                     deftemplate and don't hold it busy.
-            */
-            (ValueToFuzzyValue(pt->fuzzy_value_description))->whichDeftemplate->busyCount++;
-            this_pt = pt;
-            pt = pt->next;
-            rtn_struct(theEnv,primary_term, this_pt);
-          }
+      pt = fzTemplate->primary_term_list;
+      while (pt != NULL)
+        {
+         DeinstallFuzzyValue(theEnv,pt->fuzzy_value_description);
+         /* NOTE: must increase the busyCount of the deftemplate
+                  that was just deccremented by DeinstallFuzzyValue
+                  because these are already associated with the
+                  deftemplate and don't hold it busy.
+         */
+         pt->fuzzy_value_description->contents->whichDeftemplate->busyCount++;
+         this_pt = pt;
+         pt = pt->next;
+         rtn_struct(theEnv,primary_term, this_pt);
+        }
                   
-       /* return the FuzzyLv struct */
-       rtn_struct(theEnv,fuzzyLv, fzTemplate);
-      }
-}
-
-
-
-
+      /* return the FuzzyLv struct */
+      rtn_struct(theEnv,fuzzyLv, fzTemplate);
+     }
+  }
 
 /******************************************************************/
 /* rtnPrimaryTermList:                                            */
 /*                                                                */
 /******************************************************************/
 static void rtnPrimaryTermList(
-  void *theEnv,
+  Environment *theEnv,
   struct primary_term *pt)
   {
    struct primary_term *this_one;
@@ -1223,27 +1219,24 @@ static void rtnPrimaryTermList(
      }
   }
 
-
-
-  
 /******************************************************************/
 /* InstallFuzzyValue                                              */
 /*                                                                */
 /* DeinstallFuzzyValue                                            */
 /*                                                                */
 /* 1 arg to each -- a (void *) which is really a ptr to a         */
-/*                  FUZZY_VALUE_HN (hash node)                    */
+/*                  CLIPSFuzzyValue (hash node)                   */
 /******************************************************************/
 
 
-globle void InstallFuzzyValue(
-  void *fv)
-{
+void InstallFuzzyValue(
+  CLIPSFuzzyValue *fv)
+  {
    struct fuzzy_value *fvptr;
    
    if (fv != NULL)
      {
-      fvptr= (struct fuzzy_value *)ValueToFuzzyValue(fv);
+      fvptr = fv->contents;
    
       if (fvptr != NULL)
         {
@@ -1253,21 +1246,21 @@ globle void InstallFuzzyValue(
      } 
 }
            
-globle void DeinstallFuzzyValue(
-  void *theEnv,
-  void *fv)
-{
+void DeinstallFuzzyValue(
+  Environment *theEnv,
+  CLIPSFuzzyValue *fv)
+  {
    struct fuzzy_value *fvptr;
 
    if (fv != NULL)
      {
-      fvptr= (struct fuzzy_value *)ValueToFuzzyValue(fv);
+      fvptr = fv->contents;
    
        if (fvptr != NULL)
          {
            fvptr->whichDeftemplate->busyCount--;
          }
-      DecrementFuzzyValueCount(theEnv,(struct fuzzyValueHashNode *) fv);
+      DecrementFuzzyValueCount(theEnv,fv);
      } 
 }
            
@@ -1278,20 +1271,17 @@ globle void DeinstallFuzzyValue(
 /*                                                                */
 /******************************************************************/
 
-globle void rtnFuzzyValue(
-  void *theEnv,
+void rtnFuzzyValue(
+  Environment *theEnv,
   struct fuzzy_value *fv)
-{
-    if (fv != NULL)
-      {
-         FrtnArray ( theEnv,fv->x, fv->maxn );
-         FrtnArray ( theEnv,fv->y, fv->maxn );
-         rtn_struct(theEnv,fuzzy_value, fv);
-         if (fv->name != NULL) rm(theEnv,fv->name, strlen(fv->name)+1);
-      }
-}
-
-
-
+  {
+   if (fv != NULL)
+     {
+      FrtnArray ( theEnv,fv->x, fv->maxn );
+      FrtnArray ( theEnv,fv->y, fv->maxn );
+      rtn_struct(theEnv,fuzzy_value, fv);
+      if (fv->name != NULL) rm(theEnv,fv->name, strlen(fv->name)+1);
+     }
+  }
 
 #endif  /* FUZZY_DEFTEMPLATES */

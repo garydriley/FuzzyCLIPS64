@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  11/18/17          */
+   /*             CLIPS Version 6.40  11/18/17            */
    /*                                                     */
-   /*                INSTANCE FUNCTIONS MODULE            */
+   /*               INSTANCE FUNCTIONS MODULE             */
    /*******************************************************/
 
 /*************************************************************/
@@ -57,84 +57,72 @@
 /*                                                           */
 /*      6.31: Fix for compilation with -std=c89.             */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_insfun
+
+#pragma once
+
 #define _H_insfun
 
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_moduldef
-#include "moduldef.h"
-#endif
-#ifndef _H_object
+#include "entities.h"
 #include "object.h"
-#endif
-
-#ifndef _H_pattern
-#include "pattern.h"
-#endif
 
 typedef struct igarbage
   {
-   INSTANCE_TYPE *ins;
+   Instance *ins;
    struct igarbage *nxt;
   } IGARBAGE;
 
 #define INSTANCE_TABLE_HASH_SIZE 8191
-#define InstanceSizeHeuristic(ins)      sizeof(INSTANCE_TYPE)
+#define InstanceSizeHeuristic(ins)      sizeof(Instance)
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INSFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           EnvIncrementInstanceCount(void *,void *);
-   LOCALE void                           EnvDecrementInstanceCount(void *,void *);
-   LOCALE void                           InitializeInstanceTable(void *);
-   LOCALE void                           CleanupInstances(void *);
-   LOCALE unsigned                       HashInstance(SYMBOL_HN *);
-   LOCALE void                           DestroyAllInstances(void *);
-   LOCALE void                           RemoveInstanceData(void *,INSTANCE_TYPE *);
-   LOCALE INSTANCE_TYPE                 *FindInstanceBySymbol(void *,SYMBOL_HN *);
-   LOCALE INSTANCE_TYPE                 *FindInstanceInModule(void *,SYMBOL_HN *,struct defmodule *,
-                                           struct defmodule *,unsigned);
-   LOCALE INSTANCE_SLOT                 *FindInstanceSlot(void *,INSTANCE_TYPE *,SYMBOL_HN *);
-   LOCALE int                            FindInstanceTemplateSlot(void *,DEFCLASS *,SYMBOL_HN *);
-   LOCALE int                            PutSlotValue(void *,INSTANCE_TYPE *,INSTANCE_SLOT *,DATA_OBJECT *,DATA_OBJECT *,const char *);
-   LOCALE int                            DirectPutSlotValue(void *,INSTANCE_TYPE *,INSTANCE_SLOT *,DATA_OBJECT *,DATA_OBJECT *);
-   LOCALE intBool                        ValidSlotValue(void *,DATA_OBJECT *,SLOT_DESC *,INSTANCE_TYPE *,const char *);
-   LOCALE INSTANCE_TYPE                 *CheckInstance(void *,const char *);
-   LOCALE void                           NoInstanceError(void *,const char *,const char *);
-   LOCALE void                           StaleInstanceAddress(void *,const char *,int);
-   LOCALE int                            EnvGetInstancesChanged(void *);
-   LOCALE void                           EnvSetInstancesChanged(void *,int);
-   LOCALE void                           PrintSlot(void *,const char *,SLOT_DESC *,INSTANCE_TYPE *,const char *);
-   LOCALE void                           PrintInstanceNameAndClass(void *,const char *,INSTANCE_TYPE *,intBool);
-   LOCALE void                           PrintInstanceName(void *,const char *,void *);
-   LOCALE void                           PrintInstanceLongForm(void *,const char *,void *);
+   void                           RetainInstance(Instance *);
+   void                           ReleaseInstance(Instance *);
+   void                           IncrementInstanceCallback(Environment *,Instance *);
+   void                           DecrementInstanceCallback(Environment *,Instance *);
+   void                           InitializeInstanceTable(Environment *);
+   void                           CleanupInstances(Environment *,void *);
+   unsigned                       HashInstance(CLIPSLexeme *);
+   void                           DestroyAllInstances(Environment *,void *);
+   void                           RemoveInstanceData(Environment *,Instance *);
+   Instance                      *FindInstanceBySymbol(Environment *,CLIPSLexeme *);
+   Instance                      *FindInstanceInModule(Environment *,CLIPSLexeme *,Defmodule *,
+                                                       Defmodule *,bool);
+   InstanceSlot                  *FindInstanceSlot(Environment *,Instance *,CLIPSLexeme *);
+   int                            FindInstanceTemplateSlot(Environment *,Defclass *,CLIPSLexeme *);
+   PutSlotError                   PutSlotValue(Environment *,Instance *,InstanceSlot *,UDFValue *,UDFValue *,const char *);
+   PutSlotError                   DirectPutSlotValue(Environment *,Instance *,InstanceSlot *,UDFValue *,UDFValue *);
+   PutSlotError                   ValidSlotValue(Environment *,UDFValue *,SlotDescriptor *,Instance *,const char *);
+   Instance                      *CheckInstance(UDFContext *);
+   void                           NoInstanceError(Environment *,const char *,const char *);
+   void                           StaleInstanceAddress(Environment *,const char *,int);
+   bool                           GetInstancesChanged(Environment *);
+   void                           SetInstancesChanged(Environment *,bool);
+   void                           PrintSlot(Environment *,const char *,SlotDescriptor *,Instance *,const char *);
+   void                           PrintInstanceNameAndClass(Environment *,const char *,Instance *,bool);
+   void                           PrintInstanceName(Environment *,const char *,Instance *);
+   void                           PrintInstanceLongForm(Environment *,const char *,Instance *);
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
-   LOCALE void                           DecrementObjectBasisCount(void *,void *);
-   LOCALE void                           IncrementObjectBasisCount(void *,void *);
-   LOCALE void                           MatchObjectFunction(void *,void *);
-   LOCALE intBool                        NetworkSynchronized(void *,void *);
-   LOCALE intBool                        InstanceIsDeleted(void *,void *);
+   void                           DecrementObjectBasisCount(Environment *,Instance *);
+   void                           IncrementObjectBasisCount(Environment *,Instance *);
+   void                           MatchObjectFunction(Environment *,Instance *);
+   bool                           NetworkSynchronized(Environment *,Instance *);
+   bool                           InstanceIsDeleted(Environment *,Instance *);
 #endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           DecrementInstanceCount(void *);
-   LOCALE int                            GetInstancesChanged(void);
-   LOCALE void                           IncrementInstanceCount(void *);
-   LOCALE void                           SetInstancesChanged(int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* _H_insfun */
 

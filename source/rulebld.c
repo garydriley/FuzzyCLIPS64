@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  06/28/17            */
+   /*            CLIPS Version 6.40  06/28/17             */
    /*                                                     */
    /*                  RULE BUILD MODULE                  */
    /*******************************************************/
@@ -35,16 +35,22 @@
 /*            DR#882 Logical retraction not working if       */
 /*            logical CE starts with test CE.                */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Incremental reset is always enabled.           */
+/*                                                           */
 /*************************************************************/
-
-#define _RULEBLD_SOURCE_
 
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT && (! RUN_TIME) && (! BLOAD_ONLY)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 
 #include "constant.h"
@@ -54,6 +60,7 @@
 #include "incrrset.h"
 #include "memalloc.h"
 #include "pattern.h"
+#include "prntutil.h"
 #include "reteutil.h"
 #include "router.h"
 #include "rulebld.h"
@@ -64,51 +71,51 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static struct joinNode        *FindShareableJoin(struct joinLink *,struct joinNode *,intBool,void *,unsigned,unsigned,
-                                                    unsigned,unsigned,struct expr *,struct expr *,
+   static struct joinNode        *FindShareableJoin(struct joinLink *,struct joinNode *,bool,void *,bool,bool,
+                                                    bool,bool,struct expr *,struct expr *,
                                                     struct expr *,struct expr *);
-   static int                     TestJoinForReuse(struct joinNode *,unsigned,unsigned,
-                                                   unsigned,unsigned,struct expr *,struct expr *,
+   static bool                    TestJoinForReuse(struct joinNode *,bool,bool,
+                                                   bool,bool,struct expr *,struct expr *,
                                                    struct expr *,struct expr *);
-   static struct joinNode        *CreateNewJoin(void *,struct expr *,struct expr *,struct joinNode *,void *,
-                                                int,int,int,struct expr *,struct expr *);
+   static struct joinNode        *CreateNewJoin(Environment *,struct expr *,struct expr *,struct joinNode *,void *,
+                                                bool,bool,bool,struct expr *,struct expr *);
 
 /****************************************************************/
 /* ConstructJoins: Integrates a set of pattern and join tests   */
 /*   associated with a rule into the pattern and join networks. */
 /****************************************************************/
-globle struct joinNode *ConstructJoins(
-  void *theEnv,
+struct joinNode *ConstructJoins(
+  Environment *theEnv,
   int logicalJoin,
   struct lhsParseNode *theLHS,
   int startDepth,
   struct joinNode *lastJoin,
-  int tryToReuse,
-  int firstJoin)
+  bool tryToReuse,
+  bool firstJoin)
   {
    struct patternNodeHeader *lastPattern;
    struct joinNode *listOfJoins = NULL;
    struct joinNode *oldJoin;
    int joinNumber = 1;
-   int isLogical, isExists;
+   bool isLogical, isExists;
    struct joinNode *lastRightJoin;
-   int lastIteration = FALSE;
-   int rhsType;
+   bool lastIteration = false;
+   unsigned short rhsType;
    struct expr *leftHash, *rightHash;
    void *rhsStruct;
    struct lhsParseNode *nextLHS;
    struct expr *networkTest, *secondaryNetworkTest, *secondaryExternalTest;
-   int joinFromTheRight;
+   bool joinFromTheRight;
    struct joinLink *theLinks;
-   intBool useLinks;
+   bool useLinks;
 
    if (theLHS == NULL)
      {
-      lastJoin = FindShareableJoin(DefruleData(theEnv)->RightPrimeJoins,NULL,TRUE,NULL,TRUE,
-                                   FALSE,FALSE,FALSE,NULL,NULL,NULL,NULL);
-                                        
+      lastJoin = FindShareableJoin(DefruleData(theEnv)->RightPrimeJoins,NULL,true,NULL,true,
+                                   false,false,false,NULL,NULL,NULL,NULL);
+
       if (lastJoin == NULL)
-        { lastJoin = CreateNewJoin(theEnv,NULL,NULL,NULL,NULL,FALSE,FALSE,FALSE,NULL,NULL); }
+        { lastJoin = CreateNewJoin(theEnv,NULL,NULL,NULL,NULL,false,false,false,NULL,NULL); }
      }
 
    /*=====================================================*/
@@ -125,7 +132,7 @@ globle struct joinNode *ConstructJoins(
       /* pattern is the next pattern. Otherwise skip over all */
       /* the patterns that belong to the group of subjoins.   */
       /*======================================================*/
-             
+
       nextLHS = theLHS->bottom;
       secondaryExternalTest = NULL;
 
@@ -134,49 +141,49 @@ globle struct joinNode *ConstructJoins(
          while ((nextLHS != NULL) &&
                 (nextLHS->endNandDepth > startDepth))
            { nextLHS = nextLHS->bottom; }
-         
+
          /*====================================================*/
          /* Variable nextLHS is now pointing to the end of the */
-         /* not/and group beginning with variable theLHS. If   */ 
+         /* not/and group beginning with variable theLHS. If   */
          /* the end depth of the group is less than the depth  */
          /* of the current enclosing not/and group, then this  */
          /* is the last iteration for the enclosing group.     */
          /*====================================================*/
-           
+
          if (nextLHS != NULL)
            {
             if (nextLHS->endNandDepth < startDepth)
-              { lastIteration = TRUE; }
+              { lastIteration = true; }
            }
-           
+
          if (! lastIteration)
            {
             if (nextLHS != NULL)
               { nextLHS = nextLHS->bottom; }
-           
+
             if ((nextLHS != NULL) &&
-                (nextLHS->type == TEST_CE) &&
+                (nextLHS->pnType == TEST_CE_NODE) &&
                 (nextLHS->beginNandDepth >= startDepth))
               {
                if (nextLHS->endNandDepth < startDepth)
-                 { lastIteration = TRUE; }
+                 { lastIteration = true; }
 
                secondaryExternalTest = nextLHS->networkTest;
-               nextLHS = nextLHS->bottom; 
+               nextLHS = nextLHS->bottom;
               }
            }
         }
       else if (theLHS->endNandDepth == startDepth)
         {
          if (nextLHS == NULL)
-           { lastIteration = TRUE; }
-         else if ((nextLHS->type == TEST_CE) &&
+           { lastIteration = true; }
+         else if ((nextLHS->pnType == TEST_CE_NODE) &&
                   (nextLHS->endNandDepth < startDepth))
-           { lastIteration = TRUE; }
+           { lastIteration = true; }
         }
       else // theLHS->endNandDepth < startDepth
         {
-         lastIteration = TRUE;
+         lastIteration = true;
         }
 
       /*===============================================*/
@@ -184,14 +191,14 @@ globle struct joinNode *ConstructJoins(
       /* construct the subgroup of patterns and use    */
       /* that as the RHS of the join to be added.      */
       /*===============================================*/
-                                         
+
       if (theLHS->beginNandDepth > startDepth)
         {
-         joinFromTheRight = TRUE;
+         joinFromTheRight = true;
          isExists = theLHS->existsNand;
 
          lastRightJoin = ConstructJoins(theEnv,logicalJoin,theLHS,startDepth+1,lastJoin,tryToReuse,firstJoin);
-            
+
          rhsStruct = lastRightJoin;
          rhsType = 0;
          lastPattern = NULL;
@@ -199,17 +206,17 @@ globle struct joinNode *ConstructJoins(
          secondaryNetworkTest = secondaryExternalTest;
          leftHash = theLHS->externalLeftHash;
          rightHash = theLHS->externalRightHash;
-        } 
-        
+        }
+
       /*=======================================================*/
       /* Otherwise, add the pattern to the appropriate pattern */
       /* network and use the pattern node containing the alpha */
       /* memory as the RHS of the join to be added.            */
       /*=======================================================*/
-      
+
       else if (theLHS->right == NULL)
         {
-         joinFromTheRight = FALSE;
+         joinFromTheRight = false;
          rhsType = 0;
          lastPattern = NULL;
          rhsStruct = NULL;
@@ -222,7 +229,7 @@ globle struct joinNode *ConstructJoins(
         }
       else
         {
-         joinFromTheRight = FALSE;
+         joinFromTheRight = false;
          rhsType = theLHS->patternType->positionInArray;
          lastPattern = (*theLHS->patternType->addPatternFunction)(theEnv,theLHS);
          rhsStruct = lastPattern;
@@ -232,30 +239,30 @@ globle struct joinNode *ConstructJoins(
          secondaryNetworkTest = theLHS->secondaryNetworkTest;
          leftHash = theLHS->leftHash;
          rightHash = theLHS->rightHash;
-        }      
+        }
 
       /*======================================================*/
       /* Determine if the join being added is a logical join. */
       /*======================================================*/
 
-      if ((startDepth == 1) && (joinNumber == logicalJoin)) isLogical = TRUE;
-      else isLogical = FALSE;
+      if ((startDepth == 1) && (joinNumber == logicalJoin)) isLogical = true;
+      else isLogical = false;
 
       /*===============================================*/
       /* Get the list of joins which could potentially */
       /* be reused in place of the join being added.   */
       /*===============================================*/
 
-      useLinks = TRUE;
+      useLinks = true;
       if (lastJoin != NULL)
         { theLinks = lastJoin->nextLinks; }
       else if (theLHS->right == NULL)
         { theLinks = DefruleData(theEnv)->RightPrimeJoins; }
       else if (lastPattern != NULL)
-        { 
+        {
          listOfJoins = lastPattern->entryJoin;
          theLinks = NULL;
-         useLinks = FALSE;
+         useLinks = false;
         }
       else
         { theLinks = lastRightJoin->nextLinks; }
@@ -264,63 +271,63 @@ globle struct joinNode *ConstructJoins(
       /* Determine if the next join to be added can be shared. */
       /*=======================================================*/
 
-      if ((tryToReuse == TRUE) &&
+      if ((tryToReuse == true) &&
           ((oldJoin = FindShareableJoin(theLinks,listOfJoins,useLinks,rhsStruct,firstJoin,
                                         theLHS->negated,isExists,isLogical,
                                         networkTest,secondaryNetworkTest,
                                         leftHash,rightHash)) != NULL) )
         {
 #if DEBUGGING_FUNCTIONS
-         if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) && GetPrintWhileLoading(theEnv))
-           { EnvPrintRouter(theEnv,WDIALOG,"=j"); }
+         if ((GetWatchItem(theEnv,"compilations") == 1) && GetPrintWhileLoading(theEnv))
+           { WriteString(theEnv,STDOUT,"=j"); }
 #endif
          lastJoin = oldJoin;
         }
       else
         {
-         tryToReuse = FALSE;
+         tryToReuse = false;
          if (! joinFromTheRight)
            {
             lastJoin = CreateNewJoin(theEnv,networkTest,secondaryNetworkTest,lastJoin,
-                                     lastPattern,FALSE,(int) theLHS->negated, isExists,
+                                     lastPattern,false,theLHS->negated, isExists,
                                      leftHash,rightHash);
             lastJoin->rhsType = rhsType;
            }
          else
            {
             lastJoin = CreateNewJoin(theEnv,networkTest,secondaryNetworkTest,lastJoin,
-                                     lastRightJoin,TRUE,(int) theLHS->negated, isExists,
+                                     lastRightJoin,true,theLHS->negated, isExists,
                                      leftHash,rightHash);
             lastJoin->rhsType = rhsType;
            }
         }
-      
+
       /*============================================*/
       /* If we've reached the end of the subgroup,  */
       /* then return the last join of the subgroup. */
       /*============================================*/
-      
+
       if (lastIteration)
         { break; }
-        
+
       /*=======================================*/
       /* Move on to the next join to be added. */
       /*=======================================*/
 
       theLHS = nextLHS;
       joinNumber++;
-      firstJoin = FALSE;
+      firstJoin = false;
      }
 
    /*=================================================*/
    /* Add the final join which stores the activations */
    /* of the rule. This join is never shared.         */
    /*=================================================*/
-   
+
    if (startDepth == 1)
      {
       lastJoin = CreateNewJoin(theEnv,NULL,NULL,lastJoin,NULL,
-                               FALSE,FALSE,FALSE,NULL,NULL);
+                               false,false,false,NULL,NULL);
      }
 
    /*===================================================*/
@@ -330,9 +337,9 @@ globle struct joinNode *ConstructJoins(
 
 #if DEBUGGING_FUNCTIONS
    if ((startDepth == 1) &&
-       (EnvGetWatchItem(theEnv,"compilations") == TRUE) && 
+       (GetWatchItem(theEnv,"compilations") == 1) &&
        GetPrintWhileLoading(theEnv))
-     { EnvPrintRouter(theEnv,WDIALOG,"\n"); }
+     { WriteString(theEnv,STDOUT,"\n"); }
 #endif
 
    /*=============================*/
@@ -347,8 +354,8 @@ globle struct joinNode *ConstructJoins(
 /*   test CEs to the closest preceeding pattern CE that is not  */
 /*   negated and is at the same not/and depth.                  */
 /****************************************************************/
-globle void AttachTestCEsToPatternCEs(
-  void *theEnv,
+void AttachTestCEsToPatternCEs(
+  Environment *theEnv,
   struct lhsParseNode *theLHS)
   {
    struct lhsParseNode *lastNode, *tempNode, *lastLastNode;
@@ -358,11 +365,11 @@ globle void AttachTestCEsToPatternCEs(
    /*=============================================================*/
    /* Attach test CEs that can be attached directly to a pattern. */
    /*=============================================================*/
-   
+
    lastLastNode = NULL;
    lastNode = theLHS;
    theLHS = lastNode->bottom;
-   
+
    while (theLHS != NULL)
      {
       /*================================================================*/
@@ -370,8 +377,8 @@ globle void AttachTestCEsToPatternCEs(
       /* in attaching a TEST CE to a preceding pattern CE. Update the   */
       /* variables that track the preceding pattern.                    */
       /*================================================================*/
-      
-      if (theLHS->type != TEST_CE)
+
+      if (theLHS->pnType != TEST_CE_NODE)
         {
          lastLastNode = lastNode;
          lastNode = theLHS;
@@ -384,7 +391,7 @@ globle void AttachTestCEsToPatternCEs(
       /* then we can't attach this TEST CE to a preceding    */
       /* pattern CE and should skip over it.                 */
       /*=====================================================*/
-      
+
       /*================================================*/
       /* Case #2                                        */
       /*    Pattern CE                                  */
@@ -421,7 +428,7 @@ globle void AttachTestCEsToPatternCEs(
       /* pattern CE beginning the not/and or exists/and */
       /* pattern group.                                 */
       /*================================================*/
-      
+
       if (theLHS->beginNandDepth > lastNode->endNandDepth)
         {
          lastLastNode = lastNode;
@@ -429,7 +436,7 @@ globle void AttachTestCEsToPatternCEs(
          theLHS = theLHS->bottom;
          continue;
         }
-        
+
       /*==============================================================*/
       /* If the preceding pattern was the end of a NOT/AND CE group,  */
       /* then we can't attach this TEST CE to a preceding pattern and */
@@ -449,7 +456,7 @@ globle void AttachTestCEsToPatternCEs(
       /*===================================================*/
       /* If the TEST CE does not close the preceding CE... */
       /*===================================================*/
-         
+
       /*===================================================*/
       /* Case #1                                           */
       /*    Pattern CE                                     */
@@ -467,7 +474,7 @@ globle void AttachTestCEsToPatternCEs(
       /* The test expression can be directly attached to   */
       /* the network expression for the preceding pattern. */
       /*===================================================*/
-         
+
       if (theLHS->beginNandDepth == theLHS->endNandDepth)
         {
          /*==============================================================*/
@@ -475,7 +482,7 @@ globle void AttachTestCEsToPatternCEs(
          /* a single pattern, then attached the TEST CE to the secondary */
          /* test, otherwise combine it with the primary network test.    */
          /*==============================================================*/
-            
+
          if (lastNode->negated)
            {
             lastNode->secondaryNetworkTest =
@@ -487,7 +494,7 @@ globle void AttachTestCEsToPatternCEs(
                CombineExpressions(theEnv,lastNode->networkTest,theLHS->networkTest);
            }
         }
-          
+
       /*=================================================================*/
       /* Otherwise the TEST CE closes a prior NOT/AND  or EXISTS/AND CE. */
       /*=================================================================*/
@@ -495,11 +502,11 @@ globle void AttachTestCEsToPatternCEs(
       /*==================================================*/
       /* If these are the first two patterns in the rule. */
       /*==================================================*/
-      
+
       /*=========*/
       /* Case #3 */
       /*=========*/
-      
+
       else if (lastLastNode == NULL)
         {
          /*=========================================================*/
@@ -512,21 +519,21 @@ globle void AttachTestCEsToPatternCEs(
          /*                                                         */
          /* Collapse the nand pattern.                              */
          /*=========================================================*/
-         
-         if ((lastNode->negated == FALSE) &&
-             (lastNode->existsNand == FALSE))
+
+         if ((lastNode->negated == false) &&
+             (lastNode->existsNand == false))
            {
             lastNode->beginNandDepth = theLHS->endNandDepth;
-            
-            lastNode->negated = TRUE;
-            
+
+            lastNode->negated = true;
+
             lastNode->networkTest =
                CombineExpressions(theEnv,lastNode->networkTest,lastNode->externalNetworkTest);
             lastNode->networkTest =
                CombineExpressions(theEnv,lastNode->networkTest,theLHS->networkTest);
             lastNode->externalNetworkTest = NULL;
            }
-         
+
          /*=================================================================*/
          /* The prior pattern is a single negated pattern within a not/and. */
          /*                                                                 */
@@ -536,10 +543,10 @@ globle void AttachTestCEsToPatternCEs(
          /*       =>)                                                       */
          /*                                                                 */
          /*=================================================================*/
-         
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == FALSE) &&
-                  (lastNode->existsNand == FALSE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == false) &&
+                  (lastNode->existsNand == false))
            {
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
@@ -554,10 +561,10 @@ globle void AttachTestCEsToPatternCEs(
          /*       =>)                                                      */
          /*                                                                */
          /*================================================================*/
-            
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == TRUE) &&
-                  (lastNode->existsNand == FALSE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == true) &&
+                  (lastNode->existsNand == false))
            {
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
@@ -573,24 +580,24 @@ globle void AttachTestCEsToPatternCEs(
          /*                                                             */
          /* Collapse the exists pattern.                                */
          /*=============================================================*/
-         
-         else if ((lastNode->negated == FALSE) &&
-                  (lastNode->exists == FALSE) &&
-                  (lastNode->existsNand == TRUE))
+
+         else if ((lastNode->negated == false) &&
+                  (lastNode->exists == false) &&
+                  (lastNode->existsNand == true))
            {
             lastNode->beginNandDepth = theLHS->endNandDepth;
-            
-            lastNode->existsNand = FALSE;
-            lastNode->exists = TRUE;
-            lastNode->negated = TRUE;
-               
+
+            lastNode->existsNand = false;
+            lastNode->exists = true;
+            lastNode->negated = true;
+
             /*===================================================*/
             /* For the first two patterns, there shouldn't be an */
             /* externalNetwork test, but this code is included   */
             /* to match the other cases where patterns are       */
             /* collapsed.                                        */
             /*===================================================*/
-            
+
             lastNode->networkTest =
                CombineExpressions(theEnv,lastNode->networkTest,lastNode->externalNetworkTest);
             lastNode->networkTest =
@@ -608,10 +615,10 @@ globle void AttachTestCEsToPatternCEs(
          /*       =>)                             */
          /*                                       */
          /*=======================================*/
-            
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == FALSE) &&
-                  (lastNode->existsNand == TRUE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == false) &&
+                  (lastNode->existsNand == true))
            {
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
@@ -628,14 +635,14 @@ globle void AttachTestCEsToPatternCEs(
          /*                                      */
          /* Collapse the exists pattern.         */
          /*======================================*/
-         
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == TRUE) &&
-                  (lastNode->existsNand == TRUE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == true) &&
+                  (lastNode->existsNand == true))
            {
             lastNode->beginNandDepth = theLHS->endNandDepth;
-            
-            lastNode->existsNand = FALSE;
+
+            lastNode->existsNand = false;
 
             /*===================================================*/
             /* For the first two patterns, there shouldn't be an */
@@ -643,25 +650,25 @@ globle void AttachTestCEsToPatternCEs(
             /* to match the other cases where patterns are       */
             /* collapsed.                                        */
             /*===================================================*/
-            
+
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,lastNode->externalNetworkTest);
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
             lastNode->externalNetworkTest = NULL;
            }
-           
+
          /*==============================================*/
          /* Unhandled case which should not be possible. */
          /*==============================================*/
-         
+
          else
            {
             SystemError(theEnv,"RULEBLD",1);
-            EnvExitRouter(theEnv,EXIT_FAILURE);
+            ExitRouter(theEnv,EXIT_FAILURE);
            }
         }
-      
+
       /*==============================================*/
       /* Otherwise, there are two preceding patterns. */
       /*==============================================*/
@@ -678,7 +685,7 @@ globle void AttachTestCEsToPatternCEs(
       /*       Depth Begin: N               */
       /*       Depth End:   M where M < N   */
       /*====================================*/
-      
+
       else if (lastLastNode->endNandDepth == theLHS->beginNandDepth)
         {
          /*==============================================================*/
@@ -686,7 +693,7 @@ globle void AttachTestCEsToPatternCEs(
          /* a single pattern, then attached the TEST CE to the secondary */
          /* test, otherwise combine it with the primary network test.    */
          /*==============================================================*/
-         
+
          if (lastNode->negated)
            {
             lastNode->secondaryNetworkTest =
@@ -698,7 +705,7 @@ globle void AttachTestCEsToPatternCEs(
                CombineExpressions(theEnv,lastNode->networkTest,theLHS->networkTest);
            }
         }
-           
+
       /*====================================*/
       /* Case #5                            */
       /*    Pattern CE                      */
@@ -711,7 +718,7 @@ globle void AttachTestCEsToPatternCEs(
       /*       Depth Begin: N               */
       /*       Depth End:   M where M < N   */
       /*====================================*/
-            
+
       else if (lastLastNode->endNandDepth < theLHS->beginNandDepth)
         {
          /*=========================================================*/
@@ -728,27 +735,27 @@ globle void AttachTestCEsToPatternCEs(
          /* group can be collapsed into a single negated pattern.   */
          /*=========================================================*/
 
-         if ((lastNode->negated == FALSE) &&
-             (lastNode->existsNand == FALSE))
+         if ((lastNode->negated == false) &&
+             (lastNode->existsNand == false))
            {
             /*====================*/
             /* Use max of R and M */
             /*====================*/
-            
+
             if (lastLastNode->endNandDepth > theLHS->endNandDepth)
               { lastNode->beginNandDepth =  lastLastNode->endNandDepth; }
              else
               { lastNode->beginNandDepth =  theLHS->endNandDepth; }
 
-            lastNode->negated = TRUE;
-               
+            lastNode->negated = true;
+
             lastNode->networkTest =
                CombineExpressions(theEnv,lastNode->networkTest,lastNode->externalNetworkTest);
             lastNode->networkTest =
                CombineExpressions(theEnv,lastNode->networkTest,theLHS->networkTest);
             lastNode->externalNetworkTest = NULL;
            }
-          
+
          /*=================================================================*/
          /* The prior pattern is a single negated pattern within a not/and. */
          /*                                                                 */
@@ -758,15 +765,15 @@ globle void AttachTestCEsToPatternCEs(
          /*                 (test (= 1 1))))                                */
          /*       =>)                                                       */
          /*=================================================================*/
-            
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == FALSE) &&
-                  (lastNode->existsNand == FALSE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == false) &&
+                  (lastNode->existsNand == false))
            {
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
            }
-  
+
          /*================================================================*/
          /* The prior pattern is a single exists pattern within a not/and. */
          /*                                                                */
@@ -776,15 +783,15 @@ globle void AttachTestCEsToPatternCEs(
          /*                 (test (= 1 1))))                               */
          /*       =>)                                                      */
          /*================================================================*/
-            
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == TRUE) &&
-                  (lastNode->existsNand == FALSE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == true) &&
+                  (lastNode->existsNand == false))
            {
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
            }
-                 
+
          /*=============================================================*/
          /* The prior pattern is a single pattern within an exists/and. */
          /*                                                             */
@@ -798,27 +805,27 @@ globle void AttachTestCEsToPatternCEs(
          /* network expression for the pattern and the pattern          */
          /* group can be collapsed into a single exists pattern.        */
          /*=============================================================*/
-            
-         else if ((lastNode->negated == FALSE) &&
-                  (lastNode->exists == FALSE) &&
-                  (lastNode->existsNand == TRUE))
+
+         else if ((lastNode->negated == false) &&
+                  (lastNode->exists == false) &&
+                  (lastNode->existsNand == true))
            {
             if (lastLastNode->endNandDepth > theLHS->endNandDepth)
               { lastNode->beginNandDepth =  lastLastNode->endNandDepth; }
              else
               { lastNode->beginNandDepth =  theLHS->endNandDepth; }
 
-            lastNode->existsNand = FALSE;
-            lastNode->exists = TRUE;
-            lastNode->negated = TRUE;
-            
+            lastNode->existsNand = false;
+            lastNode->exists = true;
+            lastNode->negated = true;
+
             lastNode->networkTest =
                CombineExpressions(theEnv,lastNode->networkTest,lastNode->externalNetworkTest);
             lastNode->networkTest =
                CombineExpressions(theEnv,lastNode->networkTest,theLHS->networkTest);
             lastNode->externalNetworkTest = NULL;
            }
-              
+
          /*=======================================*/
          /* The prior pattern is a single negated */
          /* pattern within an exists/and.         */
@@ -830,10 +837,10 @@ globle void AttachTestCEsToPatternCEs(
          /*       =>)                             */
          /*                                       */
          /*=======================================*/
-            
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == FALSE) &&
-                  (lastNode->existsNand == TRUE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == false) &&
+                  (lastNode->existsNand == true))
            {
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
@@ -850,40 +857,40 @@ globle void AttachTestCEsToPatternCEs(
          /*       =>)                            */
          /*                                      */
          /*======================================*/
-         
-         else if ((lastNode->negated == TRUE) &&
-                  (lastNode->exists == TRUE) &&
-                  (lastNode->existsNand == TRUE))
+
+         else if ((lastNode->negated == true) &&
+                  (lastNode->exists == true) &&
+                  (lastNode->existsNand == true))
            {
             lastNode->secondaryNetworkTest =
                CombineExpressions(theEnv,lastNode->secondaryNetworkTest,theLHS->networkTest);
            }
-           
+
          /*==============================================*/
          /* Unhandled case which should not be possible. */
          /*==============================================*/
-      
+
          else
            {
             SystemError(theEnv,"RULEBLD",2);
-            EnvExitRouter(theEnv,EXIT_FAILURE);
+            ExitRouter(theEnv,EXIT_FAILURE);
            }
         }
-        
+
       /*==============================================*/
       /* Unhandled case which should not be possible. */
       /*==============================================*/
-      
+
       else
         {
          SystemError(theEnv,"RULEBLD",3);
-         EnvExitRouter(theEnv,EXIT_FAILURE);
+         ExitRouter(theEnv,EXIT_FAILURE);
         }
-        
+
       /*=================================================*/
       /* Remove the TEST CE and continue to the next CE. */
       /*=================================================*/
-         
+
       theLHS->networkTest = NULL;
       tempNode = theLHS->bottom;
       theLHS->bottom = NULL;
@@ -893,7 +900,7 @@ globle void AttachTestCEsToPatternCEs(
       theLHS = tempNode;
      }
   }
-  
+
 /********************************************************************/
 /* FindShareableJoin: Determines whether a join exists that can be  */
 /*   reused for the join currently being added to the join network. */
@@ -903,30 +910,30 @@ globle void AttachTestCEsToPatternCEs(
 static struct joinNode *FindShareableJoin(
   struct joinLink *theLinks,
   struct joinNode *listOfJoins,
-  intBool useLinks,
+  bool useLinks,
   void *rhsStruct,
-  unsigned int firstJoin,
-  unsigned int negatedRHS,
-  unsigned int existsRHS,
-  unsigned int isLogical,
+  bool firstJoin,
+  bool negatedRHS,
+  bool existsRHS,
+  bool isLogical,
   struct expr *joinTest,
   struct expr *secondaryJoinTest,
   struct expr *leftHash,
   struct expr *rightHash)
-  {   
+  {
    /*========================================*/
    /* Loop through all of the joins in the   */
    /* list of potential candiates for reuse. */
    /*========================================*/
 
    if (useLinks)
-     { 
+     {
       if (theLinks != NULL)
         { listOfJoins = theLinks->join; }
       else
         { listOfJoins = NULL; }
      }
-     
+
    while (listOfJoins != NULL)
      {
       /*=========================================================*/
@@ -956,7 +963,7 @@ static struct joinNode *FindShareableJoin(
       if (useLinks)
         {
          theLinks = theLinks->next;
-         if (theLinks != NULL) 
+         if (theLinks != NULL)
            { listOfJoins = theLinks->join; }
          else
            { listOfJoins = NULL; }
@@ -970,20 +977,20 @@ static struct joinNode *FindShareableJoin(
    /* reusable join was not found.   */
    /*================================*/
 
-   return(NULL);
+   return NULL;
   }
 
 /**************************************************************/
 /* TestJoinForReuse: Determines if the specified join can be  */
 /*   shared with a join being added for a rule being defined. */
-/*   Returns TRUE if the join can be shared, otherwise FALSE. */
+/*   Returns true if the join can be shared, otherwise false. */
 /**************************************************************/
-static int TestJoinForReuse(
+static bool TestJoinForReuse(
   struct joinNode *testJoin,
-  unsigned firstJoin,
-  unsigned negatedRHS,
-  unsigned existsRHS,
-  unsigned int isLogical,
+  bool firstJoin,
+  bool negatedRHS,
+  bool existsRHS,
+  bool isLogical,
   struct expr *joinTest,
   struct expr *secondaryJoinTest,
   struct expr *leftHash,
@@ -991,25 +998,25 @@ static int TestJoinForReuse(
   {
    /*==================================================*/
    /* The first join of a rule may only be shared with */
-   /* a join that has its firstJoin field set to TRUE. */
+   /* a join that has its firstJoin field set to true. */
    /*==================================================*/
 
-   if (testJoin->firstJoin != firstJoin) return(FALSE);
+   if (testJoin->firstJoin != firstJoin) return false;
 
    /*========================================================*/
    /* A join connected to a not CE may only be shared with a */
-   /* join that has its patternIsNegated field set to TRUE.  */
+   /* join that has its patternIsNegated field set to true.  */
    /*========================================================*/
 
-   if ((testJoin->patternIsNegated != negatedRHS) && (! existsRHS)) return(FALSE);
+   if ((testJoin->patternIsNegated != negatedRHS) && (! existsRHS)) return false;
 
    /*==========================================================*/
    /* A join connected to an exists CE may only be shared with */
-   /* a join that has its patternIsExists field set to TRUE.   */
+   /* a join that has its patternIsExists field set to true.   */
    /*==========================================================*/
 
-   if (testJoin->patternIsExists != existsRHS) return(FALSE);
-   
+   if (testJoin->patternIsExists != existsRHS) return false;
+
    /*==========================================================*/
    /* If the join added is associated with a logical CE, then  */
    /* either the join to be shared must be associated with a   */
@@ -1017,59 +1024,59 @@ static int TestJoinForReuse(
    /* joins associate an extra field with each partial match). */
    /*==========================================================*/
 
-   if ((isLogical == TRUE) &&
-       (testJoin->logicalJoin == FALSE) &&
+   if ((isLogical == true) &&
+       (testJoin->logicalJoin == false) &&
        BetaMemoryNotEmpty(testJoin))
-     { return(FALSE); }
+     { return false; }
 
    /*===============================================================*/
    /* The expression associated with the join must be identical to  */
    /* the networkTest expression stored with the join to be shared. */
    /*===============================================================*/
 
-   if (IdenticalExpression(testJoin->networkTest,joinTest) != TRUE)
-     { return(FALSE); }
+   if (IdenticalExpression(testJoin->networkTest,joinTest) != true)
+     { return false; }
 
-   if (IdenticalExpression(testJoin->secondaryNetworkTest,secondaryJoinTest) != TRUE)
-     { return(FALSE); }
-     
+   if (IdenticalExpression(testJoin->secondaryNetworkTest,secondaryJoinTest) != true)
+     { return false; }
+
    /*====================================================================*/
    /* The alpha memory hashing values associated with the join must be   */
    /* identical to the hashing values stored with the join to be shared. */
    /*====================================================================*/
 
-   if (IdenticalExpression(testJoin->leftHash,leftHash) != TRUE)
-     { return(FALSE); }
+   if (IdenticalExpression(testJoin->leftHash,leftHash) != true)
+     { return false; }
 
-   if (IdenticalExpression(testJoin->rightHash,rightHash) != TRUE)
-     { return(FALSE); }
-     
+   if (IdenticalExpression(testJoin->rightHash,rightHash) != true)
+     { return false; }
+
    /*=============================================*/
    /* The join can be shared since all conditions */
    /* for sharing have been satisfied.            */
    /*=============================================*/
 
-   return(TRUE);
+   return true;
   }
 
 /*************************************************************************/
 /* CreateNewJoin: Creates a new join and links it into the join network. */
 /*************************************************************************/
 static struct joinNode *CreateNewJoin(
-  void *theEnv,
+  Environment *theEnv,
   struct expr *joinTest,
   struct expr *secondaryJoinTest,
   struct joinNode *lhsEntryStruct,
   void *rhsEntryStruct,
-  int joinFromTheRight,
-  int negatedRHSPattern,
-  int existsRHSPattern,
+  bool joinFromTheRight,
+  bool negatedRHSPattern,
+  bool existsRHSPattern,
   struct expr *leftHash,
   struct expr *rightHash)
   {
    struct joinNode *newJoin;
    struct joinLink *theLink;
-   
+
    /*===============================================*/
    /* If compilations are being watch, print +j to  */
    /* indicate that a new join has been created for */
@@ -1078,8 +1085,8 @@ static struct joinNode *CreateNewJoin(
    /*===============================================*/
 
 #if DEBUGGING_FUNCTIONS
-   if ((EnvGetWatchItem(theEnv,"compilations") == TRUE) && GetPrintWhileLoading(theEnv))
-     { EnvPrintRouter(theEnv,WDIALOG,"+j"); }
+   if ((GetWatchItem(theEnv,"compilations") == 1) && GetPrintWhileLoading(theEnv))
+     { WriteString(theEnv,STDOUT,"+j"); }
 #endif
 
    /*======================*/
@@ -1087,17 +1094,17 @@ static struct joinNode *CreateNewJoin(
    /*======================*/
 
    newJoin = get_struct(theEnv,joinNode);
-   
+
    /*======================================================*/
    /* The first join of a rule does not have a beta memory */
    /* unless the RHS pattern is an exists or not CE.       */
    /*======================================================*/
-   
+
    if ((lhsEntryStruct != NULL) || existsRHSPattern || negatedRHSPattern || joinFromTheRight)
      {
-      if (leftHash == NULL)     
-        {      
-         newJoin->leftMemory = get_struct(theEnv,betaMemory); 
+      if (leftHash == NULL)
+        {
+         newJoin->leftMemory = get_struct(theEnv,betaMemory);
          newJoin->leftMemory->beta = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *));
          newJoin->leftMemory->beta[0] = NULL;
          newJoin->leftMemory->last = NULL;
@@ -1106,36 +1113,36 @@ static struct joinNode *CreateNewJoin(
          }
       else
         {
-         newJoin->leftMemory = get_struct(theEnv,betaMemory); 
+         newJoin->leftMemory = get_struct(theEnv,betaMemory);
          newJoin->leftMemory->beta = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *) * INITIAL_BETA_HASH_SIZE);
          memset(newJoin->leftMemory->beta,0,sizeof(struct partialMatch *) * INITIAL_BETA_HASH_SIZE);
          newJoin->leftMemory->last = NULL;
          newJoin->leftMemory->size = INITIAL_BETA_HASH_SIZE;
          newJoin->leftMemory->count = 0;
         }
-      
+
       /*===========================================================*/
       /* If the first join of a rule connects to an exists or not  */
       /* CE, then we create an empty partial match for the usually */
       /* empty left beta memory so that we can track the current   */
       /* current right memory partial match satisfying the CE.     */
       /*===========================================================*/
-         
+
       if ((lhsEntryStruct == NULL) && (existsRHSPattern || negatedRHSPattern || joinFromTheRight))
         {
-         newJoin->leftMemory->beta[0] = CreateEmptyPartialMatch(theEnv); 
+         newJoin->leftMemory->beta[0] = CreateEmptyPartialMatch(theEnv);
          newJoin->leftMemory->beta[0]->owner = newJoin;
          newJoin->leftMemory->count = 1;
         }
      }
    else
      { newJoin->leftMemory = NULL; }
-     
+
    if (joinFromTheRight)
      {
-      if (leftHash == NULL)     
-        {      
-         newJoin->rightMemory = get_struct(theEnv,betaMemory); 
+      if (leftHash == NULL)
+        {
+         newJoin->rightMemory = get_struct(theEnv,betaMemory);
          newJoin->rightMemory->beta = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *));
          newJoin->rightMemory->last = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *));
          newJoin->rightMemory->beta[0] = NULL;
@@ -1145,42 +1152,42 @@ static struct joinNode *CreateNewJoin(
          }
       else
         {
-         newJoin->rightMemory = get_struct(theEnv,betaMemory); 
+         newJoin->rightMemory = get_struct(theEnv,betaMemory);
          newJoin->rightMemory->beta = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *) * INITIAL_BETA_HASH_SIZE);
          newJoin->rightMemory->last = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *) * INITIAL_BETA_HASH_SIZE);
          memset(newJoin->rightMemory->beta,0,sizeof(struct partialMatch *) * INITIAL_BETA_HASH_SIZE);
          memset(newJoin->rightMemory->last,0,sizeof(struct partialMatch *) * INITIAL_BETA_HASH_SIZE);
          newJoin->rightMemory->size = INITIAL_BETA_HASH_SIZE;
          newJoin->rightMemory->count = 0;
-        }     
+        }
      }
    else if (rhsEntryStruct == NULL)
      {
-      newJoin->rightMemory = get_struct(theEnv,betaMemory); 
+      newJoin->rightMemory = get_struct(theEnv,betaMemory);
       newJoin->rightMemory->beta = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *));
       newJoin->rightMemory->last = (struct partialMatch **) genalloc(theEnv,sizeof(struct partialMatch *));
       newJoin->rightMemory->beta[0] = CreateEmptyPartialMatch(theEnv);
       newJoin->rightMemory->beta[0]->owner = newJoin;
-      newJoin->rightMemory->beta[0]->rhsMemory = TRUE;
+      newJoin->rightMemory->beta[0]->rhsMemory = true;
       newJoin->rightMemory->last[0] = newJoin->rightMemory->beta[0];
       newJoin->rightMemory->size = 1;
-      newJoin->rightMemory->count = 1;    
+      newJoin->rightMemory->count = 1;
      }
    else
      { newJoin->rightMemory = NULL; }
-     
+
    newJoin->nextLinks = NULL;
    newJoin->joinFromTheRight = joinFromTheRight;
-   
+
    if (existsRHSPattern)
-     { newJoin->patternIsNegated = FALSE; }
+     { newJoin->patternIsNegated = false; }
    else
      { newJoin->patternIsNegated = negatedRHSPattern; }
    newJoin->patternIsExists = existsRHSPattern;
 
-   newJoin->marked = FALSE;
-   newJoin->initialize = EnvGetIncrementalReset(theEnv);
-   newJoin->logicalJoin = FALSE;
+   newJoin->marked = false;
+   newJoin->initialize = true;
+   newJoin->logicalJoin = false;
    newJoin->ruleToActivate = NULL;
    newJoin->memoryLeftAdds = 0;
    newJoin->memoryRightAdds = 0;
@@ -1196,13 +1203,13 @@ static struct joinNode *CreateNewJoin(
 
    newJoin->networkTest = AddHashedExpression(theEnv,joinTest);
    newJoin->secondaryNetworkTest = AddHashedExpression(theEnv,secondaryJoinTest);
-   
+
    /*=====================================================*/
    /* Install the expression used to hash the beta memory */
    /* partial match to determine the location to search   */
    /* in the alpha memory.                                */
    /*=====================================================*/
-   
+
    newJoin->leftHash = AddHashedExpression(theEnv,leftHash);
    newJoin->rightHash = AddHashedExpression(theEnv,rightHash);
 
@@ -1214,19 +1221,19 @@ static struct joinNode *CreateNewJoin(
 
    if (lhsEntryStruct == NULL)
      {
-      newJoin->firstJoin = TRUE;
+      newJoin->firstJoin = true;
       newJoin->depth = 1;
      }
    else
      {
-      newJoin->firstJoin = FALSE;
+      newJoin->firstJoin = false;
       newJoin->depth = lhsEntryStruct->depth;
       newJoin->depth++; /* To work around Sparcworks C compiler bug */
-      
+
       theLink = get_struct(theEnv,joinLink);
       theLink->join = newJoin;
       theLink->enterDirection = LHS;
-      
+
       /*==============================================================*/
       /* If this is a join from the right, then there should already  */
       /* be a link from the previous join to the other join in the    */
@@ -1239,7 +1246,7 @@ static struct joinNode *CreateNewJoin(
       /* path is processed first, the partial matches from that path  */
       /* will prevent partial matches on this path.                   */
       /*==============================================================*/
-      
+
       if ((joinFromTheRight) && (lhsEntryStruct->nextLinks != NULL))
         {
          theLink->next = lhsEntryStruct->nextLinks->next;
@@ -1259,9 +1266,9 @@ static struct joinNode *CreateNewJoin(
    /*=======================================================*/
 
    newJoin->rightSideEntryStructure = rhsEntryStruct;
-   
+
    if (rhsEntryStruct == NULL)
-     { 
+     {
       if (newJoin->firstJoin)
         {
          theLink = get_struct(theEnv,joinLink);
@@ -1270,12 +1277,12 @@ static struct joinNode *CreateNewJoin(
          theLink->next = DefruleData(theEnv)->RightPrimeJoins;
          DefruleData(theEnv)->RightPrimeJoins = theLink;
         }
-        
+
       newJoin->rightMatchNode = NULL;
-        
-      return(newJoin); 
+
+      return(newJoin);
      }
-     
+
    /*===========================================================*/
    /* If the first join of a rule is a not CE, then it needs to */
    /* be "primed" under certain circumstances. This used to be  */
@@ -1283,7 +1290,7 @@ static struct joinNode *CreateNewJoin(
    /* with the not CE as its first pattern, but this alternate  */
    /* mechanism is now used so patterns don't have to be added. */
    /*===========================================================*/
-     
+
    if (newJoin->firstJoin && (newJoin->patternIsNegated || newJoin->joinFromTheRight) && (! newJoin->patternIsExists))
      {
       theLink = get_struct(theEnv,joinLink);
@@ -1292,7 +1299,7 @@ static struct joinNode *CreateNewJoin(
       theLink->next = DefruleData(theEnv)->LeftPrimeJoins;
       DefruleData(theEnv)->LeftPrimeJoins = theLink;
      }
-       
+
    if (joinFromTheRight)
      {
       theLink = get_struct(theEnv,joinLink);

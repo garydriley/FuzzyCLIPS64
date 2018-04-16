@@ -9,8 +9,6 @@ FuzzyCLIPS>
    (exists (a ?))
    =>)
 FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (assert (a 1))
 ==> f-1     (a 1) CF 1.00 
 ==> Activation 0      test: *
@@ -33,15 +31,12 @@ FuzzyCLIPS> (assert (a 4))
 ==> Activation 0      test: *
 <Fact-4>
 FuzzyCLIPS> (clear)
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> 
 (defrule test
    (a ?x)
    (exists (b ?x ?))
    =>)
 FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (assert (b 1 1))
 ==> f-1     (b 1 1) CF 1.00 
 <Fact-1>

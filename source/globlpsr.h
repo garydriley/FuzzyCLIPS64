@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*             DEFGLOBAL PARSER HEADER FILE            */
    /*******************************************************/
@@ -30,33 +30,28 @@
 /*                                                           */
 /*            Moved WatchGlobals global to defglobalData.    */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_globlpsr
 
+#pragma once
+
 #define _H_globlpsr
 
-#ifdef _DEFGLOBL_SOURCE_
-struct defglobal;
-#endif
-
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GLOBLPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool                 ParseDefglobal(void *,const char *);
-   LOCALE intBool                 ReplaceGlobalVariable(void *,struct expr *);
-   LOCALE void                    GlobalReferenceErrorMessage(void *,const char *);
+   bool                    ParseDefglobal(Environment *,const char *);
+   bool                    ReplaceGlobalVariable(Environment *,struct expr *);
+   void                    GlobalReferenceErrorMessage(Environment *,const char *);
 
 #endif /* _H_globlpsr */
 

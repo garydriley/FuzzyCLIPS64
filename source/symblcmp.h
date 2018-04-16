@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  10/01/16            */
    /*                                                     */
-   /*        SYMBOL CONSTRUCT COMPILER HEADER FILE        */
+   /*        SYMBOL_TYPE CONSTRUCT COMPILER HEADER FILE        */
    /*******************************************************/
 
 /*************************************************************/
@@ -16,6 +16,9 @@
 /*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -31,38 +34,33 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_symblcmp
+
+#pragma once
+
 #define _H_symblcmp
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _SYMBLCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                     PrintSymbolReference(void *,FILE *,SYMBOL_HN *);
-   LOCALE void                     PrintFloatReference(void *,FILE *,FLOAT_HN *);
-   LOCALE void                     PrintIntegerReference(void *,FILE *,INTEGER_HN *);
-   LOCALE void                     PrintBitMapReference(void *,FILE *,BITMAP_HN *);
+   void                     PrintSymbolReference(Environment *,FILE *,CLIPSLexeme *);
+   void                     PrintFloatReference(Environment *,FILE *,CLIPSFloat *);
+   void                     PrintIntegerReference(Environment *,FILE *,CLIPSInteger *);
+   void                     PrintBitMapReference(Environment *,FILE *,CLIPSBitMap *);
 #if FUZZY_DEFTEMPLATES  
-   LOCALE void                     PrintFuzzyValueReference(void *,FILE *,FUZZY_VALUE_HN *);
+   void                     PrintFuzzyValueReference(Environment *,FILE *,CLIPSFuzzyValue *);
 #endif
-   LOCALE void                     AtomicValuesToCode(void *,const char *,const char *,char *);
+   void                     AtomicValuesToCode(Environment *,const char *,const char *,char *);
 
 #endif /* _H_symblcmp */
 

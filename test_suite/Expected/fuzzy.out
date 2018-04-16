@@ -192,11 +192,10 @@ FuzzyCLIPS>
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (age young) CF 1.00 
 	( (25.0 1.0) (50.0 0.0)  )
 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (clear) ;; Example 2
 FuzzyCLIPS> (defrule flight-rule
    (declare (CF 0.95)) ;declares certainty factor of the rule
@@ -224,10 +223,9 @@ FuzzyCLIPS> (assert (light_switch off) CF 0.8)
 <Fact-1>
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (light_switch off) CF 0.80 
 f-2     (illumination_level dark) CF 0.56 
-For a total of 3 facts.
+For a total of 2 facts.
 FuzzyCLIPS> (clear) ;; Example 10
 FuzzyCLIPS> 
 (defrule assert-cf-rule
@@ -242,13 +240,12 @@ FuzzyCLIPS> (assert (fact 1) CF 0.9)
 <Fact-1>
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (fact 1) CF 0.90 
 f-2     (c1) CF 0.72 
 f-3     (c2) CF 0.50 
 f-4     (c3) CF 0.72 
 f-5     (c4) CF 0.72 
-For a total of 6 facts.
+For a total of 5 facts.
 FuzzyCLIPS> (clear) ; Example 14
 FuzzyCLIPS> 
 (deftemplate group
@@ -350,7 +347,6 @@ FuzzyCLIPS> (run)
 Frank is very tall, with a height of about 5.0 feet
 Sally is very tall, with a height of about 7.0 feet
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (person (name Fred) (ht ???)) CF 1.00 
 	( (3.6 0.0) (3.6 1.0) (3.6 0.0)  )
 f-2     (person (name Sally) (ht very tall)) CF 1.00 
@@ -360,7 +356,7 @@ f-2     (person (name Sally) (ht very tall)) CF 1.00
 f-3     (person (name Frank) (ht medium)) CF 1.00 
 	( (4.2 0.0) (4.4 0.125) (4.6 0.5) (4.8 0.875) (5.0 1.0) 
 	  (5.2 0.875) (5.4 0.5) (5.6 0.125) (5.8 0.0)  )
-For a total of 4 facts.
+For a total of 3 facts.
 FuzzyCLIPS> 
 (clear) ; Defuzzification
 FuzzyCLIPS> 
@@ -410,12 +406,11 @@ FuzzyCLIPS>
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (temp cold) CF 1.00 
 	( (20.0 1.0) (26.25 0.9688) (32.5 0.875) (38.75 0.7188) (45.0 0.5) 
 	  (51.25 0.2812) (57.5 0.125) (63.75 0.03125) (70.0 0.0)  )
 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (plot-fuzzy-value t * nil nil (create-fuzzy-value temp hot))
 
 Fuzzy Value: temp

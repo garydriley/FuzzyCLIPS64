@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  07/30/16             */
    /*                                                     */
    /*                USER FUNCTIONS MODULE                */
    /*******************************************************/
@@ -22,6 +22,9 @@
 /*      6.30: Removed conditional code for unsupported       */
 /*            compilers/operating systems (IBM_MCW,          */
 /*            MAC_MCW, and IBM_TBC).                         */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
 /*                                                           */
 /*************************************************************/
 
@@ -47,8 +50,7 @@
 
 #include "clips.h"
 
-void UserFunctions(void);
-void EnvUserFunctions(void *);
+void UserFunctions(Environment *);
 
 /*********************************************************/
 /* UserFunctions: Informs the expert system environment  */
@@ -59,26 +61,10 @@ void EnvUserFunctions(void *);
 /*   this function can be deleted from this file and     */
 /*   included in another file.                           */
 /*********************************************************/
-void UserFunctions()
-  {
-   // Use of UserFunctions is deprecated.
-   // Use EnvUserFunctions instead.
-  }
-  
-/***********************************************************/
-/* EnvUserFunctions: Informs the expert system environment */
-/*   of any user defined functions. In the default case,   */
-/*   there are no user defined functions. To define        */
-/*   functions, either this function must be replaced by   */
-/*   a function with the same name within this file, or    */
-/*   this function can be deleted from this file and       */
-/*   included in another file.                             */
-/***********************************************************/
-void EnvUserFunctions(
-  void *environment)
+void UserFunctions(
+  Environment *env)
   {
 #if MAC_XCD
-#pragma unused(environment)
+#pragma unused(env)
 #endif
   }
-

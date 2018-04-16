@@ -10,7 +10,7 @@ FuzzyCLIPS> (defglobal ?*d5* = 5)
 FuzzyCLIPS> (defglobal ?*d6* = 6)
 FuzzyCLIPS> (defglobal ?*** = 7)
 FuzzyCLIPS> (list-defglobals d6)
-[ARGACCES5] Function list-defglobals expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'list-defglobals' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (list-defglobals)
 d1
 d2
@@ -33,13 +33,13 @@ FuzzyCLIPS> (ppdefglobal d5)
 FuzzyCLIPS> (ppdefglobal d6)
 (defglobal MAIN ?*d6* = 6)
 FuzzyCLIPS> (undefglobal)
-[ARGACCES4] Function undefglobal expected exactly 1 argument(s)
+[ARGACCES1] Function 'undefglobal' expected exactly 1 argument.
 FuzzyCLIPS> (undefglobal 10)
-[ARGACCES5] Function undefglobal expected argument #1 to be of type symbol
+[ARGACCES2] Function 'undefglobal' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (undefglobal bad-name)
-[PRNTUTIL1] Unable to find defglobal bad-name.
+[PRNTUTIL1] Unable to find defglobal 'bad-name'.
 FuzzyCLIPS> (undefglobal d6 10)
-[ARGACCES4] Function undefglobal expected exactly 1 argument(s)
+[ARGACCES1] Function 'undefglobal' expected exactly 1 argument.
 FuzzyCLIPS> (list-defglobals)
 d1
 d2
@@ -71,7 +71,7 @@ FuzzyCLIPS> (defglobal ?*x* = 3 ?*y* = ?*x* ?*z* = (+ 4 ?*x*))
 FuzzyCLIPS> (defglobal ?*q* = (create$ a b c))
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (show-defglobals x y)
-[ARGACCES4] Function show-defglobals expected no more than 1 argument(s)
+[ARGACCES1] Function 'show-defglobals' expected no more than 1 argument.
 FuzzyCLIPS> (show-defglobals)
 ?*x* = 3
 ?*y* = 3
@@ -88,11 +88,11 @@ FuzzyCLIPS> (ppdefglobal q)
 FuzzyCLIPS> (get-reset-globals)
 TRUE
 FuzzyCLIPS> (get-reset-globals TRUE)
-[ARGACCES4] Function get-reset-globals expected exactly 0 argument(s)
+[ARGACCES1] Function 'get-reset-globals' expected exactly 0 arguments.
 FuzzyCLIPS> (set-reset-globals)
-[ARGACCES4] Function set-reset-globals expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-reset-globals' expected exactly 1 argument.
 FuzzyCLIPS> (set-reset-globals TRUE FALSE)
-[ARGACCES4] Function set-reset-globals expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-reset-globals' expected exactly 1 argument.
 FuzzyCLIPS> (set-reset-globals 10)
 TRUE
 FuzzyCLIPS> (get-reset-globals)
@@ -128,10 +128,10 @@ FuzzyCLIPS> (show-defglobals)
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (show-defglobals)
 FuzzyCLIPS> (ppdefglobal x)
-[PRNTUTIL1] Unable to find defglobal x.
+[PRNTUTIL1] Unable to find defglobal 'x'.
 FuzzyCLIPS> (clear) ; Some new 6.0 features
 FuzzyCLIPS> (defglobal BOGUS d5 = 5)
-[PRNTUTIL1] Unable to find defmodule BOGUS.
+[PRNTUTIL1] Unable to find defmodule 'BOGUS'.
 
 ERROR:
 (defglobal BOGUS
@@ -142,9 +142,9 @@ FuzzyCLIPS> (defmodule BAR)
 FuzzyCLIPS> (defglobal BAR ?*d2* = 2)
 FuzzyCLIPS> (defglobal BAR ?*d3* = 3)
 FuzzyCLIPS> (list-defglobals BOGUS)
-[ARGACCES5] Function list-defglobals expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'list-defglobals' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (list-defglobals FOO 7)
-[ARGACCES4] Function list-defglobals expected no more than 1 argument(s)
+[ARGACCES1] Function 'list-defglobals' expected no more than 1 argument.
 FuzzyCLIPS> (list-defglobals FOO)
 d1
 d2
@@ -167,13 +167,13 @@ BAR:
    d3
 For a total of 4 defglobals.
 FuzzyCLIPS> (get-defglobal-list 7)
-[ARGACCES5] Function get-defglobal-list expected argument #1 to be of type symbol
+[ARGACCES2] Function 'get-defglobal-list' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (get-defglobal-list BOGUS 7)
-[ARGACCES4] Function get-defglobal-list expected no more than 1 argument(s)
+[ARGACCES1] Function 'get-defglobal-list' expected no more than 1 argument.
 FuzzyCLIPS> (get-defglobal-list)
 (d2 d3)
 FuzzyCLIPS> (get-defglobal-list BOGUS)
-[ARGACCES5] Function get-defglobal-list expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'get-defglobal-list' expected argument #1 to be of type 'defmodule name'.
 ()
 FuzzyCLIPS> (get-defglobal-list FOO)
 (d1 d2)
@@ -182,32 +182,32 @@ FuzzyCLIPS> (get-defglobal-list BAR)
 FuzzyCLIPS> (get-defglobal-list *)
 (FOO::d1 FOO::d2 BAR::d2 BAR::d3)
 FuzzyCLIPS> (ppdefglobal d1)
-[PRNTUTIL1] Unable to find defglobal d1.
+[PRNTUTIL1] Unable to find defglobal 'd1'.
 FuzzyCLIPS> (ppdefglobal d2)
 (defglobal BAR ?*d2* = 2)
 FuzzyCLIPS> (ppdefglobal d3)
 (defglobal BAR ?*d3* = 3)
 FuzzyCLIPS> (ppdefglobal BOGUS::d2)
-[PRNTUTIL1] Unable to find defglobal BOGUS::d2.
+[PRNTUTIL1] Unable to find defglobal 'BOGUS::d2'.
 FuzzyCLIPS> (ppdefglobal FOO::d1)
 (defglobal FOO ?*d1* = 1)
 FuzzyCLIPS> (ppdefglobal FOO::d2)
 (defglobal FOO ?*d2* = 2)
 FuzzyCLIPS> (ppdefglobal FOO::d3)
-[PRNTUTIL1] Unable to find defglobal FOO::d3.
+[PRNTUTIL1] Unable to find defglobal 'FOO::d3'.
 FuzzyCLIPS> (ppdefglobal BAR::d1)
-[PRNTUTIL1] Unable to find defglobal BAR::d1.
+[PRNTUTIL1] Unable to find defglobal 'BAR::d1'.
 FuzzyCLIPS> (ppdefglobal BAR::d2)
 (defglobal BAR ?*d2* = 2)
 FuzzyCLIPS> (ppdefglobal BAR::d3)
 (defglobal BAR ?*d3* = 3)
 FuzzyCLIPS> (defglobal-module)
-[ARGACCES4] Function defglobal-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defglobal-module' expected exactly 1 argument.
 FuzzyCLIPS> (defglobal-module bogus)
-[PRNTUTIL1] Unable to find defglobal bogus.
+[PRNTUTIL1] Unable to find defglobal 'bogus'.
 FALSE
 FuzzyCLIPS> (defglobal-module d3 7)
-[ARGACCES4] Function defglobal-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defglobal-module' expected exactly 1 argument.
 FuzzyCLIPS> (defglobal-module d2)
 BAR
 FuzzyCLIPS> (defglobal-module d3)
@@ -224,11 +224,11 @@ FuzzyCLIPS> (show-defglobals)
 ?*d2* = 2
 ?*d3* = 3
 FuzzyCLIPS> (show-defglobals 7)
-[ARGACCES5] Function show-defglobals expected argument #1 to be of type symbol
+[ARGACCES2] Function 'show-defglobals' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (show-defglobals BOGUS)
-[ARGACCES5] Function show-defglobals expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'show-defglobals' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (show-defglobals FOO 7)
-[ARGACCES4] Function show-defglobals expected no more than 1 argument(s)
+[ARGACCES1] Function 'show-defglobals' expected no more than 1 argument.
 FuzzyCLIPS> (show-defglobals FOO)
 ?*d1* = 1
 ?*d2* = 2
@@ -244,7 +244,7 @@ BAR:
    ?*d2* = 2
    ?*d3* = 3
 FuzzyCLIPS> (undefglobal BOGUS::d2)
-[PRNTUTIL1] Unable to find defglobal BOGUS::d2.
+[PRNTUTIL1] Unable to find defglobal 'BOGUS::d2'.
 FuzzyCLIPS> (undefglobal FOO::d2)
 FuzzyCLIPS> (list-defglobals *)
 MAIN:

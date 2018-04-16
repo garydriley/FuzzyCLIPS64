@@ -9,21 +9,19 @@ For a total of 3 defrules.
 FuzzyCLIPS> (get-defrule-list)
 (foo bar woz)
 FuzzyCLIPS> (list-deffacts)
-initial-fact
 foo
 bar
 woz
-For a total of 4 deffacts.
+For a total of 3 deffacts.
 FuzzyCLIPS> (get-deffacts-list)
-(initial-fact foo bar woz)
+(foo bar woz)
 FuzzyCLIPS> (list-deftemplates)
-initial-fact
 foo
 bar
 woz
-For a total of 4 deftemplates.
+For a total of 3 deftemplates.
 FuzzyCLIPS> (get-deftemplate-list)
-(initial-fact foo bar woz)
+(foo bar woz)
 FuzzyCLIPS> (list-defglobals)
 foo
 bar
@@ -57,11 +55,11 @@ ziggle #1
 For a total of 4 methods.
 FuzzyCLIPS> (get-defmethod-list)
 (oof 51 oof 50 rab 1 ziggle 1)
-FuzzyCLIPS> (list-defmethods (nth 1 (get-defmethod-list)))
+FuzzyCLIPS> (list-defmethods (nth$ 1 (get-defmethod-list)))
 oof #51 
 oof #50 (INTEGER SYMBOL) (<qry>) $?
 For a total of 2 methods.
-FuzzyCLIPS> (get-defmethod-list (nth 1 (get-defmethod-list)))
+FuzzyCLIPS> (get-defmethod-list (nth$ 1 (get-defmethod-list)))
 (oof 51 oof 50)
 FuzzyCLIPS> (get-method-restrictions oof 50)
 (2 -1 3 7 11 13 FALSE 2 INTEGER SYMBOL TRUE 0 FALSE 0)
@@ -85,13 +83,12 @@ LEXEME
 ADDRESS
 INSTANCE
 USER
-INITIAL-OBJECT
 foo
 bar
 woz
-For a total of 21 defclasses.
+For a total of 20 defclasses.
 FuzzyCLIPS> (get-defclass-list)
-(FLOAT INTEGER SYMBOL STRING MULTIFIELD EXTERNAL-ADDRESS FACT-ADDRESS INSTANCE-ADDRESS INSTANCE-NAME FUZZY-VALUE OBJECT PRIMITIVE NUMBER LEXEME ADDRESS INSTANCE USER INITIAL-OBJECT foo bar woz)
+(FLOAT INTEGER SYMBOL STRING MULTIFIELD EXTERNAL-ADDRESS FACT-ADDRESS INSTANCE-ADDRESS INSTANCE-NAME FUZZY-VALUE OBJECT PRIMITIVE NUMBER LEXEME ADDRESS INSTANCE USER foo bar woz)
 FuzzyCLIPS> (describe-class woz)
 ================================================================================
 ********************************************************************************
@@ -181,28 +178,27 @@ For a total of 11 message-handlers.
 FuzzyCLIPS> (get-defmessage-handler-list woz inherit)
 (USER init primary USER delete primary USER create primary USER print primary USER direct-modify primary USER message-modify primary USER direct-duplicate primary USER message-duplicate primary foo foo primary bar bar primary woz woz primary)
 FuzzyCLIPS> (list-definstances)
-initial-object
 foo
 bar
 woz
-For a total of 4 definstances.
+For a total of 3 definstances.
 FuzzyCLIPS> (get-definstances-list)
-(initial-object foo bar woz)
+(foo bar woz)
 FuzzyCLIPS> (get-defrule-list abc)
-[ARGACCES5] Function get-defrule-list expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'get-defrule-list' expected argument #1 to be of type 'defmodule name'.
 ()
 FuzzyCLIPS> (get-defmessage-handler-list no-exist)
-[CLASSFUN1] Unable to find class no-exist in function get-defmessage-handler-list.
+[CLASSFUN1] Unable to find class 'no-exist' in function 'get-defmessage-handler-list'.
 ()
 FuzzyCLIPS> (get-defmethod-list no-exist)
-[GENRCFUN3] Unable to find generic function no-exist in function get-defmethod-list.
+[GENRCFUN3] Unable to find generic function 'no-exist' in function 'get-defmethod-list'.
 ()
 FuzzyCLIPS> (get-defmessage-handler-list USER junk)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for get-defmessage-handler-list.
 ()
 FuzzyCLIPS> (get-defmessage-handler-list USER inherit abc)
-[ARGACCES4] Function get-defmessage-handler-list expected no more than 2 argument(s)
+[ARGACCES1] Function 'get-defmessage-handler-list' expected no more than 2 arguments.
 FuzzyCLIPS> (get-defmethod-list oof abc)
-[ARGACCES4] Function get-defmethod-list expected no more than 1 argument(s)
+[ARGACCES1] Function 'get-defmethod-list' expected no more than 1 argument.
 FuzzyCLIPS> (dribble-off)

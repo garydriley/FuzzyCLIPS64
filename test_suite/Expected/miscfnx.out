@@ -3,11 +3,11 @@ FuzzyCLIPS> (batch "miscfnx.bat")
 TRUE
 FuzzyCLIPS> (clear)                            ; 10.9.1
 FuzzyCLIPS> (fact-index)                       ; 10.9.1
-[ARGACCES4] Function fact-index expected exactly 1 argument(s)
+[ARGACCES1] Function 'fact-index' expected exactly 1 argument.
 FuzzyCLIPS> (fact-index a)                     ; 10.9.1
-[ARGACCES5] Function fact-index expected argument #1 to be of type fact-address
+[ARGACCES2] Function 'fact-index' expected argument #1 to be of type fact address.
 FuzzyCLIPS> (fact-index 1)                     ; 10.9.1
-[ARGACCES5] Function fact-index expected argument #1 to be of type fact-address
+[ARGACCES2] Function 'fact-index' expected argument #1 to be of type fact address.
 FuzzyCLIPS> (defglobal ?*gfi* = 1)             ; 10.9.1
 FuzzyCLIPS> (defrule foo
   ?f <- (the item)
@@ -23,7 +23,7 @@ FuzzyCLIPS> (run)                              ; 10.9.1
 FuzzyCLIPS> (fact-index ?*gfi*)                ; 10.9.1
 4
 FuzzyCLIPS> (fact-index ?*gfi* ?*gfi*)         ; 10.9.1
-[ARGACCES4] Function fact-index expected exactly 1 argument(s)
+[ARGACCES1] Function 'fact-index' expected exactly 1 argument.
 FuzzyCLIPS> (retract ?*gfi*)                   ; 10.9.1
 FuzzyCLIPS> (fact-index ?*gfi*)                ; 10.9.1
 [PRNTUTIL11] The fact f-4 has been retracted.
@@ -32,13 +32,13 @@ FuzzyCLIPS> (clear)                            ; 10.9.1
 FuzzyCLIPS> (setgen 10)                        ; 10.9.4
 10
 FuzzyCLIPS> (setgen)                           ; 10.9.4
-[ARGACCES4] Function setgen expected exactly 1 argument(s)
+[ARGACCES1] Function 'setgen' expected exactly 1 argument.
 FuzzyCLIPS> (setgen 10 20)                     ; 10.9.4
-[ARGACCES4] Function setgen expected exactly 1 argument(s)
+[ARGACCES1] Function 'setgen' expected exactly 1 argument.
 FuzzyCLIPS> (setgen a)                         ; 10.9.4
-[ARGACCES5] Function setgen expected argument #1 to be of type integer
+[ARGACCES2] Function 'setgen' expected argument #1 to be of type integer.
 FuzzyCLIPS> (setgen 30.3)                      ; 10.9.4
-[ARGACCES5] Function setgen expected argument #1 to be of type integer
+[ARGACCES2] Function 'setgen' expected argument #1 to be of type integer.
 FuzzyCLIPS> (setgen 20)                        ; 10.9.4  
 20
 FuzzyCLIPS> (assert (gen20 gen21 gen22))       ; 10.9.4
@@ -46,7 +46,7 @@ FuzzyCLIPS> (assert (gen20 gen21 gen22))       ; 10.9.4
 FuzzyCLIPS> (gensym)                           ; 10.9.2
 gen20
 FuzzyCLIPS> (gensym a)                         ; 10.9.2
-[ARGACCES4] Function gensym expected exactly 0 argument(s)
+[ARGACCES1] Function 'gensym' expected exactly 0 arguments.
 FuzzyCLIPS> (gensym)                           ; 10.9.2
 gen21
 FuzzyCLIPS> (gensym*)                          ; 10.9.3
@@ -61,13 +61,13 @@ FuzzyCLIPS> (setgen 20)                        ; 10.9.3
 FuzzyCLIPS> (gensym*)                          ; 10.9.3
 gen20
 FuzzyCLIPS> (seed)                             ; 10.9.6
-[ARGACCES4] Function seed expected exactly 1 argument(s)
+[ARGACCES1] Function 'seed' expected exactly 1 argument.
 FuzzyCLIPS> (seed a)                           ; 10.9.6
-[ARGACCES5] Function seed expected argument #1 to be of type integer
+[ARGACCES2] Function 'seed' expected argument #1 to be of type integer.
 FuzzyCLIPS> (seed 20 a)                        ; 10.9.6
-[ARGACCES4] Function seed expected exactly 1 argument(s)
+[ARGACCES1] Function 'seed' expected exactly 1 argument.
 FuzzyCLIPS> (seed 30.5)                        ; 10.9.6
-[ARGACCES5] Function seed expected argument #1 to be of type integer
+[ARGACCES2] Function 'seed' expected argument #1 to be of type integer.
 FuzzyCLIPS> (seed 100)                         ; 10.9.6
 FuzzyCLIPS> (defglobal ?*r1* = 0
            ?*r2* = 0
@@ -151,7 +151,7 @@ TRUE
 FuzzyCLIPS> (<= (time) (time))                 ; 10.9.9
 TRUE
 FuzzyCLIPS> (time a)                           ; 10.9.9
-[ARGACCES4] Function time expected exactly 0 argument(s)
+[ARGACCES1] Function 'time' expected exactly 0 arguments.
 FuzzyCLIPS> (progn)                            ; 10.9.10
 FALSE
 FuzzyCLIPS> (progn x)                          ; 10.9.10
@@ -237,16 +237,16 @@ FuzzyCLIPS> (iterate (return))
 
 [PRCDRPSR2] The return function is not valid in this context.
 FuzzyCLIPS> (get-function-restrictions +)
-"2*n"
+"2*ld"
 FuzzyCLIPS> (get-function-restrictions make-instance)
 "0**"
 FuzzyCLIPS> (get-function-restrictions)
-[ARGACCES4] Function get-function-restrictions expected exactly 1 argument(s)
+[ARGACCES1] Function 'get-function-restrictions' expected exactly 1 argument.
 FuzzyCLIPS> (get-function-restrictions bogus)
-[PRNTUTIL1] Unable to find function bogus.
+[PRNTUTIL1] Unable to find function 'bogus'.
 ""
 FuzzyCLIPS> (progn (bind ?x 1) (bind ?x) ?x)
-[EVALUATN1] Variable x is unbound
+[EVALUATN1] Variable ?x is unbound.
 FALSE
 FuzzyCLIPS> (defglobal ?*x* = (pi))
 FuzzyCLIPS> (watch globals)
@@ -343,7 +343,7 @@ FuzzyCLIPS> (defclass A (is-a USER))
 FuzzyCLIPS> (bind ?v (instance-address (make-instance [a1] of A)))
 <Instance-a1>
 FuzzyCLIPS> (timetag ?v)
-5
+2
 FuzzyCLIPS> (send ?v delete)
 TRUE
 FuzzyCLIPS> (timetag ?v)
@@ -352,10 +352,37 @@ FuzzyCLIPS> (timetag ?v)
 FuzzyCLIPS> (bind ?v (assert (a b c)))
 <Fact-1>
 FuzzyCLIPS> (timetag ?v)
-7
+4
 FuzzyCLIPS> (retract ?v)
 FuzzyCLIPS> (timetag ?v)
 [PRNTUTIL11] The fact f-1 has been retracted.
 -1
 FuzzyCLIPS> (clear)
+FuzzyCLIPS> (acos 3)
+[EMATHFUN1] Domain error for 'acos' function.
+0.0
+FuzzyCLIPS> (get-error)
+DOMAIN_ERROR
+FuzzyCLIPS> (clear-error)
+DOMAIN_ERROR
+FuzzyCLIPS> (get-error)
+FALSE
+FuzzyCLIPS> (acos 3)
+[EMATHFUN1] Domain error for 'acos' function.
+0.0
+FuzzyCLIPS> (clear-error)
+DOMAIN_ERROR
+FuzzyCLIPS> (get-error)
+FALSE
+FuzzyCLIPS> (set-error 3)
+FuzzyCLIPS> (clear-error)
+3
+FuzzyCLIPS> (get-error 3)
+[ARGACCES1] Function 'get-error' expected exactly 0 arguments.
+FuzzyCLIPS> (clear-error 3)
+[ARGACCES1] Function 'clear-error' expected exactly 0 arguments.
+FuzzyCLIPS> (set-error)
+[ARGACCES1] Function 'set-error' expected exactly 1 argument.
+FuzzyCLIPS> (set-error 3 4)
+[ARGACCES1] Function 'set-error' expected exactly 1 argument.
 FuzzyCLIPS> (dribble-off)

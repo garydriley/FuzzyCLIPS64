@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  11/01/16             */
    /*                                                     */
    /*                 NETWORK HEADER FILE                 */
    /*******************************************************/
@@ -18,30 +18,34 @@
 /*                                                           */
 /*      6.30: Added support for hashed memories.             */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_network
 
+#pragma once
+
 #define _H_network
 
-struct patternNodeHeader;
-struct joinNode;
 struct alphaMemoryHash;
+struct betaMemory;
+struct joinLink;
+struct joinNode;
+struct patternNodeHashEntry;
+typedef struct patternNodeHeader PatternNodeHeader;
 
-#ifndef _H_match
-#include "match.h"
-#endif
-
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
+#include "entities.h"
 
 struct patternNodeHeader
   {
    struct alphaMemoryHash *firstHash;
    struct alphaMemoryHash *lastHash;
    struct joinNode *entryJoin;
-   struct expr *rightHash;
+   Expression *rightHash;
    unsigned int singlefieldNode : 1;
    unsigned int multifieldNode : 1;
    unsigned int stopNode : 1;
@@ -51,6 +55,8 @@ struct patternNodeHeader
    unsigned int endSlot : 1;
    unsigned int selector : 1;
   };
+
+#include "match.h"
 
 struct patternNodeHashEntry
   {
@@ -67,8 +73,8 @@ struct alphaMemoryHash
   {
    unsigned long bucket;
    struct patternNodeHeader *owner;
-   struct partialMatch *alphaMemory;
-   struct partialMatch *endOfQueue;
+   PartialMatch *alphaMemory;
+   PartialMatch *endOfQueue;
    struct alphaMemoryHash *nextHash;
    struct alphaMemoryHash *prevHash;
    struct alphaMemoryHash *next;
@@ -96,9 +102,9 @@ struct joinLink
    char enterDirection;
    struct joinNode *join;
    struct joinLink *next;
-   long bsaveID;
+   unsigned long bsaveID;
   };
-    
+
 struct joinNode
   {
    unsigned int firstJoin : 1;
@@ -110,7 +116,7 @@ struct joinNode
    unsigned int marked : 1;
    unsigned int rhsType : 3;
    unsigned int depth : 16;
-   long bsaveID;
+   unsigned long bsaveID;
    long long memoryLeftAdds;
    long long memoryRightAdds;
    long long memoryLeftDeletes;
@@ -118,15 +124,15 @@ struct joinNode
    long long memoryCompares;
    struct betaMemory *leftMemory;
    struct betaMemory *rightMemory;
-   struct expr *networkTest;
-   struct expr *secondaryNetworkTest;
-   struct expr *leftHash;
-   struct expr *rightHash;
+   Expression *networkTest;
+   Expression *secondaryNetworkTest;
+   Expression *leftHash;
+   Expression *rightHash;
    void *rightSideEntryStructure;
    struct joinLink *nextLinks;
    struct joinNode *lastLevel;
    struct joinNode *rightMatchNode;
-   struct defrule *ruleToActivate;
+   Defrule *ruleToActivate;
   };
 
 #endif /* _H_network */

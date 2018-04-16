@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/11/16            */
    /*                                                     */
    /*            INCREMENTAL RESET HEADER FILE            */
    /*******************************************************/
@@ -36,38 +36,30 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            Incremental reset is always enabled.           */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_incrrset
 
+#pragma once
+
 #define _H_incrrset
 
-#ifndef _H_ruledef
 #include "ruledef.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INCRRSET_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           IncrementalReset(void *,struct defrule *);
-   LOCALE intBool                        EnvGetIncrementalReset(void *);
-   LOCALE intBool                        EnvSetIncrementalReset(void *,intBool);
-   LOCALE int                            GetIncrementalResetCommand(void *);
-   LOCALE int                            SetIncrementalResetCommand(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        GetIncrementalReset(void);
-   LOCALE intBool                        SetIncrementalReset(int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           IncrementalReset(Environment *,Defrule *);
 
 #endif /* _H_incrrset */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*           DEFRULE BSAVE/BLOAD HEADER FILE           */
    /*******************************************************/
@@ -15,6 +15,10 @@
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Brian L. Dantes                                      */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -30,18 +34,26 @@
 /*            with large numbers of activations of different */
 /*            saliences.                                     */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
-#if (! RUN_TIME)
 #ifndef _H_rulebin
+
+#pragma once
 
 #define _H_rulebin
 
-#include "modulbin.h"
+#if (! RUN_TIME)
+
 #include "cstrcbin.h"
-#ifndef _H_network
+#include "modulbin.h"
 #include "network.h"
-#endif
 
 #if FUZZY_DEFTEMPLATES
 /* These structs are added at the end of rule structs
@@ -62,30 +74,30 @@ struct bsaveDefrule
   {
    struct bsaveConstructHeader header;
    int salience;
-   int localVarCnt;
+   unsigned short localVarCnt;
    unsigned int complexity      : 12;
    unsigned int autoFocus       :  1;
-   long dynamicSalience;
-   long actions;
-   long logicalJoin;
-   long lastJoin;
-   long disjunct;
+   unsigned long dynamicSalience;
+   unsigned long actions;
+   unsigned long logicalJoin;
+   unsigned long lastJoin;
+   unsigned long disjunct;
 #if CERTAINTY_FACTORS
    double CF;
-   long  dynamicCF;
+   unsigned long  dynamicCF;
 #endif
 #if FUZZY_DEFTEMPLATES
    double       min_of_maxmins;
    unsigned int lhsRuleType;
    unsigned int numberOfFuzzySlots;
-   long         pattern_fv_arrayPtr;
+   unsigned long pattern_fv_arrayPtr;
 #endif
   };
 
 struct bsavePatternNodeHeader
   {
-   long entryJoin;
-   long rightHash;
+   unsigned long entryJoin;
+   unsigned long rightHash;
    unsigned int singlefieldNode : 1;
    unsigned int multifieldNode : 1;
    unsigned int stopNode : 1;
@@ -105,10 +117,10 @@ struct bsaveDefruleModule
 struct bsaveJoinLink
   {
    char enterDirection;
-   long join;
-   long next;
+   unsigned long join;
+   unsigned long next;
   };
-  
+
 struct bsaveJoinNode
   {
    unsigned int firstJoin : 1;
@@ -118,65 +130,56 @@ struct bsaveJoinNode
    unsigned int patternIsExists : 1;
    unsigned int rhsType : 3;
    unsigned int depth : 7;
-   long networkTest;
-   long secondaryNetworkTest;
-   long leftHash;
-   long rightHash;
-   long rightSideEntryStructure;
-   long nextLinks;
-   long lastLevel;
-   long rightMatchNode;
-   long ruleToActivate;
+   unsigned long networkTest;
+   unsigned long secondaryNetworkTest;
+   unsigned long leftHash;
+   unsigned long rightHash;
+   unsigned long rightSideEntryStructure;
+   unsigned long nextLinks;
+   unsigned long lastLevel;
+   unsigned long rightMatchNode;
+   unsigned long ruleToActivate;
   };
-  
+
 #define RULEBIN_DATA 20
 
 struct defruleBinaryData
-  { 
-   long NumberOfDefruleModules;
-   long NumberOfDefrules;
-   long NumberOfJoins;
-   long NumberOfLinks;
-   long RightPrimeIndex;
-   long LeftPrimeIndex; 
+  {
+   unsigned long NumberOfDefruleModules;
+   unsigned long NumberOfDefrules;
+   unsigned long NumberOfJoins;
+   unsigned long NumberOfLinks;
+   unsigned long RightPrimeIndex;
+   unsigned long LeftPrimeIndex;
    struct defruleModule *ModuleArray;
-   struct defrule *DefruleArray;
+   Defrule *DefruleArray;
    struct joinNode *JoinArray;
    struct joinLink *LinkArray;
 #if FUZZY_DEFTEMPLATES 
-   long NumberOfPatternFuzzyValues;
+   unsigned long NumberOfPatternFuzzyValues;
    struct fzSlotLocator *PatternFuzzyValueArray;
 #endif
   };
 
 #define DefruleBinaryData(theEnv) ((struct defruleBinaryData *) GetEnvironmentData(theEnv,RULEBIN_DATA))
 
-#define BloadDefrulePointer(x,i) ((struct defrule *) ((i == -1L) ? NULL : &x[i]))
-#define BsaveJoinIndex(joinPtr) ((joinPtr == NULL) ? -1L :  ((struct joinNode *) joinPtr)->bsaveID)
-#define BloadJoinPointer(i) ((struct joinNode *) ((i == -1L) ? NULL : &DefruleBinaryData(theEnv)->JoinArray[i]))
-#define BsaveJoinLinkIndex(linkPtr) ((linkPtr == NULL) ? -1L :  ((struct joinLink *) linkPtr)->bsaveID)
-#define BloadJoinLinkPointer(i) ((struct joinLink *) ((i == -1L) ? NULL : &DefruleBinaryData(theEnv)->LinkArray[i]))
+#define BloadDefrulePointer(x,i) ((Defrule *) ((i == ULONG_MAX) ? NULL : &x[i]))
+#define BsaveJoinIndex(joinPtr) ((joinPtr == NULL) ? ULONG_MAX :  ((struct joinNode *) joinPtr)->bsaveID)
+#define BloadJoinPointer(i) ((struct joinNode *) ((i == ULONG_MAX) ? NULL : &DefruleBinaryData(theEnv)->JoinArray[i]))
+#define BsaveJoinLinkIndex(linkPtr) ((linkPtr == NULL) ? ULONG_MAX :  ((struct joinLink *) linkPtr)->bsaveID)
+#define BloadJoinLinkPointer(i) ((struct joinLink *) ((i == ULONG_MAX) ? NULL : &DefruleBinaryData(theEnv)->LinkArray[i]))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefruleBinarySetup(void *);
-   LOCALE void                           UpdatePatternNodeHeader(void *,struct patternNodeHeader *,
+   void                           DefruleBinarySetup(Environment *);
+   void                           UpdatePatternNodeHeader(Environment *,struct patternNodeHeader *,
                                                                  struct bsavePatternNodeHeader *);
-   LOCALE void                           AssignBsavePatternHeaderValues(void *,struct bsavePatternNodeHeader *,
+   void                           AssignBsavePatternHeaderValues(Environment *,struct bsavePatternNodeHeader *,
                                                                         struct patternNodeHeader *);
-   LOCALE void                          *BloadDefruleModuleReference(void *,int);
-
-#endif /* _H_rulebin */ 
+   void                          *BloadDefruleModuleReference(Environment *,unsigned long);
 
 #endif /* (! RUN_TIME) */
+
+#endif /* _H_rulebin */
+
 
 
 

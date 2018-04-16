@@ -3,48 +3,43 @@ FuzzyCLIPS> (batch "iofnx.bat")
 TRUE
 FuzzyCLIPS> (clear)                            
 FuzzyCLIPS> (open)                             ; 10.5.2.1
-[ARGACCES4] Function open expected at least 2 argument(s)
+[ARGACCES1] Function 'open' expected at least 2 arguments.
 FuzzyCLIPS> (open "blah1.dat")                 ; 10.5.2.1
-[ARGACCES4] Function open expected at least 2 argument(s)
+[ARGACCES1] Function 'open' expected at least 2 arguments.
 FuzzyCLIPS> (open "blah2.dat" blah2 "r" 10)    ; 10.5.2.1
-[ARGACCES4] Function open expected no more than 3 argument(s)
+[ARGACCES1] Function 'open' expected no more than 3 arguments.
 FuzzyCLIPS> (open 10 blah3 "r")                ; 10.5.2.1
-[ARGACCES5] Function open expected argument #1 to be of type symbol or string
+[ARGACCES2] Function 'open' expected argument #1 to be of type symbol or string.
 FuzzyCLIPS> (open [blah2.dat] blah4 "r")       ; 10.5.2.1
-[ARGACCES5] Function open expected argument #1 to be of type symbol or string
+[ARGACCES2] Function 'open' expected argument #1 to be of type symbol or string.
 FuzzyCLIPS> (open "blah4.dat" (create$) "r")   ; 10.5.2.1
-[IOFUN1] Illegal logical name used for open function.
-FALSE
+[ARGACCES2] Function 'open' expected argument #2 to be of type integer, float, symbol, string, or instance name.
 FuzzyCLIPS> (open blah5.dat blah5 r)           ; 10.5.2.1
-[ARGACCES5] Function open expected argument #3 to be of type string
-FALSE
+[ARGACCES2] Function 'open' expected argument #3 to be of type string.
 FuzzyCLIPS> (open blah6.dat blah6 "x")         ; 10.5.2.1
-[ARGACCES5] Function open expected argument #3 to be of type string with value "r", "w", "a", "rb", "wb", or "ab"
+[ARGACCES2] Function 'open' expected argument #3 to be of type 'file access mode string'.
 FALSE
 FuzzyCLIPS> (open blah7.dat blah7 8)           ; 10.5.2.1
-[ARGACCES5] Function open expected argument #3 to be of type string
-FALSE
+[ARGACCES2] Function 'open' expected argument #3 to be of type string.
 FuzzyCLIPS> (open blah8.dat blah8 "r")         ; 10.5.2.1
 FALSE
 FuzzyCLIPS> (close blah6 89)                   ; 10.5.2.2
-[ARGACCES4] Function close expected no more than 1 argument(s)
+[ARGACCES1] Function 'close' expected no more than 1 argument.
 FuzzyCLIPS> (close (create$))                  ; 10.5.2.2
-[IOFUN1] Illegal logical name used for close function.
-FALSE
+[ARGACCES2] Function 'close' expected argument #1 to be of type integer, float, symbol, string, or instance name.
 FuzzyCLIPS> (close [blah8])                    ; 10.5.2.2
 FALSE
 FuzzyCLIPS> (printout)                         ; 10.5.2.3
-[ARGACCES4] Function printout expected at least 1 argument(s)
+[ARGACCES1] Function 'printout' expected at least 1 argument.
 FuzzyCLIPS> (printout (create$))               ; 10.5.2.3
-[IOFUN1] Illegal logical name used for printout function.
+[ARGACCES2] Function 'printout' expected argument #1 to be of type integer, float, symbol, string, or instance name.
 FuzzyCLIPS> (read (create$))                   ; 10.5.2.4
-[IOFUN1] Illegal logical name used for read function.
-"*** READ ERROR ***"
+[ARGACCES2] Function 'read' expected argument #1 to be of type integer, float, symbol, string, or instance name.
 FuzzyCLIPS> (read bogus)                       ; 10.5.2.4
-[ROUTER1] Logical name bogus was not recognized by any routers
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
 "*** READ ERROR ***"
 FuzzyCLIPS> (read stdin stdout)                ; 10.5.2.4
-[ARGACCES4] Function read expected no more than 1 argument(s)
+[ARGACCES1] Function 'read' expected no more than 1 argument.
 FuzzyCLIPS> (read)                             ; 10.5.2.4 - 7
 7
 7
@@ -75,13 +70,12 @@ EOF
 FuzzyCLIPS> (close mydata)                     ; 10.5.2.4
 TRUE
 FuzzyCLIPS> (readline (create$))               ; 10.5.2.5
-[IOFUN1] Illegal logical name used for readline function.
-"*** READ ERROR ***"
+[ARGACCES2] Function 'readline' expected argument #1 to be of type integer, float, symbol, string, or instance name.
 FuzzyCLIPS> (readline bogus)                   ; 10.5.2.5
-[ROUTER1] Logical name bogus was not recognized by any routers
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
 "*** READ ERROR ***"
 FuzzyCLIPS> (readline stdin stdout)            ; 10.5.2.5
-[ARGACCES4] Function readline expected no more than 1 argument(s)
+[ARGACCES1] Function 'readline' expected no more than 1 argument.
 FuzzyCLIPS> (readline)                         ; 10.5.2.5 - "7"
 7
 "7"
@@ -103,13 +97,13 @@ EOF
 FuzzyCLIPS> (close 7.8923)                     ; 10.5.2.5
 TRUE
 FuzzyCLIPS> (format)                           ; 10.5.2.6
-[ARGACCES4] Function format expected at least 2 argument(s)
+[ARGACCES1] Function 'format' expected at least 2 arguments.
 FuzzyCLIPS> (format t)                         ; 10.5.2.6
-[ARGACCES4] Function format expected at least 2 argument(s)
+[ARGACCES1] Function 'format' expected at least 2 arguments.
 FuzzyCLIPS> (format (create$))                 ; 10.5.2.6
-[ARGACCES4] Function format expected at least 2 argument(s)
+[ARGACCES1] Function 'format' expected at least 2 arguments.
 FuzzyCLIPS> (format t "%f%%%n")                ; 10.5.2.6
-[ARGACCES4] Function format expected exactly 3 argument(s)
+[ARGACCES1] Function 'format' expected exactly 3 arguments.
 ""
 FuzzyCLIPS> (format nil "Integer: |%d|" 12)    ; 10.5.2.6
 "Integer: |12|"
@@ -136,24 +130,24 @@ FuzzyCLIPS> (format nil "Symbols: |%s| |%s|" value-a1 capacity)
 FuzzyCLIPS> (format nil "the %% x %d x %s x %f y %%" 4 ab 3.5)
 "the % x 4 x ab x 3.500000 y %"
 FuzzyCLIPS> (format nil "%d" abc)              ; 10.5.2.6
-[ARGACCES5] Function format expected argument #3 to be of type integer or float
+[ARGACCES2] Function 'format' expected argument #3 to be of type integer or float.
 ""
 FuzzyCLIPS> (format nil "%d" 9.8)              ; 10.5.2.6
 "9"
 FuzzyCLIPS> (format t "%f" 40)                 ; 10.5.2.6
 40.000000"40.000000"
 FuzzyCLIPS> (format nil "%f" abc)              ; 10.5.2.6
-[ARGACCES5] Function format expected argument #3 to be of type integer or float
+[ARGACCES2] Function 'format' expected argument #3 to be of type integer or float.
 ""
 FuzzyCLIPS> (format nil "%g" (create$))        ; 10.5.2.6
-[ARGACCES5] Function format expected argument #3 to be of type integer or float
+[ARGACCES2] Function 'format' expected argument #3 to be of type integer or float.
 ""
 FuzzyCLIPS> (format t "%o" 9.8)                ; 10.5.2.6
 11"11"
 FuzzyCLIPS> (remove "Temp/iofun.dat")          ; Open function modes
 FALSE
 FuzzyCLIPS> (open "Temp/iofun.dat" temp "bogus")
-[ARGACCES5] Function open expected argument #3 to be of type string with value "r", "w", "a", "rb", "wb", or "ab"
+[ARGACCES2] Function 'open' expected argument #3 to be of type 'file access mode string'.
 FALSE
 FuzzyCLIPS> (close temp)
 FALSE
@@ -227,4 +221,229 @@ FuzzyCLIPS> (close temp)
 TRUE
 FuzzyCLIPS> (remove "Temp/iofun.dat") 
 TRUE
+FuzzyCLIPS> (open "Temp/read.dat" temp "w") ; Return symbols for tokens that are not primitive values
+TRUE
+FuzzyCLIPS> (printout temp "(foo ?foo \"?foo\" \")\")" crlf)
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/read.dat" temp "r")
+TRUE
+FuzzyCLIPS> (read temp)
+(
+FuzzyCLIPS> (read temp)
+foo
+FuzzyCLIPS> (read temp)
+?foo
+FuzzyCLIPS> (read temp)
+"?foo"
+FuzzyCLIPS> (read temp)
+")"
+FuzzyCLIPS> (read temp)
+)
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (remove "Temp/read.dat") 
+TRUE
+FuzzyCLIPS> (put-char) ; put-char/get-char
+[ARGACCES1] Function 'put-char' expected at least 1 argument.
+FuzzyCLIPS> (put-char temp)
+[ARGACCES2] Function 'put-char' expected argument #1 to be of type integer.
+FuzzyCLIPS> (open "Temp/read.dat" temp "w") 
+TRUE
+FuzzyCLIPS> (put-char temp abc)
+[ARGACCES2] Function 'put-char' expected argument #2 to be of type integer.
+FuzzyCLIPS> (put-char temp 72 34)
+[ARGACCES1] Function 'put-char' expected no more than 2 arguments.
+FuzzyCLIPS> (put-char temp 72)
+FuzzyCLIPS> (put-char temp 101)
+FuzzyCLIPS> (put-char temp 108)
+FuzzyCLIPS> (put-char temp 112)
+FuzzyCLIPS> (put-char temp 111)
+FuzzyCLIPS> (put-char temp 10)
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/read.dat" temp "r")
+TRUE
+FuzzyCLIPS> (read temp)
+Helpo
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/read.dat" temp "r")
+TRUE
+FuzzyCLIPS> (readline temp)
+"Helpo"
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/read.dat" temp "r")
+TRUE
+FuzzyCLIPS> (get-char temp)
+72
+FuzzyCLIPS> (get-char temp)
+101
+FuzzyCLIPS> (get-char temp)
+108
+FuzzyCLIPS> (get-char temp)
+112
+FuzzyCLIPS> (get-char temp)
+111
+FuzzyCLIPS> (get-char temp)
+10
+FuzzyCLIPS> (get-char temp)
+-1
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (unget-char temp)
+[ARGACCES2] Function 'unget-char' expected argument #1 to be of type integer.
+0
+FuzzyCLIPS> (open "Temp/read.dat" temp "r")
+TRUE
+FuzzyCLIPS> (get-char temp)
+72
+FuzzyCLIPS> (get-char temp)
+101
+FuzzyCLIPS> (unget-char temp 101)
+101
+FuzzyCLIPS> (get-char temp)
+101
+FuzzyCLIPS> (get-char temp)
+108
+FuzzyCLIPS> (unget-char temp 108)
+108
+FuzzyCLIPS> (unget-char temp 101)
+101
+FuzzyCLIPS> (get-char temp)
+101
+FuzzyCLIPS> (get-char temp)
+108
+FuzzyCLIPS> (get-char temp)
+112
+FuzzyCLIPS> (get-char temp)
+111
+FuzzyCLIPS> (unget-char temp -1)
+-1
+FuzzyCLIPS> (get-char temp)
+10
+FuzzyCLIPS> (get-char temp)
+-1
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (remove "Temp/read.dat")
+TRUE
+FuzzyCLIPS> (while (not (member$ (get-char) (create$ 10 13))) do)
+ab cd ef
+FALSE
+FuzzyCLIPS> (open "Temp/plus.dat" temp "w") ; seek, tell, rewind, flush args
+TRUE
+FuzzyCLIPS> (seek)
+[ARGACCES1] Function 'seek' expected exactly 3 arguments.
+FuzzyCLIPS> (seek temp)
+[ARGACCES1] Function 'seek' expected exactly 3 arguments.
+FuzzyCLIPS> (seek temp 0)
+[ARGACCES1] Function 'seek' expected exactly 3 arguments.
+FuzzyCLIPS> (seek temp 0 seek-cur)
+TRUE
+FuzzyCLIPS> (seek temp 0 seek-set)
+TRUE
+FuzzyCLIPS> (seek temp 0 seek-end)
+TRUE
+FuzzyCLIPS> (seek temp 0 bogus)
+[ARGACCES2] Function 'seek' expected argument #3 to be of type symbol with value seek-set, seek-cur, or seek-end.
+FALSE
+FuzzyCLIPS> (seek temp 0 seek-set extra)
+[ARGACCES1] Function 'seek' expected exactly 3 arguments.
+FuzzyCLIPS> (seek bogus 0 seek-set)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FALSE
+FuzzyCLIPS> (tell)
+[ARGACCES1] Function 'tell' expected exactly 1 argument.
+FuzzyCLIPS> (tell temp extra)
+[ARGACCES1] Function 'tell' expected exactly 1 argument.
+FuzzyCLIPS> (tell bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FALSE
+FuzzyCLIPS> (rewind)
+[ARGACCES1] Function 'rewind' expected exactly 1 argument.
+FuzzyCLIPS> (rewind temp extra)
+[ARGACCES1] Function 'rewind' expected exactly 1 argument.
+FuzzyCLIPS> (rewind bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FALSE
+FuzzyCLIPS> (flush temp extra)
+[ARGACCES1] Function 'flush' expected no more than 1 argument.
+FuzzyCLIPS> (flush temp)
+TRUE
+FuzzyCLIPS> (flush)
+TRUE
+FuzzyCLIPS> (flush bogus)
+FALSE
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/plus.dat" temp "w") ; rewind
+TRUE
+FuzzyCLIPS> (printout temp "Jack Smith" crlf)
+FuzzyCLIPS> (printout temp "John Jones" crlf)
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/plus.dat" temp "r") 
+TRUE
+FuzzyCLIPS> (readline temp)
+"Jack Smith"
+FuzzyCLIPS> (readline temp)
+"John Jones"
+FuzzyCLIPS> (readline temp)
+EOF
+FuzzyCLIPS> (printout temp "Sally Walker" crlf)
+FuzzyCLIPS> (rewind temp)
+TRUE
+FuzzyCLIPS> (readline temp)
+"Jack Smith"
+FuzzyCLIPS> (readline temp)
+"John Jones"
+FuzzyCLIPS> (readline temp)
+EOF
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/plus.dat" temp "r+") ; r+ mode
+TRUE
+FuzzyCLIPS> (readline temp)
+"Jack Smith"
+FuzzyCLIPS> (readline temp)
+"John Jones"
+FuzzyCLIPS> (readline temp)
+EOF
+FuzzyCLIPS> (printout temp "Sally Walker" crlf)
+FuzzyCLIPS> (rewind temp)
+TRUE
+FuzzyCLIPS> (readline temp)
+"Jack Smith"
+FuzzyCLIPS> (readline temp)
+"John Jones"
+FuzzyCLIPS> (readline temp)
+"Sally Walker"
+FuzzyCLIPS> (readline temp)
+EOF
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (open "Temp/seek.dat" temp "w+") ; w+, seek, tell
+TRUE
+FuzzyCLIPS> (printout temp "Jack Smith" crlf)
+FuzzyCLIPS> (progn (bind ?pos (tell temp)) TRUE)
+TRUE
+FuzzyCLIPS> (printout temp "John Jones" crlf)
+FuzzyCLIPS> (printout temp "Sally Walker" crlf)
+FuzzyCLIPS> (seek temp ?pos seek-set)
+TRUE
+FuzzyCLIPS> (readline temp)
+"John Jones"
+FuzzyCLIPS> (readline temp)
+"Sally Walker"
+FuzzyCLIPS> (readline temp)
+EOF
+FuzzyCLIPS> (seek temp 0 seek-set)
+TRUE
+FuzzyCLIPS> (readline temp)
+"Jack Smith"
+FuzzyCLIPS> (close temp)
+TRUE
+FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

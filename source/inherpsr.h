@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -21,30 +21,28 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_inherpsr
+
+#pragma once
+
 #define _H_inherpsr
 
 #if OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME)
 
-#ifndef _H_object
 #include "object.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INHERPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE PACKED_CLASS_LINKS            *ParseSuperclasses(void *,const char *,SYMBOL_HN *);
-   LOCALE PACKED_CLASS_LINKS            *FindPrecedenceList(void *,DEFCLASS *,PACKED_CLASS_LINKS *);
-   LOCALE void                           PackClassLinks(void *,PACKED_CLASS_LINKS *,CLASS_LINK *);
+   PACKED_CLASS_LINKS            *ParseSuperclasses(Environment *,const char *,CLIPSLexeme *);
+   PACKED_CLASS_LINKS            *FindPrecedenceList(Environment *,Defclass *,PACKED_CLASS_LINKS *);
+   void                           PackClassLinks(Environment *,PACKED_CLASS_LINKS *,CLASS_LINK *);
 
 #endif /* OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME) */
 

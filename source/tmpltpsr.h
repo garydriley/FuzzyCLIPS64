@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*            DEFTEMPLATE PARSER HEADER FILE           */
    /*******************************************************/
@@ -30,31 +30,28 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_tmpltpsr
 
+#pragma once
+
 #define _H_tmpltpsr
 
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
-#ifndef _H_tmpltdef
 #include "tmpltdef.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE int                            ParseDeftemplate(void *,const char *);
-   LOCALE void                           InstallDeftemplate(void *,struct deftemplate *);
+   bool                           ParseDeftemplate(Environment *,const char *);
+   void                           InstallDeftemplate(Environment *,Deftemplate *);
 
 #endif /* _H_tmpltpsr */
 

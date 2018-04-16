@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -22,33 +22,30 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dffnxcmp
+
+#pragma once
+
 #define _H_dffnxcmp
 
 #if DEFFUNCTION_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME)
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
 #include "dffnxfun.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFNXCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupDeffunctionCompiler(void *);
-   LOCALE void                           PrintDeffunctionReference(void *,FILE *,DEFFUNCTION *,int,int);
-   LOCALE void                           DeffunctionCModuleReference(void *,FILE *,int,int,int);
+   void                           SetupDeffunctionCompiler(Environment *);
+   void                           PrintDeffunctionReference(Environment *,FILE *,Deffunction *,unsigned,unsigned);
+   void                           DeffunctionCModuleReference(Environment *,FILE *,unsigned long,unsigned int,unsigned int);
 
 #endif /* DEFFUNCTION_CONSTRUCT && CONSTRUCT_COMPILER && (! RUN_TIME) */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*          PROCEDURAL FUNCTIONS HEADER FILE           */
    /*******************************************************/
@@ -32,25 +32,26 @@
 /*                                                           */
 /*            Support for long long integers.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_prcdrfun
 
+#pragma once
+
 #define _H_prcdrfun
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _PRCDRFUN_SOURCE
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 typedef struct loopCounterStack
   {
@@ -61,27 +62,27 @@ typedef struct loopCounterStack
 #define PRCDRFUN_DATA 13
 
 struct procedureFunctionData
-  { 
-   int ReturnFlag;
-   int BreakFlag;
+  {
+   bool ReturnFlag;
+   bool BreakFlag;
    LOOP_COUNTER_STACK *LoopCounterStack;
-   struct dataObject *BindList;
+   UDFValue *BindList;
   };
 
 #define ProcedureFunctionData(theEnv) ((struct procedureFunctionData *) GetEnvironmentData(theEnv,PRCDRFUN_DATA))
 
-   LOCALE void                           ProceduralFunctionDefinitions(void *);
-   LOCALE void                           WhileFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           LoopForCountFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long                      GetLoopCount(void *);
-   LOCALE void                           IfFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           BindFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           PrognFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           ReturnFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           BreakFunction(void *);
-   LOCALE void                           SwitchFunction(void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        GetBoundVariable(void *,struct dataObject *,struct symbolHashNode *);
-   LOCALE void                           FlushBindList(void *);
+   void                           ProceduralFunctionDefinitions(Environment *);
+   void                           WhileFunction(Environment *,UDFContext *,UDFValue *);
+   void                           LoopForCountFunction(Environment *,UDFContext *,UDFValue *);
+   void                           GetLoopCount(Environment *,UDFContext *,UDFValue *);
+   void                           IfFunction(Environment *,UDFContext *,UDFValue *);
+   void                           BindFunction(Environment *,UDFContext *,UDFValue *);
+   void                           PrognFunction(Environment *,UDFContext *,UDFValue *);
+   void                           ReturnFunction(Environment *,UDFContext *,UDFValue *);
+   void                           BreakFunction(Environment *,UDFContext *,UDFValue *);
+   void                           SwitchFunction(Environment *,UDFContext *,UDFValue *);
+   bool                           GetBoundVariable(Environment *,UDFValue *,CLIPSLexeme *);
+   void                           FlushBindList(Environment *,void *);
 
 #endif /* _H_prcdrfun */
 

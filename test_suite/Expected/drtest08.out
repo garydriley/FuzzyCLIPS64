@@ -4,7 +4,7 @@ TRUE
 FuzzyCLIPS> (clear) ;; DR0705
 FuzzyCLIPS> (= 5 (read))
 Whatever
-[ARGACCES5] Function = expected argument #2 to be of type integer or float
+[ARGACCES2] Function '=' expected argument #2 to be of type integer or float.
 FALSE
 FuzzyCLIPS> (clear) ;; DR0707
 FuzzyCLIPS> (defclass A (is-a USER) (role concrete) (slot foo (create-accessor read-write)))
@@ -14,13 +14,11 @@ FuzzyCLIPS> (send [a] print)
 [a] of A
 (foo ""This is a string"")
 FuzzyCLIPS> (save-instances "Temp//bogus.tmp")
-2
+1
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
-For a total of 1 instance.
 FuzzyCLIPS> (load-instances "Temp//bogus.tmp")
-2
+1
 FuzzyCLIPS> (send [a] print)
 [a] of A
 (foo ""This is a string"")
@@ -51,9 +49,9 @@ FuzzyCLIPS>
    =>)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (c 1) (d a)) ; should not hang
-[ARGACCES5] Function > expected argument #1 to be of type integer or float
+[ARGACCES2] Function '>' expected argument #1 to be of type integer or float.
 
-[FACTMCH1] This error occurred in the fact pattern network
+[FACTMCH1] This error occurred in the fact pattern network.
    Currently active fact: (d a) CF 1.00 
    Problem resides in field #1
       Of pattern #2 in rule bar
@@ -67,9 +65,9 @@ FuzzyCLIPS>
    =>)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (assert (d a)) ; Error should be for pattern 5
-[ARGACCES5] Function > expected argument #1 to be of type integer or float
+[ARGACCES2] Function '>' expected argument #1 to be of type integer or float.
 
-[FACTMCH1] This error occurred in the fact pattern network
+[FACTMCH1] This error occurred in the fact pattern network.
    Currently active fact: (d a) CF 1.00 
    Problem resides in field #1
       Of pattern #4 in rule foo
@@ -146,16 +144,16 @@ FuzzyCLIPS>
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> 
 (defrule foo ; This should fail
-   (bbb ?x&:(member a ?x))
+   (bbb ?x&:(member$ a ?x))
    =>)
 
 [RULECSTR2] Previous variable bindings of ?x caused the type restrictions
-for argument #2 of the expression (member a ?x)
+for argument #2 of the expression (member$ a ?x)
 found in CE #1 field #1 to be violated.
 
 ERROR:
 (defrule MAIN::foo
-   (bbb ?x&:(member a ?x))
+   (bbb ?x&:(member$ a ?x))
    =>)
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> 
@@ -170,8 +168,7 @@ FuzzyCLIPS>
    (member$ a ?x))
 
 [RULECSTR3] Previous variable bindings of ?x caused the type restrictions
-for argument #2 of the expression (member$ a ?x)
-found in the rule's RHS to be violated.
+for argument #2 of the expression (member$ a ?x) found in the rule's RHS to be violated.
 
 ERROR:
 (defrule MAIN::this-1
@@ -303,14 +300,6 @@ TRUE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (watch all)
 FuzzyCLIPS> (bload "Temp//mytest.bin")
-MSG >> delete ED:1 (<Instance-initial-object>)
-HND >> delete primary in class USER
-       ED:1 (<Instance-initial-object>)
-<== instance [initial-object] of INITIAL-OBJECT
-HND << delete primary in class USER
-       ED:1 (<Stale Instance-initial-object>)
-MSG << delete ED:1 (<Stale Instance-initial-object>)
-<== f-0     (initial-fact) CF 1.00 
 <== Focus MAIN
 :== ?*x* ==> 3 <== 
 TRUE
@@ -428,7 +417,7 @@ FuzzyCLIPS> (defclass A (is-a USER) (role concrete))
 FuzzyCLIPS> (make-instance a of A)
 [a]
 FuzzyCLIPS> (any-instancep ((?long-var A)) ?long-var:)
-[EVALUATN1] Variable long-var: is unbound
+[EVALUATN1] Variable ?long-var: is unbound.
 FALSE
 FuzzyCLIPS> (clear)                ; DR0757 - Error ID should be [INSMNGR11]
 FuzzyCLIPS> (defclass A (is-a USER) (role concrete))
@@ -445,20 +434,18 @@ FuzzyCLIPS>
            ?*y* = (make-instance [a] of A))
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (facts)
-f-0     (foo) CF 1.00 
-f-1     (initial-fact) CF 1.00 
-For a total of 2 facts.
+f-1     (foo) CF 1.00 
+For a total of 1 fact.
 FuzzyCLIPS> (instances)
 [a] of A
-[initial-object] of INITIAL-OBJECT
-For a total of 2 instances.
+For a total of 1 instance.
 FuzzyCLIPS> (clear)                ; DR0759
 FuzzyCLIPS> 
 (deftemplate A
    (slot foo (type INTEGER)
              (allowed-instance-names [a])))
 
-[CSTRNPSR1] The type attribute conflicts with the allowed-instance-names attribute.
+[CSTRNPSR1] The 'type' attribute conflicts with the 'allowed-instance-names' attribute.
 
 ERROR:
 (deftemplate MAIN::A
@@ -478,7 +465,7 @@ FuzzyCLIPS>
    (slot foo (type INTEGER)
              (allowed-values abc def)))
 
-[CSTRNPSR1] The type attribute conflicts with the allowed-values attribute.
+[CSTRNPSR1] The 'type' attribute conflicts with the 'allowed-values' attribute.
 
 ERROR:
 (deftemplate MAIN::bar
@@ -497,8 +484,7 @@ FuzzyCLIPS>
    (multislot foofoo (type INTEGER LEXEME)))
 FuzzyCLIPS> (assert (temp2 (foofoo (progn 3.4))))
 
-[CSTRNCHK1] Slot value (3.4) found in fact f-2     
-does not match the allowed types for slot foofoo.
+[CSTRNCHK1] Slot value (3.4) found in fact f-2 does not match the allowed types for slot 'foofoo'.
 <Fact-2>
 FuzzyCLIPS> (set-dynamic-constraint-checking FALSE)
 TRUE
@@ -643,7 +629,7 @@ FuzzyCLIPS> (assert (nanu))
 <Fact-1>
 FuzzyCLIPS> (modify 1 (c 4))
 
-[TMPLTDEF1] Invalid slot c not defined in corresponding deftemplate nanu.
+[TMPLTDEF1] Invalid slot 'c' not defined in corresponding deftemplate 'nanu'.
 FALSE
 FuzzyCLIPS> (clear)               ; DR0788
 FuzzyCLIPS> 
@@ -688,7 +674,7 @@ FuzzyCLIPS>
   =>
   ?st_B1)
 
-[PRCCODE3] Undefined variable st_B1 referenced in RHS of defrule.
+[PRCCODE3] Undefined variable ?st_B1 referenced in RHS of defrule.
 
 ERROR:
 (defrule MAIN::autorule2_B2

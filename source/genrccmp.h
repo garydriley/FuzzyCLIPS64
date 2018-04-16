@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -31,31 +31,29 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_genrccmp
+
+#pragma once
+
 #define _H_genrccmp
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GENRCCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
 #include "genrcfun.h"
 
-   LOCALE void                           SetupGenericsCompiler(void *);
-   LOCALE void                           PrintGenericFunctionReference(void *,FILE *,DEFGENERIC *,int,int);
-   LOCALE void                           DefgenericCModuleReference(void *,FILE *,int,int,int);
+   void                           SetupGenericsCompiler(Environment *);
+   void                           PrintGenericFunctionReference(Environment *,FILE *,Defgeneric *,
+                                                                unsigned int,unsigned int);
+   void                           DefgenericCModuleReference(Environment *,FILE *,unsigned long,unsigned int,unsigned int);
 
 #endif /* _H_genrccmp */
 

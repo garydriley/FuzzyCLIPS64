@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*              COMMAND LINE HEADER FILE               */
    /*******************************************************/
@@ -38,79 +38,90 @@
 /*            Command history and editing support            */
 /*                                                           */
 /*            Used genstrcpy instead of strcpy.              */
-/*                                                           */             
+/*                                                           */
 /*            Added before command execution callback        */
 /*            function.                                      */
-/*                                                           */  
-/*            Fixed RouteCommand return value.               */           
-/*                                                           */             
+/*                                                           */
+/*            Fixed RouteCommand return value.               */
+/*                                                           */
 /*            Added AwaitingInput flag.                      */
-/*                                                           */             
+/*                                                           */
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
+/*                                                           */
+/*      6.40: Refactored code to reduce header dependencies  */
+/*            in sysdep.c.                                   */
+/*                                                           */
+/*            Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
 /*                                                           */
 /*************************************************************/
 
 #ifndef _H_commline
 
+#pragma once
+
 #define _H_commline
 
 #define COMMANDLINE_DATA 40
 
+#include <stdlib.h>
+
+typedef void AfterPromptFunction(Environment *);
+typedef bool BeforeCommandExecutionFunction(Environment *);
+typedef void EventFunction(Environment *);
+
 struct commandLineData
-  { 
-   int EvaluatingTopLevelCommand;
-   int HaltCommandLoopBatch;
+  {
+   bool EvaluatingTopLevelCommand;
+   bool HaltCommandLoopBatch;
 #if ! RUN_TIME
    struct expr *CurrentCommand;
    char *CommandString;
    size_t MaximumCharacters;
-   int ParsingTopLevelCommand;
+   bool ParsingTopLevelCommand;
    const char *BannerString;
-   int (*EventFunction)(void *);
-   int (*AfterPromptFunction)(void *);
-   int (*BeforeCommandExecutionFunction)(void *);
+   EventFunction *EventCallback;
+   AfterPromptFunction *AfterPromptCallback;
+   BeforeCommandExecutionFunction *BeforeCommandExecutionCallback;
 #endif
   };
 
 #define CommandLineData(theEnv) ((struct commandLineData *) GetEnvironmentData(theEnv,COMMANDLINE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _COMMLINE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeCommandLineData(void *);
-   LOCALE int                            ExpandCommandString(void *,int);
-   LOCALE void                           FlushCommandString(void *);
-   LOCALE void                           SetCommandString(void *,const char *);
-   LOCALE void                           AppendCommandString(void *,const char *);
-   LOCALE void                           InsertCommandString(void *,const char *,unsigned);
-   LOCALE char                          *GetCommandString(void *);
-   LOCALE int                            CompleteCommand(const char *);
-   LOCALE void                           CommandLoop(void *);
-   LOCALE void                           CommandLoopBatch(void *);
-   LOCALE void                           CommandLoopBatchDriver(void *);
-   LOCALE void                           PrintPrompt(void *);
-   LOCALE void                           PrintBanner(void *);
-   LOCALE void                           SetAfterPromptFunction(void *,int (*)(void *));
-   LOCALE void                           SetBeforeCommandExecutionFunction(void *,int (*)(void *));
-   LOCALE intBool                        RouteCommand(void *,const char *,int);
-   LOCALE int                          (*SetEventFunction(void *,int (*)(void *)))(void *);
-   LOCALE intBool                        TopLevelCommand(void *);
-   LOCALE void                           AppendNCommandString(void *,const char *,unsigned);
-   LOCALE void                           SetNCommandString(void *,const char *,unsigned);
-   LOCALE const char                    *GetCommandCompletionString(void *,const char *,size_t);
-   LOCALE intBool                        ExecuteIfCommandComplete(void *);
-   LOCALE void                           CommandLoopOnceThenBatch(void *);
-   LOCALE intBool                        CommandCompleteAndNotEmpty(void *);
-   LOCALE void                           SetHaltCommandLoopBatch(void *,int);
-   LOCALE int                            GetHaltCommandLoopBatch(void *);
+   void                           InitializeCommandLineData(Environment *);
+   bool                           ExpandCommandString(Environment *,int);
+   void                           FlushCommandString(Environment *);
+   void                           SetCommandString(Environment *,const char *);
+   void                           AppendCommandString(Environment *,const char *);
+   void                           InsertCommandString(Environment *,const char *,unsigned);
+   char                          *GetCommandString(Environment *);
+   int                            CompleteCommand(const char *);
+   void                           CommandLoop(Environment *);
+   void                           CommandLoopBatch(Environment *);
+   void                           CommandLoopBatchDriver(Environment *);
+   void                           PrintPrompt(Environment *);
+   void                           PrintBanner(Environment *);
+   void                           SetAfterPromptFunction(Environment *,AfterPromptFunction *);
+   void                           SetBeforeCommandExecutionFunction(Environment *,BeforeCommandExecutionFunction *);
+   bool                           RouteCommand(Environment *,const char *,bool);
+   EventFunction                 *SetEventFunction(Environment *,EventFunction *);
+   bool                           TopLevelCommand(Environment *);
+   void                           AppendNCommandString(Environment *,const char *,unsigned);
+   void                           SetNCommandString(Environment *,const char *,unsigned);
+   const char                    *GetCommandCompletionString(Environment *,const char *,size_t);
+   bool                           ExecuteIfCommandComplete(Environment *);
+   void                           CommandLoopOnceThenBatch(Environment *);
+   bool                           CommandCompleteAndNotEmpty(Environment *);
+   void                           SetHaltCommandLoopBatch(Environment *,bool);
+   bool                           GetHaltCommandLoopBatch(Environment *);
+   void                           RerouteStdin(Environment *,int,char *[]);
 
 #endif
 

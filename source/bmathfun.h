@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*             BASIC MATH FUNCTIONS MODULE             */
    /*******************************************************/
@@ -22,48 +22,42 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Auto-float-dividend always enabled.            */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_bmathfun
 
+#pragma once
+
 #define _H_bmathfun
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _BMATHFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    BasicMathFunctionDefinitions(void *);
-   LOCALE void                    AdditionFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MultiplicationFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    SubtractionFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    DivisionFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long               DivFunction(void *);
-   LOCALE intBool                 SetAutoFloatDividendCommand(void *);
-   LOCALE intBool                 GetAutoFloatDividendCommand(void *);
-   LOCALE intBool                 EnvGetAutoFloatDividend(void *);
-   LOCALE intBool                 EnvSetAutoFloatDividend(void *,int);
-   LOCALE long long               IntegerFunction(void *);
-   LOCALE double                  FloatFunction(void *);
-   LOCALE void                    AbsFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MinFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MaxFunction(void *,DATA_OBJECT_PTR);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                 GetAutoFloatDividend(void);
-   LOCALE intBool                 SetAutoFloatDividend(int);
-
-#endif
+   void                    BasicMathFunctionDefinitions(Environment *);
+   void                    AdditionFunction(Environment *,UDFContext *,UDFValue *);
+   void                    MultiplicationFunction(Environment *,UDFContext *,UDFValue *);
+   void                    SubtractionFunction(Environment *,UDFContext *,UDFValue *);
+   void                    DivisionFunction(Environment *,UDFContext *,UDFValue *);
+   void                    DivFunction(Environment *,UDFContext *,UDFValue *);
+   void                    IntegerFunction(Environment *,UDFContext *,UDFValue *);
+   void                    FloatFunction(Environment *,UDFContext *,UDFValue *);
+   void                    AbsFunction(Environment *,UDFContext *,UDFValue *);
+   void                    MinFunction(Environment *,UDFContext *,UDFValue *);
+   void                    MaxFunction(Environment *,UDFContext *,UDFValue *);
 
 #endif
 

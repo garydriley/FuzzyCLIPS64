@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/22/14          */
+   /*             CLIPS Version 6.40  11/14/17            */
    /*                                                     */
-   /*                                                     */
+   /*            INSTANCE COMMAND HEADER MODULE           */
    /*******************************************************/
 
 /*************************************************************/
@@ -44,109 +44,139 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_inscom
+
+#pragma once
+
 #define _H_inscom
 
-#ifndef _H_object
-#include "object.h"
-#endif
+typedef enum
+  {
+   UIE_NO_ERROR = 0,
+   UIE_NULL_POINTER_ERROR,
+   UIE_COULD_NOT_DELETE_ERROR,
+   UIE_DELETED_ERROR,
+   UIE_RULE_NETWORK_ERROR
+  } UnmakeInstanceError;
 
-#ifndef _H_insfun
+typedef enum
+  {
+   MIE_NO_ERROR = 0,
+   MIE_NULL_POINTER_ERROR,
+   MIE_PARSING_ERROR,
+   MIE_COULD_NOT_CREATE_ERROR,
+   MIE_RULE_NETWORK_ERROR
+  } MakeInstanceError;
+
+typedef enum
+  {
+   IBE_NO_ERROR = 0,
+   IBE_NULL_POINTER_ERROR,
+   IBE_DEFCLASS_NOT_FOUND_ERROR,
+   IBE_COULD_NOT_CREATE_ERROR,
+   IBE_RULE_NETWORK_ERROR
+  } InstanceBuilderError;
+
+typedef enum
+  {
+   IME_NO_ERROR = 0,
+   IME_NULL_POINTER_ERROR,
+   IME_DELETED_ERROR,
+   IME_COULD_NOT_MODIFY_ERROR,
+   IME_RULE_NETWORK_ERROR
+  } InstanceModifierError;
+
 #include "insfun.h"
-#endif
+#include "object.h"
 
 #define INSTANCE_DATA 29
 
 struct instanceData
-  { 
-   INSTANCE_TYPE DummyInstance;
-   INSTANCE_TYPE **InstanceTable;
-   int MaintainGarbageInstances;
-   int MkInsMsgPass;
-   int ChangesToInstances;
+  {
+   Instance DummyInstance;
+   Instance **InstanceTable;
+   bool MaintainGarbageInstances;
+   bool MkInsMsgPass;
+   bool ChangesToInstances;
    IGARBAGE *InstanceGarbageList;
    struct patternEntityRecord InstanceInfo;
-   INSTANCE_TYPE *InstanceList;  
+   Instance *InstanceList;
    unsigned long GlobalNumberOfInstances;
-   INSTANCE_TYPE *CurrentInstance;
-   INSTANCE_TYPE *InstanceListBottom;
-   intBool ObjectModDupMsgValid;
+   Instance *CurrentInstance;
+   Instance *InstanceListBottom;
+   bool ObjectModDupMsgValid;
+   UnmakeInstanceError unmakeInstanceError;
+   MakeInstanceError makeInstanceError;
+   InstanceModifierError instanceModifierError;
+   InstanceBuilderError instanceBuilderError;
   };
 
 #define InstanceData(theEnv) ((struct instanceData *) GetEnvironmentData(theEnv,INSTANCE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INSCOM_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupInstances(void *);
-   LOCALE intBool                        EnvDeleteInstance(void *,void *);
-   LOCALE intBool                        EnvUnmakeInstance(void *,void *);
+   void                           SetupInstances(Environment *);
+   UnmakeInstanceError            DeleteInstance(Instance *);
+   UnmakeInstanceError            DeleteAllInstances(Environment *);
+   UnmakeInstanceError            UnmakeInstance(Instance *);
+   bool                           UnmakeInstanceCallback(Instance *,Environment *);
+   UnmakeInstanceError            UnmakeAllInstances(Environment *);
 #if DEBUGGING_FUNCTIONS
-   LOCALE void                           InstancesCommand(void *);
-   LOCALE void                           PPInstanceCommand(void *);
-   LOCALE void                           EnvInstances(void *,const char *,void *,const char *,int);
+   void                           InstancesCommand(Environment *,UDFContext *,UDFValue *);
+   void                           PPInstanceCommand(Environment *,UDFContext *,UDFValue *);
+   void                           Instances(Environment *,const char *,Defmodule *,const char *,bool);
 #endif
-   LOCALE void                          *EnvMakeInstance(void *,const char *);
-   LOCALE void                          *EnvCreateRawInstance(void *,void *,const char *);
-   LOCALE void                          *EnvFindInstance(void *,void *,const char *,unsigned);
-   LOCALE int                            EnvValidInstanceAddress(void *,void *);
-   LOCALE void                           EnvDirectGetSlot(void *,void *,const char *,DATA_OBJECT *);
-   LOCALE int                            EnvDirectPutSlot(void *,void *,const char *,DATA_OBJECT *);
-   LOCALE const char                    *EnvGetInstanceName(void *,void *);
-   LOCALE void                          *EnvGetInstanceClass(void *,void *);
-   LOCALE unsigned long GetGlobalNumberOfInstances(void *);
-   LOCALE void                          *EnvGetNextInstance(void *,void *);
-   LOCALE void                          *GetNextInstanceInScope(void *,void *);
-   LOCALE void                          *EnvGetNextInstanceInClass(void *,void *,void *);
-   LOCALE void                          *EnvGetNextInstanceInClassAndSubclasses(void *,void **,void *,DATA_OBJECT *);
-   LOCALE void                           EnvGetInstancePPForm(void *,char *,size_t,void *);
-   LOCALE void                           ClassCommand(void *,DATA_OBJECT *);
-   LOCALE intBool                        DeleteInstanceCommand(void *);
-   LOCALE intBool                        UnmakeInstanceCommand(void *);
-   LOCALE void                           SymbolToInstanceName(void *,DATA_OBJECT *);
-   LOCALE void                          *InstanceNameToSymbol(void *);
-   LOCALE void                           InstanceAddressCommand(void *,DATA_OBJECT *);
-   LOCALE void                           InstanceNameCommand(void *,DATA_OBJECT *);
-   LOCALE intBool                        InstanceAddressPCommand(void *);
-   LOCALE intBool                        InstanceNamePCommand(void *);
-   LOCALE intBool                        InstancePCommand(void *);
-   LOCALE intBool                        InstanceExistPCommand(void *);
-   LOCALE intBool                        CreateInstanceHandler(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE const char                    *GetInstanceName(void *);
-   LOCALE void                          *CreateRawInstance(void *,const char *);
-   LOCALE intBool                        DeleteInstance(void *);
-   LOCALE void                           DirectGetSlot(void *,const char *,DATA_OBJECT *);
-   LOCALE int                            DirectPutSlot(void *,const char *,DATA_OBJECT *);
-   LOCALE void                          *FindInstance(void *,const char *,unsigned);
-   LOCALE void                          *GetInstanceClass(void *);
-   LOCALE void                           GetInstancePPForm(char *,unsigned,void *);
-   LOCALE void                          *GetNextInstance(void *);
-   LOCALE void                          *GetNextInstanceInClass(void *,void *);
-   LOCALE void                          *GetNextInstanceInClassAndSubclasses(void **,void *,DATA_OBJECT *);
-   LOCALE void                           Instances(const char *,void *,const char *,int);
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                          *MakeInstance(const char *);
-#endif
-   LOCALE intBool                        UnmakeInstance(void *);
-   LOCALE int                            ValidInstanceAddress(void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   Instance                      *MakeInstance(Environment *,const char *);
+   MakeInstanceError              GetMakeInstanceError(Environment *);
+   Instance                      *CreateRawInstance(Environment *,Defclass *,const char *);
+   Instance                      *FindInstance(Environment *,Defmodule *,const char *,bool);
+   bool                           ValidInstanceAddress(Instance *);
+   GetSlotError                   DirectGetSlot(Instance *,const char *,CLIPSValue *);
+   PutSlotError                   DirectPutSlot(Instance *,const char *,CLIPSValue *);
+   PutSlotError                   DirectPutSlotInteger(Instance *,const char *,long long);
+   PutSlotError                   DirectPutSlotFloat(Instance *,const char *,double);
+   PutSlotError                   DirectPutSlotSymbol(Instance *,const char *,const char *);
+   PutSlotError                   DirectPutSlotString(Instance *,const char *,const char *);
+   PutSlotError                   DirectPutSlotInstanceName(Instance *,const char *,const char *);
+   PutSlotError                   DirectPutSlotCLIPSInteger(Instance *,const char *,CLIPSInteger *);
+   PutSlotError                   DirectPutSlotCLIPSFloat(Instance *,const char *,CLIPSFloat *);
+   PutSlotError                   DirectPutSlotCLIPSLexeme(Instance *,const char *,CLIPSLexeme *);
+   PutSlotError                   DirectPutSlotFact(Instance *,const char *,Fact *);
+   PutSlotError                   DirectPutSlotInstance(Instance *,const char *,Instance *);
+   PutSlotError                   DirectPutSlotMultifield(Instance *,const char *,Multifield *);
+   PutSlotError                   DirectPutSlotCLIPSExternalAddress(Instance *,const char *,CLIPSExternalAddress *);
+   const char                    *InstanceName(Instance *);
+   Defclass                      *InstanceClass(Instance *);
+   unsigned long                  GetGlobalNumberOfInstances(Environment *);
+   Instance                      *GetNextInstance(Environment *,Instance *);
+   Instance                      *GetNextInstanceInScope(Environment *,Instance *);
+   Instance                      *GetNextInstanceInClass(Defclass *,Instance *);
+   Instance                      *GetNextInstanceInClassAndSubclasses(Defclass **,Instance *,UDFValue *);
+   void                           InstancePPForm(Instance *,StringBuilder *);
+   void                           ClassCommand(Environment *,UDFContext *,UDFValue *);
+   void                           DeleteInstanceCommand(Environment *,UDFContext *,UDFValue *);
+   void                           UnmakeInstanceCommand(Environment *,UDFContext *,UDFValue *);
+   void                           SymbolToInstanceNameFunction(Environment *,UDFContext *,UDFValue *);
+   void                           InstanceNameToSymbolFunction(Environment *,UDFContext *,UDFValue *);
+   void                           InstanceAddressCommand(Environment *,UDFContext *,UDFValue *);
+   void                           InstanceNameCommand(Environment *,UDFContext *,UDFValue *);
+   void                           InstanceAddressPCommand(Environment *,UDFContext *,UDFValue *);
+   void                           InstanceNamePCommand(Environment *,UDFContext *,UDFValue *);
+   void                           InstancePCommand(Environment *,UDFContext *,UDFValue *);
+   void                           InstanceExistPCommand(Environment *,UDFContext *,UDFValue *);
+   void                           CreateInstanceHandler(Environment *,UDFContext *,UDFValue *);
 
 #endif /* _H_inscom */
-
-
-
-
-

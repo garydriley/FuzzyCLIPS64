@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  10/01/16            */
    /*                                                     */
-   /*           SYMBOL BINARY SAVE HEADER FILE            */
+   /*           SYMBOL_TYPE BINARY SAVE HEADER FILE            */
    /*******************************************************/
 
 /*************************************************************/
@@ -15,6 +15,10 @@
 /*      Brian L. Dantes                                      */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -22,49 +26,44 @@
 /*                                                           */
 /*            Support for long long integers.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_symblbin
+
+#pragma once
+
 #define _H_symblbin
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _SYMBLBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#define BitMapPointer(i) ((BITMAP_HN *) (SymbolData(theEnv)->BitMapArray[i]))
-#define SymbolPointer(i) ((SYMBOL_HN *) (SymbolData(theEnv)->SymbolArray[i]))
-#define FloatPointer(i) ((FLOAT_HN *) (SymbolData(theEnv)->FloatArray[i]))
-#define IntegerPointer(i) ((INTEGER_HN *) (SymbolData(theEnv)->IntegerArray[i]))
+#define BitMapPointer(i) ((CLIPSBitMap *) (SymbolData(theEnv)->BitMapArray[i]))
+#define SymbolPointer(i) ((CLIPSLexeme *) (SymbolData(theEnv)->SymbolArray[i]))
+#define FloatPointer(i) ((CLIPSFloat *) (SymbolData(theEnv)->FloatArray[i]))
+#define IntegerPointer(i) ((CLIPSInteger *) (SymbolData(theEnv)->IntegerArray[i]))
 #if FUZZY_DEFTEMPLATES  
-#define FuzzyValuePointer(i) ((FUZZY_VALUE_HN *) (SymbolData(theEnv)->FuzzyValueArray[i]))
+#define FuzzyValuePointer(i) ((CLIPSFuzzyValue *) (SymbolData(theEnv)->FuzzyValueArray[i]))
 #endif
 
-   LOCALE void                    MarkNeededAtomicValues(void);
-   LOCALE void                    WriteNeededAtomicValues(void *,FILE *);
-   LOCALE void                    ReadNeededAtomicValues(void *);
-   LOCALE void                    InitAtomicValueNeededFlags(void *);
-   LOCALE void                    FreeAtomicValueStorage(void *);
-   LOCALE void                    WriteNeededSymbols(void *,FILE *);
-   LOCALE void                    WriteNeededFloats(void *,FILE *);
-   LOCALE void                    WriteNeededIntegers(void *,FILE *);
-   LOCALE void                    ReadNeededSymbols(void *);
-   LOCALE void                    ReadNeededFloats(void *);
-   LOCALE void                    ReadNeededIntegers(void *);
+   void                    MarkNeededAtomicValues(Environment);
+   void                    WriteNeededAtomicValues(Environment *,FILE *);
+   void                    ReadNeededAtomicValues(Environment *);
+   void                    InitAtomicValueNeededFlags(Environment *);
+   void                    FreeAtomicValueStorage(Environment *);
+   void                    WriteNeededSymbols(Environment *,FILE *);
+   void                    WriteNeededFloats(Environment *,FILE *);
+   void                    WriteNeededIntegers(Environment *,FILE *);
+   void                    ReadNeededSymbols(Environment *);
+   void                    ReadNeededFloats(Environment *);
+   void                    ReadNeededIntegers(Environment *);
 
 #endif /* _H_symblbin */
 

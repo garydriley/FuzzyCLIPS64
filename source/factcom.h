@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  02/04/15            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*               FACT COMMANDS HEADER FILE             */
    /*******************************************************/
@@ -40,51 +40,44 @@
 /*            being executed during fact assertions via      */
 /*            Increment/DecrementClearReadyLocks API.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factcom
+
+#pragma once
+
 #define _H_factcom
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTCOM_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           FactCommandDefinitions(void *);
-   LOCALE void                           AssertCommand(void *,DATA_OBJECT_PTR);
-   LOCALE void                           RetractCommand(void *);
-   LOCALE void                           AssertStringFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           FactsCommand(void *);
-   LOCALE void                           EnvFacts(void *,const char *,void *,long long,long long,long long);
-   LOCALE int                            SetFactDuplicationCommand(void *);
-   LOCALE int                            GetFactDuplicationCommand(void *);
-   LOCALE int                            SaveFactsCommand(void *);
-   LOCALE int                            LoadFactsCommand(void *);
-   LOCALE int                            EnvSaveFacts(void *,const char *,int);
-   LOCALE int                            EnvSaveFactsDriver(void *,const char *,int,struct expr *);
-   LOCALE int                            EnvLoadFacts(void *,const char *);
-   LOCALE int                            EnvLoadFactsFromString(void *,const char *,long);
-   LOCALE long long                      FactIndexFunction(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                           Facts(const char *,void *,long long,long long,long long);
-#endif
-   LOCALE intBool                        LoadFacts(const char *);
-   LOCALE intBool                        SaveFacts(const char *,int);
-   LOCALE intBool                        LoadFactsFromString(const char *,int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           FactCommandDefinitions(Environment *);
+   void                           AssertCommand(Environment *,UDFContext *,UDFValue *);
+   void                           RetractCommand(Environment *,UDFContext *,UDFValue *);
+   void                           AssertStringFunction(Environment *,UDFContext *,UDFValue *);
+   void                           FactsCommand(Environment *,UDFContext *,UDFValue *);
+   void                           Facts(Environment *,const char *,Defmodule *,long long,long long,long long);
+   void                           SetFactDuplicationCommand(Environment *,UDFContext *,UDFValue *);
+   void                           GetFactDuplicationCommand(Environment *,UDFContext *,UDFValue *);
+   void                           SaveFactsCommand(Environment *,UDFContext *,UDFValue *);
+   void                           LoadFactsCommand(Environment *,UDFContext *,UDFValue *);
+   bool                           SaveFacts(Environment *,const char *,SaveScope);
+   bool                           SaveFactsDriver(Environment *,const char *,SaveScope,struct expr *);
+   bool                           LoadFacts(Environment *,const char *);
+   bool                           LoadFactsFromString(Environment *,const char *,size_t);
+   void                           FactIndexFunction(Environment *,UDFContext *,UDFValue *);
 
 #endif /* _H_factcom */
 

@@ -21,8 +21,10 @@
 (run)                              ; DR0202
 (unwatch rules)                    ; DR0202
 (clear)                            ; DR0204
+(deffacts initial (factoid))
+(reset)
 (defrule test
-   ?fact <- (initial-fact)
+   ?fact <- (factoid)
    =>
    (printout t "any thing" crlf)
    (retract ?fact))
@@ -108,7 +110,7 @@
    (not (auto (mane nil)))
    =>
    (modify ?f1 (name any)))
-(str-implode (create$))          ; DR0256
+(implode$ (create$))               ; DR0256
 (clear)                            ; DR0257
 (defrule foo                       ; DR0257
    ?f1 <- (a 1) 

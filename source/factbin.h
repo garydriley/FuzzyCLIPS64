@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*            FACT BLOAD/BSAVE HEADER FILE             */
    /*******************************************************/
@@ -20,9 +20,18 @@
 /*                                                           */
 /*            Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factbin
+
+#pragma once
 
 #define _H_factbin
 
@@ -31,27 +40,17 @@
 #define FACTBIN_DATA 62
 
 struct factBinaryData
-  { 
+  {
    struct factPatternNode *FactPatternArray;
-   long NumberOfPatterns;
+   unsigned long NumberOfPatterns;
   };
-  
+
 #define FactBinaryData(theEnv) ((struct factBinaryData *) GetEnvironmentData(theEnv,FACTBIN_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           FactBinarySetup(Environment *);
 
-#ifdef _FACTBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           FactBinarySetup(void *);
-
-#define BsaveFactPatternIndex(patPtr) ((patPtr == NULL) ? -1L : ((struct factPatternNode *) patPtr)->bsaveID)
-#define BloadFactPatternPointer(i) ((struct factPatternNode *) ((i == -1L) ? NULL : &FactBinaryData(theEnv)->FactPatternArray[i]))
+#define BsaveFactPatternIndex(patPtr) ((patPtr == NULL) ? ULONG_MAX : ((struct factPatternNode *) patPtr)->bsaveID)
+#define BloadFactPatternPointer(i) ((struct factPatternNode *) ((i == ULONG_MAX) ? NULL : &FactBinaryData(theEnv)->FactPatternArray[i]))
 
 #endif
 

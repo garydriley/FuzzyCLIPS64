@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  07/25/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*           DEFRULE LHS PARSING HEADER FILE           */
    /*******************************************************/
@@ -20,36 +20,30 @@
 /*      6.30: Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_rulelhs
+
+#pragma once
+
 #define _H_rulelhs
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_reorder
-#include "reorder.h"
-#endif
-#ifndef _H_scanner
-#include "scanner.h"
-#endif
-#ifndef _H_pattern
 #include "pattern.h"
-#endif
+#include "reorder.h"
+#include "scanner.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULELHS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-LOCALE struct lhsParseNode           *ParseRuleLHS(void *,const char *,struct token *,const char *,int *);
-LOCALE void                           PropagatePatternType(struct lhsParseNode *,struct patternParser *);
+struct lhsParseNode           *ParseRuleLHS(Environment *,const char *,struct token *,const char *,bool *);
+void                           PropagatePatternType(struct lhsParseNode *,struct patternParser *);
 
 #endif
 

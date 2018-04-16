@@ -58,7 +58,7 @@ struct fuzzyLv
    /* Universe of Discourse */
    double from;
    double to;
-   struct symbolHashNode *units;
+   CLIPSLexeme *units;
    /* Primary Terms allowed */
    struct primary_term *primary_term_list;
   };
@@ -68,7 +68,7 @@ struct fuzzyLv
 /******************************************************************/
 struct primary_term
   {
-   FUZZY_VALUE_HN *fuzzy_value_description;
+   CLIPSFuzzyValue *fuzzy_value_description;
    struct primary_term *next;
   };
 

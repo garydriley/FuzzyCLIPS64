@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*        FACT RETE ACCESS FUNCTIONS HEADER FILE       */
    /*******************************************************/
@@ -13,6 +13,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -28,43 +32,44 @@
 /*                                                           */
 /*            Support for hashing optimizations.             */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factrete
 
+#pragma once
+
 #define _H_factrete
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTRETE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool                        FactPNGetVar1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNGetVar2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNGetVar3(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactJNGetVar1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactJNGetVar2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactJNGetVar3(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactSlotLength(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactJNCompVars1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactJNCompVars2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactPNCompVars1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNConstant1(void *,void *,DATA_OBJECT_PTR);
-   LOCALE intBool                        FactPNConstant2(void *,void *,DATA_OBJECT_PTR);
-   LOCALE int                            FactStoreMultifield(void *,void *,DATA_OBJECT_PTR);
-   LOCALE unsigned short                 AdjustFieldPosition(void *,struct multifieldMarker *,
-                                                             unsigned short,unsigned short,int *);
+   bool                           FactPNGetVar1(Environment *,void *,UDFValue *);
+   bool                           FactPNGetVar2(Environment *,void *,UDFValue *);
+   bool                           FactPNGetVar3(Environment *,void *,UDFValue *);
+   bool                           FactJNGetVar1(Environment *,void *,UDFValue *);
+   bool                           FactJNGetVar2(Environment *,void *,UDFValue *);
+   bool                           FactJNGetVar3(Environment *,void *,UDFValue *);
+   bool                           FactSlotLength(Environment *,void *,UDFValue *);
+   bool                           FactJNCompVars1(Environment *,void *,UDFValue *);
+   bool                           FactJNCompVars2(Environment *,void *,UDFValue *);
+   bool                           FactPNCompVars1(Environment *,void *,UDFValue *);
+   bool                           FactPNConstant1(Environment *,void *,UDFValue *);
+   bool                           FactPNConstant2(Environment *,void *,UDFValue *);
+   bool                           FactStoreMultifield(Environment *,void *,UDFValue *);
+   size_t                         AdjustFieldPosition(Environment *,struct multifieldMarker *,
+                                                      unsigned short,unsigned short,size_t *);
 #if FUZZY_DEFTEMPLATES
-   LOCALE intBool                        FactFuzzyValuePNFunction(void *,void *,DATA_OBJECT_PTR);
+   bool                           FactFuzzyValuePNFunction(Environment *,void *,UDFValue *);
 #endif  
 
 #endif

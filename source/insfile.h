@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  02/04/15          */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -34,29 +34,43 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_insfile
+
+#pragma once
+
 #define _H_insfile
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 
 #define INSTANCE_FILE_DATA 30
 
 #if BLOAD_INSTANCES || BSAVE_INSTANCES
 struct instanceFileData
-  { 
+  {
    const char *InstanceBinaryPrefixID;
    const char *InstanceBinaryVersionID;
-   unsigned long BinaryInstanceFileSize;
+   size_t BinaryInstanceFileSize;
 
 #if BLOAD_INSTANCES
-   unsigned long BinaryInstanceFileOffset;
+   size_t BinaryInstanceFileOffset;
    char *CurrentReadBuffer;
-   unsigned long CurrentReadBufferSize;
-   unsigned long CurrentReadBufferOffset;
+   size_t CurrentReadBufferSize;
+   size_t CurrentReadBufferOffset;
 #endif
   };
 
@@ -64,51 +78,25 @@ struct instanceFileData
 
 #endif /* BLOAD_INSTANCES || BSAVE_INSTANCES */
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _INSFILE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupInstanceFileCommands(void *);
-   LOCALE long                           SaveInstancesCommand(void *);
-   LOCALE long                           LoadInstancesCommand(void *);
-   LOCALE long                           RestoreInstancesCommand(void *);
-   LOCALE long                           EnvSaveInstancesDriver(void *,const char *,int,EXPRESSION *,intBool);
-   LOCALE long                           EnvSaveInstances(void *,const char *,int);
+   void                           SetupInstanceFileCommands(Environment *);
+   void                           SaveInstancesCommand(Environment *,UDFContext *,UDFValue *);
+   void                           LoadInstancesCommand(Environment *,UDFContext *,UDFValue *);
+   void                           RestoreInstancesCommand(Environment *,UDFContext *,UDFValue *);
+   long                           SaveInstancesDriver(Environment *,const char *,SaveScope,Expression *,bool);
+   long                           SaveInstances(Environment *,const char *,SaveScope);
 #if BSAVE_INSTANCES
-   LOCALE long                           BinarySaveInstancesCommand(void *);
-   LOCALE long                           EnvBinarySaveInstancesDriver(void *,const char *,int,EXPRESSION *,intBool);
-   LOCALE long                           EnvBinarySaveInstances(void *,const char *,int);
+   void                           BinarySaveInstancesCommand(Environment *,UDFContext *,UDFValue *);
+   long                           BinarySaveInstancesDriver(Environment *,const char *,SaveScope,Expression *,bool);
+   long                           BinarySaveInstances(Environment *,const char *,SaveScope);
 #endif
 #if BLOAD_INSTANCES
-   LOCALE long                           BinaryLoadInstancesCommand(void *);
-   LOCALE long                           EnvBinaryLoadInstances(void *,const char *);
+   void                           BinaryLoadInstancesCommand(Environment *,UDFContext *,UDFValue *);
+   long                           BinaryLoadInstances(Environment *,const char *);
 #endif
-   LOCALE long                           EnvLoadInstances(void *,const char *);
-   LOCALE long                           EnvLoadInstancesFromString(void *,const char *,int);
-   LOCALE long                           EnvRestoreInstances(void *,const char *);
-   LOCALE long                           EnvRestoreInstancesFromString(void *,const char *,int);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-#if BLOAD_INSTANCES
-   LOCALE long                           BinaryLoadInstances(const char *);
-#endif
-#if BSAVE_INSTANCES
-   LOCALE long                           BinarySaveInstances(const char *,int);
-#endif
-   LOCALE long                           LoadInstances(const char *);
-   LOCALE long                           LoadInstancesFromString(const char *,int);
-   LOCALE long                           RestoreInstances(const char *);
-   LOCALE long                           RestoreInstancesFromString(const char *,int);
-   LOCALE long                           SaveInstances(const char *,int);
-   
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   long                           LoadInstances(Environment *,const char *);
+   long                           LoadInstancesFromString(Environment *,const char *,size_t);
+   long                           RestoreInstances(Environment *,const char *);
+   long                           RestoreInstancesFromString(Environment *,const char *,size_t);
 
 #endif /* _H_insfile */
 

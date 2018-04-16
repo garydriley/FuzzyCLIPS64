@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  07/30/16             */
    /*                                                     */
-   /*            DEFTEMPLATE BSAVE/BLOAD MODULE           */
+   /*           DEFTEMPLATE BSAVE/BLOAD MODULE            */
    /*******************************************************/
 
 /*************************************************************/
@@ -29,29 +29,35 @@
 /*                                                           */
 /*            Support for deftemplate slot facets.           */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Removed initial-fact support.                  */
+/*                                                           */
 /*************************************************************/
-
-#define  _TMPLTBIN_SOURCE_
 
 #include "setup.h"
 
 #if DEFTEMPLATE_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
 #include "bload.h"
 #include "bsave.h"
-#include "factbin.h"
 #include "cstrnbin.h"
-#include "factmngr.h"
-#include "tmpltpsr.h"
-#include "tmpltdef.h"
-#include "tmpltutl.h"
 #include "envrnmnt.h"
+#include "factbin.h"
+#include "factmngr.h"
+#include "memalloc.h"
+#include "tmpltdef.h"
+#include "tmpltpsr.h"
+#include "tmpltutl.h"
 
-#if FUZZY_DEFTEMPLATES 
+#if FUZZY_DEFTEMPLATES
 #include "fuzzylv.h"
 #include "fuzzyval.h"
 #include "dffnxbin.h"
@@ -64,28 +70,28 @@
 /***************************************/
 
 #if BLOAD_AND_BSAVE
-   static void                    BsaveFind(void *);
-   static void                    BsaveStorage(void *,FILE *);
-   static void                    BsaveBinaryItem(void *,FILE *);
+   static void                    BsaveFind(Environment *);
+   static void                    BsaveStorage(Environment *,FILE *);
+   static void                    BsaveBinaryItem(Environment *,FILE *);
 #endif
-   static void                    BloadStorage(void *);
-   static void                    BloadBinaryItem(void *);
-   static void                    UpdateDeftemplateModule(void *,void *,long);
-   static void                    UpdateDeftemplate(void *,void *,long);
-   static void                    UpdateDeftemplateSlot(void *,void *,long);
-#if FUZZY_DEFTEMPLATES   
-   static void                    UpdateLvPlusUniverse(void *,void *,long);
-   static void                    UpdateFuzzyPrimaryTerms(void *,void *,long);
+   static void                    BloadStorage(Environment *);
+   static void                    BloadBinaryItem(Environment *);
+   static void                    UpdateDeftemplateModule(Environment *,void *,unsigned long);
+   static void                    UpdateDeftemplate(Environment *,void *,unsigned long);
+   static void                    UpdateDeftemplateSlot(Environment *,void *,unsigned long);
+#if FUZZY_DEFTEMPLATES
+   static void                    UpdateLvPlusUniverse(Environment *,void *,unsigned long);
+   static void                    UpdateFuzzyPrimaryTerms(Environment *,void *,unsigned long);
 #endif
-   static void                    ClearBload(void *);
-   static void                    DeallocateDeftemplateBloadData(void *);
+   static void                    ClearBload(Environment *);
+   static void                    DeallocateDeftemplateBloadData(Environment *);
 
 /***********************************************/
 /* DeftemplateBinarySetup: Installs the binary */
 /*   save/load feature for deftemplates.       */
 /***********************************************/
-globle void DeftemplateBinarySetup(
-  void *theEnv)
+void DeftemplateBinarySetup(
+  Environment *theEnv)
   {
    AllocateEnvironmentData(theEnv,TMPLTBIN_DATA,sizeof(struct deftemplateBinaryData),DeallocateDeftemplateBloadData);
 #if BLOAD_AND_BSAVE
@@ -100,26 +106,26 @@ globle void DeftemplateBinarySetup(
                              ClearBload);
 #endif
   }
-  
+
 /***********************************************************/
 /* DeallocateDeftemplateBloadData: Deallocates environment */
 /*    data for the deftemplate bsave functionality.        */
 /***********************************************************/
 static void DeallocateDeftemplateBloadData(
-  void *theEnv)
+  Environment *theEnv)
   {
    size_t space;
 
    space =  DeftemplateBinaryData(theEnv)->NumberOfTemplateModules * sizeof(struct deftemplateModule);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->ModuleArray,space);
-   
-   space = DeftemplateBinaryData(theEnv)->NumberOfDeftemplates * sizeof(struct deftemplate);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->DeftemplateArray,space);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->ModuleArray,space);
+
+   space = DeftemplateBinaryData(theEnv)->NumberOfDeftemplates * sizeof(Deftemplate);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->DeftemplateArray,space);
 
    space =  DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots * sizeof(struct templateSlot);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->SlotArray,space);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->SlotArray,space);
 
-#if FUZZY_DEFTEMPLATES   
+#if FUZZY_DEFTEMPLATES
    space =  DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms * sizeof(struct primary_term);
    if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms,space);
 
@@ -136,11 +142,11 @@ static void DeallocateDeftemplateBloadData(
 /*   current environment.                                     */
 /**************************************************************/
 static void BsaveFind(
-  void *theEnv)
+  Environment *theEnv)
   {
-   struct deftemplate *theDeftemplate;
+   Deftemplate *theDeftemplate;
    struct templateSlot *theSlot;
-   struct defmodule *theModule;
+   Defmodule *theModule;
 
    /*=======================================================*/
    /* If a binary image is already loaded, then temporarily */
@@ -151,7 +157,7 @@ static void BsaveFind(
    SaveBloadCount(theEnv,DeftemplateBinaryData(theEnv)->NumberOfDeftemplates);
    SaveBloadCount(theEnv,DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots);
    SaveBloadCount(theEnv,DeftemplateBinaryData(theEnv)->NumberOfTemplateModules);
-#if FUZZY_DEFTEMPLATES 
+#if FUZZY_DEFTEMPLATES
    SaveBloadCount(theEnv,DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates);
    SaveBloadCount(theEnv,DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms);
 #endif
@@ -164,7 +170,7 @@ static void BsaveFind(
    DeftemplateBinaryData(theEnv)->NumberOfDeftemplates = 0;
    DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots = 0;
    DeftemplateBinaryData(theEnv)->NumberOfTemplateModules = 0;
-#if FUZZY_DEFTEMPLATES   
+#if FUZZY_DEFTEMPLATES
    DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates = 0;
    DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms = 0;
 #endif
@@ -173,9 +179,9 @@ static void BsaveFind(
    /* Loop through each module. */
    /*===========================*/
 
-   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+   for (theModule = GetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
+        theModule = GetNextDefmodule(theEnv,theModule))
      {
       /*============================================*/
       /* Set the current module to the module being */
@@ -183,16 +189,16 @@ static void BsaveFind(
       /* deftemplate modules encountered.           */
       /*============================================*/
 
-      EnvSetCurrentModule(theEnv,(void *) theModule);
+      SetCurrentModule(theEnv,theModule);
       DeftemplateBinaryData(theEnv)->NumberOfTemplateModules++;
 
       /*======================================================*/
       /* Loop through each deftemplate in the current module. */
       /*======================================================*/
 
-      for (theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
+      for (theDeftemplate = GetNextDeftemplate(theEnv,NULL);
            theDeftemplate != NULL;
-           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate))
+           theDeftemplate = GetNextDeftemplate(theEnv,theDeftemplate))
         {
          /*======================================================*/
          /* Initialize the construct header for the binary save. */
@@ -200,8 +206,7 @@ static void BsaveFind(
 
          MarkConstructHeaderNeededItems(&theDeftemplate->header,
                                         DeftemplateBinaryData(theEnv)->NumberOfDeftemplates++);
-
-#if FUZZY_DEFTEMPLATES  
+#if FUZZY_DEFTEMPLATES
          if (theDeftemplate->fuzzyTemplate != NULL)
            {
              struct primary_term *ptptr;
@@ -216,13 +221,13 @@ static void BsaveFind(
              DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates++;
 
              if (theDeftemplate->fuzzyTemplate->units != NULL)
-                theDeftemplate->fuzzyTemplate->units->neededSymbol = TRUE;
+                theDeftemplate->fuzzyTemplate->units->neededSymbol = true;
 
              ptptr = theDeftemplate->fuzzyTemplate->primary_term_list;
              while (ptptr != NULL)
                 {
                   DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms++;
-                  ptptr->fuzzy_value_description->neededFuzzyValue = TRUE;
+                  ptptr->fuzzy_value_description->neededFuzzyValue = true;
                   ptptr = ptptr->next;
                 }
             }
@@ -238,7 +243,7 @@ static void BsaveFind(
               theSlot = theSlot->next)
            {
             DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots++;
-            theSlot->slotName->neededSymbol = TRUE;
+            theSlot->slotName->neededSymbol = true;
            }
         }
 
@@ -250,7 +255,7 @@ static void BsaveFind(
 /*    all deftemplate structures to the binary file.     */
 /*********************************************************/
 static void BsaveStorage(
-  void *theEnv,
+  Environment *theEnv,
   FILE *fp)
   {
    size_t space;
@@ -269,10 +274,10 @@ static void BsaveStorage(
    space = sizeof(long) * 5;
 #endif
    GenWrite(&space,sizeof(size_t),fp);
-   GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfDeftemplates,sizeof(long int),fp);
-   GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots,sizeof(long int),fp);
-   GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfTemplateModules,sizeof(long int),fp);
-#if FUZZY_DEFTEMPLATES   
+   GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfDeftemplates,sizeof(long),fp);
+   GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots,sizeof(long),fp);
+   GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfTemplateModules,sizeof(long),fp);
+#if FUZZY_DEFTEMPLATES
    GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates,(unsigned long) sizeof(long int),fp);
    GenWrite(&DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms,(unsigned long) sizeof(long int),fp);
 #endif
@@ -283,18 +288,18 @@ static void BsaveStorage(
 /*   structures to the binary file.            */
 /***********************************************/
 static void BsaveBinaryItem(
-  void *theEnv,
+  Environment *theEnv,
   FILE *fp)
   {
    size_t space;
-   struct deftemplate *theDeftemplate;
+   Deftemplate *theDeftemplate;
    struct bsaveDeftemplate tempDeftemplate;
    struct templateSlot *theSlot;
    struct bsaveTemplateSlot tempTemplateSlot;
    struct bsaveDeftemplateModule tempTemplateModule;
-   struct defmodule *theModule;
+   Defmodule *theModule;
    struct deftemplateModule *theModuleItem;
-#if FUZZY_DEFTEMPLATES  
+#if FUZZY_DEFTEMPLATES
    long lastNumberOfFuzzyPrimaryTerms;
 #endif
 
@@ -306,7 +311,7 @@ static void BsaveBinaryItem(
 
    space = (DeftemplateBinaryData(theEnv)->NumberOfDeftemplates * sizeof(struct bsaveDeftemplate)) +
            (DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots * sizeof(struct bsaveTemplateSlot)) +
-#if FUZZY_DEFTEMPLATES  
+#if FUZZY_DEFTEMPLATES
            (DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates * sizeof(struct bsaveLvPlusUniverse)) +
            (DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms * sizeof(struct bsaveFuzzyPrimaryTerm)) +
 #endif
@@ -318,16 +323,16 @@ static void BsaveBinaryItem(
    /*===================================================*/
 
    DeftemplateBinaryData(theEnv)->NumberOfDeftemplates = 0;
-#if FUZZY_DEFTEMPLATES   
+#if FUZZY_DEFTEMPLATES
    DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates = 0;
    DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms = 0;
    lastNumberOfFuzzyPrimaryTerms = 0;
 #endif
-   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+   for (theModule = GetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
+        theModule = GetNextDefmodule(theEnv,theModule))
      {
-      EnvSetCurrentModule(theEnv,(void *) theModule);
+      SetCurrentModule(theEnv,theModule);
 
       theModuleItem = (struct deftemplateModule *)
                       GetModuleItem(theEnv,NULL,FindModuleItem(theEnv,"deftemplate")->moduleIndex);
@@ -341,15 +346,15 @@ static void BsaveBinaryItem(
    /*============================================*/
 
    DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots = 0;
-   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+   for (theModule = GetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
+        theModule = GetNextDefmodule(theEnv,theModule))
      {
-      EnvSetCurrentModule(theEnv,(void *) theModule);
+      SetCurrentModule(theEnv,theModule);
 
-      for (theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
+      for (theDeftemplate = GetNextDeftemplate(theEnv,NULL);
            theDeftemplate != NULL;
-           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate))
+           theDeftemplate = GetNextDeftemplate(theEnv,theDeftemplate))
         {
          AssignBsaveConstructHeaderVals(&tempDeftemplate.header,
                                           &theDeftemplate->header);
@@ -357,34 +362,35 @@ static void BsaveBinaryItem(
          tempDeftemplate.numberOfSlots = theDeftemplate->numberOfSlots;
          tempDeftemplate.patternNetwork = BsaveFactPatternIndex(theDeftemplate->patternNetwork);
          
-#if FUZZY_DEFTEMPLATES   
-         /* a -1 in fuzzyTemplateList slot of tempDeftemplate indicates
+#if FUZZY_DEFTEMPLATES
+         /* a ULONG_MAX in fuzzyTemplateList slot of tempDeftemplate indicates
                     NOT a fuzzy deftemplate -- other values give index into the
                         LvPlusUniverseArray for resolving ptr when read back in
              */
          if (theDeftemplate->fuzzyTemplate == NULL)
-             tempDeftemplate.fuzzyTemplateList = -1L;
+           { tempDeftemplate.fuzzyTemplateList = ULONG_MAX; }
          else
-                     tempDeftemplate.fuzzyTemplateList = DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates;
+           { tempDeftemplate.fuzzyTemplateList = DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates; }
          tempDeftemplate.hasFuzzySlots = theDeftemplate->hasFuzzySlots;
 #endif
 
          if (theDeftemplate->slotList != NULL)
            { tempDeftemplate.slotList = DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots; }
-         else tempDeftemplate.slotList = -1L;
+         else
+           { tempDeftemplate.slotList = ULONG_MAX; }
 
          GenWrite(&tempDeftemplate,sizeof(struct bsaveDeftemplate),fp);
-
-#if FUZZY_DEFTEMPLATES    
+         
+#if FUZZY_DEFTEMPLATES
          if (theDeftemplate->fuzzyTemplate != NULL)
-                    DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates++;
+           { DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates++; }
 #endif
 
          DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots += theDeftemplate->numberOfSlots;
         }
      }
-
-#if FUZZY_DEFTEMPLATES   
+     
+#if FUZZY_DEFTEMPLATES
    /* At this point the bsave templates are written out .. now append
       to that for any fuzzy deftemplates
 
@@ -396,12 +402,12 @@ static void BsaveBinaryItem(
 
    if (DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates > 0)
     {
-     theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+     theModule = GetNextDefmodule(theEnv,NULL);
      while (theModule != NULL)
        {
-        EnvSetCurrentModule(theEnv,(void *) theModule);
+        SetCurrentModule(theEnv,theModule);
 
-        theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
+        theDeftemplate = GetNextDeftemplate(theEnv,NULL);
         while (theDeftemplate != NULL)
           {
            if (theDeftemplate->fuzzyTemplate != NULL)
@@ -417,13 +423,13 @@ static void BsaveBinaryItem(
                     ptptr = ptptr->next;
                   }
 
-               /* -1 means no primary terms or no modifiers */
+               /* ULONG_MAX means no primary terms or no modifiers */
                bLVFU.ptPtr = (DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms == lastNumberOfFuzzyPrimaryTerms) ?
-                              -1L : lastNumberOfFuzzyPrimaryTerms;
+                              ULONG_MAX : lastNumberOfFuzzyPrimaryTerms;
                bLVFU.from = flvptr->from;
                bLVFU.to = flvptr->to;
                if (flvptr->units == NULL) /* may not be a unit specifier */
-                  bLVFU.unitsName = -1L;
+                  bLVFU.unitsName = ULONG_MAX;
                else
                   bLVFU.unitsName = (long)flvptr->units->bucket;
                GenWrite(&bLVFU,(unsigned long) sizeof(struct bsaveLvPlusUniverse),fp);
@@ -431,18 +437,18 @@ static void BsaveBinaryItem(
                lastNumberOfFuzzyPrimaryTerms = DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms;
              }
 
-           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate);
+           theDeftemplate = GetNextDeftemplate(theEnv,theDeftemplate);
           }
 
-        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule);
+        theModule = GetNextDefmodule(theEnv,theModule);
        }
 
-     theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+     theModule = GetNextDefmodule(theEnv,NULL);
      while (theModule != NULL)
        {
-        EnvSetCurrentModule(theEnv,(void *) theModule);
+        SetCurrentModule(theEnv,theModule);
 
-        theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
+        theDeftemplate = GetNextDeftemplate(theEnv,NULL);
         while (theDeftemplate != NULL)
           {
            if (theDeftemplate->fuzzyTemplate != NULL)
@@ -458,17 +464,17 @@ static void BsaveBinaryItem(
                    if (ptptr->next != NULL)
                       bFPT.next = 0L;
                    else
-                      bFPT.next = -1L;
+                      bFPT.next = ULONG_MAX;
 
                    GenWrite(&bFPT,(unsigned long) sizeof(struct bsaveFuzzyPrimaryTerm),fp);
                                    ptptr = ptptr->next;
                   }
               }
 
-           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate);
+           theDeftemplate = GetNextDeftemplate(theEnv,theDeftemplate);
           }
 
-        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule);
+        theModule = GetNextDefmodule(theEnv,theModule);
        }
 
      }
@@ -478,15 +484,15 @@ static void BsaveBinaryItem(
    /* Write out each templateSlot data structure. */
    /*=============================================*/
 
-   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+   for (theModule = GetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
+        theModule = GetNextDefmodule(theEnv,theModule))
      {
-      EnvSetCurrentModule(theEnv,(void *) theModule);
+      SetCurrentModule(theEnv,theModule);
 
-      for (theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,NULL);
+      for (theDeftemplate = GetNextDeftemplate(theEnv,NULL);
            theDeftemplate != NULL;
-           theDeftemplate = (struct deftemplate *) EnvGetNextDeftemplate(theEnv,theDeftemplate))
+           theDeftemplate = GetNextDeftemplate(theEnv,theDeftemplate))
         {
          for (theSlot = theDeftemplate->slotList;
               theSlot != NULL;
@@ -502,7 +508,7 @@ static void BsaveBinaryItem(
             tempTemplateSlot.facetList = HashedExpressionIndex(theEnv,theSlot->facetList);
 
             if (theSlot->next != NULL) tempTemplateSlot.next = 0L;
-            else tempTemplateSlot.next = -1L;
+            else tempTemplateSlot.next = ULONG_MAX;
 
             GenWrite(&tempTemplateSlot,sizeof(struct bsaveTemplateSlot),fp);
            }
@@ -520,7 +526,7 @@ static void BsaveBinaryItem(
    RestoreBloadCount(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfDeftemplates);
    RestoreBloadCount(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots);
    RestoreBloadCount(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfTemplateModules);
-#if FUZZY_DEFTEMPLATES    
+#if FUZZY_DEFTEMPLATES
    RestoreBloadCount(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates);
    RestoreBloadCount(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms);
 #endif
@@ -533,7 +539,7 @@ static void BsaveBinaryItem(
 /*   the deftemplates used by this binary image.    */
 /****************************************************/
 static void BloadStorage(
-  void *theEnv)
+  Environment *theEnv)
   {
    size_t space;
 
@@ -543,10 +549,10 @@ static void BloadStorage(
    /*=========================================================*/
 
    GenReadBinary(theEnv,&space,sizeof(size_t));
-   GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfDeftemplates,sizeof(long int));
-   GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots,sizeof(long int));
-   GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfTemplateModules,sizeof(long int));
-#if FUZZY_DEFTEMPLATES   
+   GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfDeftemplates,sizeof(long));
+   GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots,sizeof(long));
+   GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfTemplateModules,sizeof(long));
+#if FUZZY_DEFTEMPLATES
    GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates,(unsigned long) sizeof(long int));
    GenReadBinary(theEnv,&DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms,(unsigned long) sizeof(long int));
 #endif
@@ -580,17 +586,17 @@ static void BloadStorage(
      {
       DeftemplateBinaryData(theEnv)->DeftemplateArray = NULL;
       DeftemplateBinaryData(theEnv)->SlotArray = NULL;
-#if FUZZY_DEFTEMPLATES   
+#if FUZZY_DEFTEMPLATES
       DeftemplateBinaryData(theEnv)->LvPlusUniverseArray = NULL;
       DeftemplateBinaryData(theEnv)->PrimaryTermArray = NULL;
 #endif
       return;
      }
 
-   space = DeftemplateBinaryData(theEnv)->NumberOfDeftemplates * sizeof(struct deftemplate);
-   DeftemplateBinaryData(theEnv)->DeftemplateArray = (struct deftemplate *) genalloc(theEnv,space);
-
-#if FUZZY_DEFTEMPLATES   
+   space = DeftemplateBinaryData(theEnv)->NumberOfDeftemplates * sizeof(Deftemplate);
+   DeftemplateBinaryData(theEnv)->DeftemplateArray = (Deftemplate *) genalloc(theEnv,space);
+   
+#if FUZZY_DEFTEMPLATES
    /*==============================================*/
    /* Get space for the LvPlusUniverse structures. */
    /*==============================================*/
@@ -643,7 +649,7 @@ static void BloadStorage(
 /*   constructs used by this binary image.              */
 /********************************************************/
 static void BloadBinaryItem(
-  void *theEnv)
+  Environment *theEnv)
   {
    size_t space;
 
@@ -670,11 +676,11 @@ static void BloadBinaryItem(
 
    BloadandRefresh(theEnv,DeftemplateBinaryData(theEnv)->NumberOfDeftemplates,sizeof(struct bsaveDeftemplate),
                    UpdateDeftemplate);
-                   
-#if FUZZY_DEFTEMPLATES   
-   BloadandRefresh(theEnv,DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates,(unsigned) sizeof(struct bsaveLvPlusUniverse),
+      
+#if FUZZY_DEFTEMPLATES
+   BloadandRefresh(theEnv,DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates,sizeof(struct bsaveLvPlusUniverse),
                    UpdateLvPlusUniverse);
-   BloadandRefresh(theEnv,DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms,(unsigned) sizeof(struct bsaveFuzzyPrimaryTerm),
+   BloadandRefresh(theEnv,DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms,sizeof(struct bsaveFuzzyPrimaryTerm),
                    UpdateFuzzyPrimaryTerms);
 #endif  /* FUZZY_DEFTEMPLATES */
 
@@ -693,15 +699,15 @@ static void BloadBinaryItem(
 /*   for deftemplateModule data structures.       */
 /**************************************************/
 static void UpdateDeftemplateModule(
-  void *theEnv,
+  Environment *theEnv,
   void *buf,
-  long obji)
+  unsigned long obji)
   {
    struct bsaveDeftemplateModule *bdmPtr;
 
    bdmPtr = (struct bsaveDeftemplateModule *) buf;
    UpdateDefmoduleItemHeader(theEnv,&bdmPtr->header,&DeftemplateBinaryData(theEnv)->ModuleArray[obji].header,
-                             (int) sizeof(struct deftemplate),
+                             sizeof(Deftemplate),
                              (void *) DeftemplateBinaryData(theEnv)->DeftemplateArray);
   }
 
@@ -710,27 +716,27 @@ static void UpdateDeftemplateModule(
 /*   for deftemplate data structures.       */
 /********************************************/
 static void UpdateDeftemplate(
-  void *theEnv,
+  Environment *theEnv,
   void *buf,
-  long obji)
+  unsigned long obji)
   {
-   struct deftemplate *theDeftemplate;
+   Deftemplate *theDeftemplate;
    struct bsaveDeftemplate *bdtPtr;
 
    bdtPtr = (struct bsaveDeftemplate *) buf;
-   theDeftemplate = (struct deftemplate *) &DeftemplateBinaryData(theEnv)->DeftemplateArray[obji];
+   theDeftemplate = &DeftemplateBinaryData(theEnv)->DeftemplateArray[obji];
 
-   UpdateConstructHeader(theEnv,&bdtPtr->header,&theDeftemplate->header,
-                         (int) sizeof(struct deftemplateModule),(void *) DeftemplateBinaryData(theEnv)->ModuleArray,
-                         (int) sizeof(struct deftemplate),(void *) DeftemplateBinaryData(theEnv)->DeftemplateArray);
+   UpdateConstructHeader(theEnv,&bdtPtr->header,&theDeftemplate->header,DEFTEMPLATE,
+                         sizeof(struct deftemplateModule),DeftemplateBinaryData(theEnv)->ModuleArray,
+                         sizeof(Deftemplate),DeftemplateBinaryData(theEnv)->DeftemplateArray);
 
-   if (bdtPtr->slotList != -1L)
+   if (bdtPtr->slotList != ULONG_MAX)
      { theDeftemplate->slotList = (struct templateSlot *) &DeftemplateBinaryData(theEnv)->SlotArray[bdtPtr->slotList]; }
    else
      { theDeftemplate->slotList = NULL; }
      
-#if FUZZY_DEFTEMPLATES   
-   if (bdtPtr->fuzzyTemplateList != -1L)
+#if FUZZY_DEFTEMPLATES
+   if (bdtPtr->fuzzyTemplateList != ULONG_MAX)
      { theDeftemplate->fuzzyTemplate = (struct fuzzyLv *) &DeftemplateBinaryData(theEnv)->LvPlusUniverseArray[bdtPtr->fuzzyTemplateList]; }
    else
      { theDeftemplate->fuzzyTemplate = NULL; }
@@ -738,7 +744,7 @@ static void UpdateDeftemplate(
    theDeftemplate->hasFuzzySlots = bdtPtr->hasFuzzySlots;
 #endif
 
-   if (bdtPtr->patternNetwork != -1L)
+   if (bdtPtr->patternNetwork != ULONG_MAX)
      { theDeftemplate->patternNetwork = (struct factPatternNode *) BloadFactPatternPointer(bdtPtr->patternNetwork); }
    else
      { theDeftemplate->patternNetwork = NULL; }
@@ -747,42 +753,42 @@ static void UpdateDeftemplate(
 #if DEBUGGING_FUNCTIONS
    theDeftemplate->watch = FactData(theEnv)->WatchFacts;
 #endif
-   theDeftemplate->inScope = FALSE;
-   theDeftemplate->numberOfSlots = (unsigned short) bdtPtr->numberOfSlots;
+   theDeftemplate->inScope = false;
+   theDeftemplate->numberOfSlots = bdtPtr->numberOfSlots;
    theDeftemplate->factList = NULL;
    theDeftemplate->lastFact = NULL;
   }
-  
-#if FUZZY_DEFTEMPLATES   
+
+#if FUZZY_DEFTEMPLATES
 /******************************************************/
 /* UpdateLvPlusUniverse: Updates pointers in bloaded  */
 /*   LvPlusUniverse slot structures.                  */
 /******************************************************/
 static void UpdateLvPlusUniverse(
-  void *theEnv,
+  Environment *theEnv,
   void *buf,
-  long obji)
+  unsigned long obji)
   {
-    struct fuzzyLv *lvpuPtr;
-    struct bsaveLvPlusUniverse *blvpuPtr;
+   struct fuzzyLv *lvpuPtr;
+   struct bsaveLvPlusUniverse *blvpuPtr;
 
-    blvpuPtr = (struct bsaveLvPlusUniverse *) buf;
-    lvpuPtr = (struct fuzzyLv *) &DeftemplateBinaryData(theEnv)->LvPlusUniverseArray[obji];
+   blvpuPtr = (struct bsaveLvPlusUniverse *) buf;
+   lvpuPtr = (struct fuzzyLv *) &DeftemplateBinaryData(theEnv)->LvPlusUniverseArray[obji];
 
-    if (blvpuPtr->ptPtr != -1L)
+   if (blvpuPtr->ptPtr != ULONG_MAX)
        lvpuPtr->primary_term_list = (struct primary_term *) &DeftemplateBinaryData(theEnv)->PrimaryTermArray[blvpuPtr->ptPtr];
-    else
+   else
        lvpuPtr->primary_term_list = NULL;
 
-    lvpuPtr->from = blvpuPtr->from;
-    lvpuPtr->to = blvpuPtr->to;
-    if (blvpuPtr->unitsName == -1L)
-       lvpuPtr->units = NULL;
-    else
-       {
-         lvpuPtr->units = SymbolData(theEnv)->SymbolArray[blvpuPtr->unitsName];
-         IncrementSymbolCount(lvpuPtr->units);
-       }
+   lvpuPtr->from = blvpuPtr->from;
+   lvpuPtr->to = blvpuPtr->to;
+   if (blvpuPtr->unitsName == ULONG_MAX)
+     { lvpuPtr->units = NULL; }
+   else
+     {
+      lvpuPtr->units = SymbolData(theEnv)->SymbolArray[blvpuPtr->unitsName];
+      IncrementLexemeCount(lvpuPtr->units);
+     }
   }
 
 /*********************************************************/
@@ -790,23 +796,23 @@ static void UpdateLvPlusUniverse(
 /*   primary term data structures.                       */
 /*********************************************************/
 static void UpdateFuzzyPrimaryTerms(
-  void *theEnv,
+  Environment *theEnv,
   void *buf,
-  long obji)
+  unsigned long obji)
   {
-    struct primary_term *ptPtr;
-    struct bsaveFuzzyPrimaryTerm *bptPtr;
+   struct primary_term *ptPtr;
+   struct bsaveFuzzyPrimaryTerm *bptPtr;
 
-        bptPtr = (struct bsaveFuzzyPrimaryTerm *) buf;
-        ptPtr = (struct primary_term *) &DeftemplateBinaryData(theEnv)->PrimaryTermArray[obji];
+   bptPtr = (struct bsaveFuzzyPrimaryTerm *) buf;
+   ptPtr = (struct primary_term *) &DeftemplateBinaryData(theEnv)->PrimaryTermArray[obji];
 
-    ptPtr->fuzzy_value_description = (FUZZY_VALUE_HN *) SymbolData(theEnv)->FuzzyValueArray[bptPtr->fuzzyValue];
-        IncrementFuzzyValueCount(ptPtr->fuzzy_value_description);
+   ptPtr->fuzzy_value_description = SymbolData(theEnv)->FuzzyValueArray[bptPtr->fuzzyValue];
+   IncrementFuzzyValueCount(ptPtr->fuzzy_value_description);
 
-        if (bptPtr->next == -1L)
-          ptPtr->next = NULL;
-        else
-          ptPtr->next = (struct primary_term *) &DeftemplateBinaryData(theEnv)->PrimaryTermArray[obji+1];
+   if (bptPtr->next == ULONG_MAX)
+     { ptPtr->next = NULL; }
+   else
+     { ptPtr->next = (struct primary_term *) &DeftemplateBinaryData(theEnv)->PrimaryTermArray[obji+1]; }
   }
 
 #endif /* FUZZY_DEFTEMPLATES */
@@ -816,9 +822,9 @@ static void UpdateFuzzyPrimaryTerms(
 /*   for templateSlot data structures.          */
 /************************************************/
 static void UpdateDeftemplateSlot(
-  void *theEnv,
+  Environment *theEnv,
   void *buf,
-  long obji)
+  unsigned long obji)
   {
    struct templateSlot *theSlot;
    struct bsaveTemplateSlot *btsPtr;
@@ -827,7 +833,7 @@ static void UpdateDeftemplateSlot(
    theSlot = (struct templateSlot *) &DeftemplateBinaryData(theEnv)->SlotArray[obji];
 
    theSlot->slotName = SymbolPointer(btsPtr->slotName);
-   IncrementSymbolCount(theSlot->slotName);
+   IncrementLexemeCount(theSlot->slotName);
    theSlot->defaultList = HashedExpressionPointer(btsPtr->defaultList);
    theSlot->facetList = HashedExpressionPointer(btsPtr->facetList);
    theSlot->constraints = ConstraintPointer(btsPtr->constraints);
@@ -837,7 +843,7 @@ static void UpdateDeftemplateSlot(
    theSlot->defaultPresent = btsPtr->defaultPresent;
    theSlot->defaultDynamic = btsPtr->defaultDynamic;
 
-   if (btsPtr->next != -1L)
+   if (btsPtr->next != ULONG_MAX)
      { theSlot->next = (struct templateSlot *) &DeftemplateBinaryData(theEnv)->SlotArray[obji + 1]; }
    else
      { theSlot->next = NULL; }
@@ -848,10 +854,10 @@ static void UpdateDeftemplateSlot(
 /*   when a binary load is in effect.    */
 /*****************************************/
 static void ClearBload(
-  void *theEnv)
+  Environment *theEnv)
   {
    size_t space;
-   int i;
+   unsigned long i;
 
    /*=============================================*/
    /* Decrement in use counters for atomic values */
@@ -867,18 +873,18 @@ static void ClearBload(
    /*=======================================*/
 
    for (i = 0; i < DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots; i++)
-     { DecrementSymbolCount(theEnv,DeftemplateBinaryData(theEnv)->SlotArray[i].slotName); }
+     { ReleaseLexeme(theEnv,DeftemplateBinaryData(theEnv)->SlotArray[i].slotName); }
      
-#if FUZZY_DEFTEMPLATES   
+#if FUZZY_DEFTEMPLATES
    for (i = 0; i < DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates; i++)
      {
-       if (DeftemplateBinaryData(theEnv)->LvPlusUniverseArray[i].units != NULL)
-         DecrementSymbolCount(theEnv,DeftemplateBinaryData(theEnv)->LvPlusUniverseArray[i].units);
+      if (DeftemplateBinaryData(theEnv)->LvPlusUniverseArray[i].units != NULL)
+        { ReleaseLexeme(theEnv,DeftemplateBinaryData(theEnv)->LvPlusUniverseArray[i].units); }
      }
 
    for (i = 0; i < DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms; i++)
      {
-       DecrementFuzzyValueCount(theEnv,DeftemplateBinaryData(theEnv)->PrimaryTermArray[i].fuzzy_value_description);
+      DecrementFuzzyValueCount(theEnv,DeftemplateBinaryData(theEnv)->PrimaryTermArray[i].fuzzy_value_description);
      }
 #endif
 
@@ -887,49 +893,42 @@ static void ClearBload(
    /*======================================================================*/
 
    space =  DeftemplateBinaryData(theEnv)->NumberOfTemplateModules * sizeof(struct deftemplateModule);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->ModuleArray,space);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->ModuleArray,space);
    DeftemplateBinaryData(theEnv)->NumberOfTemplateModules = 0;
-   
+
+#if FUZZY_DEFTEMPLATES
+   space = DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates * sizeof(struct fuzzyLv);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->LvPlusUniverseArray,space);
+
+   space = DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms * sizeof(struct primary_term);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->PrimaryTermArray,space);
+#endif
+
+
    /*================================================================*/
    /* Deallocate the space used for the deftemplate data structures. */
    /*================================================================*/
 
-   space = DeftemplateBinaryData(theEnv)->NumberOfDeftemplates * sizeof(struct deftemplate);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->DeftemplateArray,space);
+   space = DeftemplateBinaryData(theEnv)->NumberOfDeftemplates * sizeof(Deftemplate);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->DeftemplateArray,space);
    DeftemplateBinaryData(theEnv)->NumberOfDeftemplates = 0;
-
-#if FUZZY_DEFTEMPLATES  
-   space = DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates * sizeof(struct fuzzyLv);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->LvPlusUniverseArray,space);
-
-   space = DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms * sizeof(struct primary_term);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->PrimaryTermArray,space);
-#endif
 
    /*=================================================================*/
    /* Deallocate the space used for the templateSlot data structures. */
    /*=================================================================*/
 
    space =  DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots * sizeof(struct templateSlot);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->SlotArray,space);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->SlotArray,space);
    DeftemplateBinaryData(theEnv)->NumberOfTemplateSlots = 0;
-   
-   /*======================================*/
-   /* Create the initial-fact deftemplate. */
-   /*======================================*/
-
-#if (! BLOAD_ONLY)
-   CreateImpliedDeftemplate(theEnv,(SYMBOL_HN *) EnvAddSymbol(theEnv,"initial-fact"),FALSE);
-#endif
   }
 
 /************************************************************/
 /* BloadDeftemplateModuleReference: Returns the deftemplate */
 /*   module pointer for use with the bload function.        */
 /************************************************************/
-globle void *BloadDeftemplateModuleReference(
-  void *theEnv,
-  int theIndex)
+void *BloadDeftemplateModuleReference(
+  Environment *theEnv,
+  unsigned long theIndex)
   {
    return ((void *) &DeftemplateBinaryData(theEnv)->ModuleArray[theIndex]);
   }

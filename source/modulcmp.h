@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*       DEFMODULE CONSTRUCT COMPILER HEADER FILE      */
    /*******************************************************/
@@ -29,32 +29,26 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_modulcmp
 
+#pragma once
+
 #define _H_modulcmp
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULCMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefmoduleCompilerSetup(void *);
-   LOCALE void                           PrintDefmoduleReference(void *,FILE *,struct defmodule *);
+   void                           DefmoduleCompilerSetup(Environment *);
+   void                           PrintDefmoduleReference(Environment *,FILE *,Defmodule *);
 
 #endif /* _H_modulcmp */

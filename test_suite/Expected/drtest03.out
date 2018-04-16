@@ -4,8 +4,6 @@ TRUE
 FuzzyCLIPS> (reset)                            ; DR0201
 FuzzyCLIPS> (progn (assert (red)) (retract 1)) ; DR0201
 FuzzyCLIPS> (facts)                            ; DR0201
-f-0     (initial-fact) CF 1.00 
-For a total of 1 fact.
 FuzzyCLIPS> (clear)                            ; DR0202
 FuzzyCLIPS> (deffacts stuff
    (point 1)
@@ -32,8 +30,10 @@ FIRE    2 get-min: f-3,*,f-4,*
 This rule fires
 FuzzyCLIPS> (unwatch rules)                    ; DR0202
 FuzzyCLIPS> (clear)                            ; DR0204
+FuzzyCLIPS> (deffacts initial (factoid))
+FuzzyCLIPS> (reset)
 FuzzyCLIPS> (defrule test
-   ?fact <- (initial-fact)
+   ?fact <- (factoid)
    =>
    (printout t "any thing" crlf)
    (retract ?fact))
@@ -81,7 +81,7 @@ we didn't have = (we didn't have)
 FuzzyCLIPS> (clear)                            ; DR0232
 FuzzyCLIPS> (defrule a => (initialize-it))     ; DR0232
 
-[EXPRNPSR3] Missing function declaration for initialize-it.
+[EXPRNPSR3] Missing function declaration for 'initialize-it'.
 
 ERROR:
 (defrule MAIN::a
@@ -104,11 +104,10 @@ FuzzyCLIPS> (assert (colors (standard black))) ; DR0235
 FuzzyCLIPS> (assert (colors (metallic "navy blue")))
 <Fact-3>
 FuzzyCLIPS> (facts)                            ; DR0235
-f-0     (initial-fact) CF 1.00 
 f-1     (colors (standard white) (metallic "plain black")) CF 1.00 
 f-2     (colors (standard black) (metallic "plain black")) CF 1.00 
 f-3     (colors (standard white) (metallic "navy blue")) CF 1.00 
-For a total of 4 facts.
+For a total of 3 facts.
 FuzzyCLIPS> (clear)                            ; DR0238
 FuzzyCLIPS> (deftemplate auto (field name))
 FuzzyCLIPS> (defrule one 
@@ -116,7 +115,7 @@ FuzzyCLIPS> (defrule one
    =>
    (modify ?f1 (namse any))) 
 
-[TMPLTDEF1] Invalid slot namse not defined in corresponding deftemplate auto.
+[TMPLTDEF1] Invalid slot 'namse' not defined in corresponding deftemplate 'auto'.
 
 ERROR:
 (defrule MAIN::one
@@ -141,7 +140,7 @@ FuzzyCLIPS> (defrule b
    (not (a (one anything) (three whatever)))
    =>)       
 
-[TMPLTDEF1] Invalid slot three not defined in corresponding deftemplate a.
+[TMPLTDEF1] Invalid slot 'three' not defined in corresponding deftemplate 'a'.
 
 ERROR:
 (defrule MAIN::b
@@ -155,10 +154,9 @@ FuzzyCLIPS> (assert (fact))                    ; DR0246
 <Fact-1>
 FuzzyCLIPS> (run)                              ; DR0246
 FuzzyCLIPS> (facts)                            ; DR0246
-f-0     (initial-fact) CF 1.00 
 f-1     (fact) CF 1.00 
 f-2     (new-fact <Fact-1>) CF 1.00 
-For a total of 3 facts.
+For a total of 2 facts.
 FuzzyCLIPS> (clear)                            ; DR0248
 FuzzyCLIPS> (deffacts a)                       ; DR0248
 FuzzyCLIPS> (clear)                            ; DR0251
@@ -169,13 +167,13 @@ FuzzyCLIPS> (defrule one "test the naked assert & modify"
    =>
    (modify ?f1 (name any)))
 
-[TMPLTDEF1] Invalid slot mane not defined in corresponding deftemplate auto.
+[TMPLTDEF1] Invalid slot 'mane' not defined in corresponding deftemplate 'auto'.
 
 ERROR:
 (defrule MAIN::one "test the naked assert & modify"
    ?f1 <- (auto (name nil))
    (not (auto (mane
-FuzzyCLIPS> (str-implode (create$))          ; DR0256
+FuzzyCLIPS> (implode$ (create$))               ; DR0256
 ""
 FuzzyCLIPS> (clear)                            ; DR0257
 FuzzyCLIPS> (defrule foo                       ; DR0257
@@ -199,14 +197,13 @@ FuzzyCLIPS> (clear)                            ; DR0261
 FuzzyCLIPS> (deffacts a (one =(reset)))        ; DR0261
 FuzzyCLIPS> (reset)                            ; DR0261
 FuzzyCLIPS> (facts)                            ; DR0261
-f-0     (initial-fact) CF 1.00 
 f-1     (one) CF 1.00 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (clear)                            ; DR0279
 FuzzyCLIPS> (defrule with-error                ; DR0279
    (value ?a&:(> ?a max))
    =>)
-[ARGACCES5] Function > expected argument #2 to be of type integer or float
+[ARGACCES2] Function '>' expected argument #2 to be of type integer or float.
 
 ERROR:
 (defrule MAIN::with-error
@@ -214,7 +211,7 @@ ERROR:
 FuzzyCLIPS> (defrule with-error-inside-not     ; DR0279
    (not (value ?b&:(> ?b max)))
    =>)
-[ARGACCES5] Function > expected argument #2 to be of type integer or float
+[ARGACCES2] Function '>' expected argument #2 to be of type integer or float.
 
 ERROR:
 (defrule MAIN::with-error-inside-not
@@ -227,9 +224,8 @@ FuzzyCLIPS> (eval "(create$ / 3 1)")         ; DR0296
 FuzzyCLIPS> (deffacts a (one =(eval "(create$ / 3 1)")))
 FuzzyCLIPS> (reset)                            ; DR0296
 FuzzyCLIPS> (facts)                            ; DR0296
-f-0     (initial-fact) CF 1.00 
 f-1     (one / 3 1) CF 1.00 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (clear)                            ; DR0298
 FuzzyCLIPS> (deftemplate foo (field x) (field y))
 FuzzyCLIPS> (defrule this-rule-doesnt-work     ; DR0298
@@ -239,7 +235,7 @@ FuzzyCLIPS> (defrule this-rule-works           ; DR0298
    (foo (y ?x1&~?x2) (x ?x2))
    =>)
 
-[ANALYSIS4] Variable ?x2 was referenced in CE #1 slot y before being defined.
+[ANALYSIS4] Variable ?x2 was referenced in CE #1 slot 'y' before being defined.
 
 ERROR:
 (defrule MAIN::this-rule-works

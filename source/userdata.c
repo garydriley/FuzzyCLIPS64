@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  07/30/16             */
    /*                                                     */
    /*                  USER DATA MODULE                   */
    /*******************************************************/
@@ -15,9 +15,12 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
-
-#define _USERDATA_SOURCE_
 
 #include <stdlib.h>
 
@@ -31,8 +34,8 @@
 /* InitializeUserDataData: Allocates environment */
 /*    data for user data routines.               */
 /*************************************************/
-globle void InitializeUserDataData(
-  void *theEnv)
+void InitializeUserDataData(
+  Environment *theEnv)
   {
    AllocateEnvironmentData(theEnv,USER_DATA_DATA,sizeof(struct userDataData),NULL);
   }
@@ -42,22 +45,22 @@ globle void InitializeUserDataData(
 /*   in the user data record array and returns the    */
 /*   integer data ID associated with the record.      */
 /******************************************************/
-globle unsigned char InstallUserDataRecord(
-  void *theEnv,
+unsigned char InstallUserDataRecord(
+  Environment *theEnv,
   struct userDataRecord *theRecord)
   {
    theRecord->dataID = UserDataData(theEnv)->UserDataRecordCount;
    UserDataData(theEnv)->UserDataRecordArray[UserDataData(theEnv)->UserDataRecordCount] = theRecord;
    return(UserDataData(theEnv)->UserDataRecordCount++);
   }
-  
+
 /*****************************************************/
 /* FetchUserData: Searches for user data information */
 /*   from a list of user data structures. A new user */
 /*   data structure is created if one is not found.  */
 /*****************************************************/
-globle struct userData *FetchUserData(
-  void *theEnv,
+struct userData *FetchUserData(
+  Environment *theEnv,
   unsigned char userDataID,
   struct userData **theList)
   {
@@ -70,13 +73,13 @@ globle struct userData *FetchUserData(
       if (theData->dataID == userDataID)
         { return(theData); }
      }
-     
+
    theData = (struct userData *) (*UserDataData(theEnv)->UserDataRecordArray[userDataID]->createUserData)(theEnv);
    theData->dataID = userDataID;
    theData->next = *theList;
    *theList = theData;
-   
-   return(theData);   
+
+   return(theData);
   }
 
 /*****************************************************/
@@ -85,12 +88,12 @@ globle struct userData *FetchUserData(
 /*   returned if the appropriate user data structure */
 /*   is not found.                                   */
 /*****************************************************/
-globle struct userData *TestUserData(
+struct userData *TestUserData(
   unsigned char userDataID,
   struct userData *theList)
   {
    struct userData *theData;
-   
+
    for (theData = theList;
         theData != NULL;
         theData = theData->next)
@@ -98,19 +101,19 @@ globle struct userData *TestUserData(
       if (theData->dataID == userDataID)
         { return(theData); }
      }
-        
-   return(NULL);   
+
+   return NULL;
   }
 
 /***************************************************************/
 /* ClearUserDataList: Deallocates a linked list of user data.  */
 /***************************************************************/
-globle void ClearUserDataList(
-  void *theEnv,
+void ClearUserDataList(
+  Environment *theEnv,
   struct userData *theList)
   {
    struct userData *nextData;
-   
+
    while (theList != NULL)
      {
       nextData = theList->next;
@@ -118,36 +121,36 @@ globle void ClearUserDataList(
       theList = nextData;
      }
   }
-  
+
 /*************************************************/
 /* DeleteUserData: Removes user data information */
 /*   from a list of user data structures.        */
 /*************************************************/
-globle struct userData *DeleteUserData(
-  void *theEnv,
+struct userData *DeleteUserData(
+  Environment *theEnv,
   unsigned char userDataID,
   struct userData *theList)
   {
    struct userData *theData, *lastData = NULL;
-   
+
    for (theData = theList;
         theData != NULL;
         theData = theData->next)
      {
       if (theData->dataID == userDataID)
-        { 
+        {
          if (lastData == NULL)
            { theList = theData->next; }
          else
            { lastData->next = theData->next; }
-            
+
          (*UserDataData(theEnv)->UserDataRecordArray[userDataID]->deleteUserData)(theEnv,theData);
          return(theList);
         }
-        
+
       lastData = theData;
      }
-        
-   return(theList);   
+
+   return(theList);
   }
 

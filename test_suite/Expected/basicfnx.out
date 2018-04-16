@@ -28,7 +28,7 @@ FuzzyCLIPS> (assert (a |d))                    ; 10.1.1
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
 FuzzyCLIPS> (assert (a ?x))                    ; 10.1.1
-[EVALUATN1] Variable x is unbound
+[EVALUATN1] Variable ?x is unbound.
 ==> f-1     (a) CF 1.00 
 <Fact-1>
 FuzzyCLIPS> (assert (e))                       ; 10.1.1
@@ -43,7 +43,7 @@ FuzzyCLIPS> (assert (i =(+ 3 4)))              ; 10.1.1
 ==> f-6     (i 7) CF 1.00 
 <Fact-6>
 FuzzyCLIPS> (retract)                          ; 10.1.2
-[ARGACCES4] Function retract expected at least 1 argument(s)
+[ARGACCES1] Function 'retract' expected at least 1 argument.
 FuzzyCLIPS> (retract 1)                        ; 10.1.2
 <== f-1     (a) CF 1.00 
 FuzzyCLIPS> (retract 2 4)                      ; 10.1.2
@@ -53,7 +53,6 @@ FuzzyCLIPS> (retract 8 9)                      ; 10.1.2
 [PRNTUTIL1] Unable to find fact f-8.
 [PRNTUTIL1] Unable to find fact f-9.
 FuzzyCLIPS> (retract *)                        ; 10.1.2
-<== f-0     (initial-fact) CF 1.00 
 <== f-3     (f) CF 1.00 
 <== f-5     (h) CF 1.00 
 <== f-6     (i 7) CF 1.00 
@@ -61,22 +60,21 @@ FuzzyCLIPS> (unwatch facts)                    ; 10.1.2
 FuzzyCLIPS> (clear)                            ; 10.1.5
 FuzzyCLIPS> (deftemplate foo (slot x) (slot y))
 FuzzyCLIPS> (assert-string)                    ; 10.1.5
-[ARGACCES4] Function assert-string expected exactly 1 argument(s)
+[ARGACCES1] Function 'assert-string' expected exactly 1 argument.
 FuzzyCLIPS> (assert-string "a b c" "d e f")    ; 10.1.5
-[ARGACCES4] Function assert-string expected exactly 1 argument(s)
+[ARGACCES1] Function 'assert-string' expected exactly 1 argument.
 FuzzyCLIPS> (assert-string 7)                  ; 10.1.5
-[ARGACCES5] Function assert-string expected argument #1 to be of type string
+[ARGACCES2] Function 'assert-string' expected argument #1 to be of type string.
 FuzzyCLIPS> (assert-string hello)              ; 10.1.5
-[ARGACCES5] Function assert-string expected argument #1 to be of type string
+[ARGACCES2] Function 'assert-string' expected argument #1 to be of type string.
 FuzzyCLIPS> (assert-string "(x y z)")          ; 10.1.5
 <Fact-1>
 FuzzyCLIPS> (assert-string "(foo (y 3))")      ; 10.1.5
 <Fact-2>
 FuzzyCLIPS> (facts)                            ; 10.1.5
-f-0     (initial-fact) CF 1.00 
 f-1     (x y z) CF 1.00 
 f-2     (foo (x nil) (y 3)) CF 1.00 
-For a total of 3 facts.
+For a total of 2 facts.
 FuzzyCLIPS> (clear)                            ; 10.1.5
 FuzzyCLIPS> (bind)                             ; 10.1.6
 
@@ -89,5 +87,5 @@ FuzzyCLIPS> (bind ?x 3 4)                      ; 10.1.6
 (3 4)
 FuzzyCLIPS> (halt)                             ; 10.1.7
 FuzzyCLIPS> (halt 3)                           ; 10.1.7
-[ARGACCES4] Function halt expected exactly 0 argument(s)
+[ARGACCES1] Function 'halt' expected exactly 0 arguments.
 FuzzyCLIPS> (dribble-off)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  06/28/16             */
    /*                                                     */
    /*                   API HEADER FILE                   */
    /*******************************************************/
@@ -22,31 +22,31 @@
 /*      6.30: Added classpsr.h, iofun.h, and strngrtr.h to   */
 /*            include list.                                  */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
 /*************************************************************/
 
-#ifndef _H_API
-#define _H_API
+#ifndef _H_CLIPS_API
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
+#pragma once
+
+#define _H_CLIPS_API
+
 #include <stdio.h>
-#endif
 
 #include "setup.h"
-#ifndef _H_argacces
 #include "argacces.h"
-#endif
 #include "constant.h"
 #include "memalloc.h"
 #include "cstrcpsr.h"
-#include "filecom.h"
+#include "fileutil.h"
 #include "strngfun.h"
 #include "envrnmnt.h"
+#include "envrnbld.h"
 #include "commline.h"
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
 
+#include "prntutil.h"
 #include "router.h"
 #include "filertr.h"
 #include "strngrtr.h"
@@ -55,16 +55,10 @@
 
 #include "sysdep.h"
 #include "bmathfun.h"
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 #include "exprnpsr.h"
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
 #include "utility.h"
 #include "watch.h"
 #include "modulbsc.h"
@@ -78,9 +72,7 @@
 #endif
 
 #if DEFRULE_CONSTRUCT
-#ifndef _H_ruledef
 #include "ruledef.h"
-#endif
 #include "rulebsc.h"
 #include "engine.h"
 #include "drive.h"
@@ -100,9 +92,7 @@
 #include "tmpltfun.h"
 #include "factcom.h"
 #include "factfun.h"
-#ifndef _H_factmngr
 #include "factmngr.h"
-#endif
 #include "facthsh.h"
 #endif
 
@@ -124,6 +114,7 @@
 #if OBJECT_SYSTEM
 #include "classcom.h"
 #include "classexm.h"
+#include "classfun.h"
 #include "classinf.h"
 #include "classini.h"
 #include "classpsr.h"
@@ -131,13 +122,10 @@
 #include "inscom.h"
 #include "insfile.h"
 #include "insfun.h"
+#include "insmngr.h"
 #include "msgcom.h"
 #include "msgpass.h"
 #include "objrtmch.h"
 #endif
 
-
-#endif
-
-
-
+#endif /* _H_CLIPS_API */

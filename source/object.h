@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/03/18          */
+   /*               CLIPS Version 6.40  02/03/18          */
    /*                                                     */
    /*                OBJECT SYSTEM DEFINITIONS            */
    /*******************************************************/
@@ -24,20 +24,31 @@
 /*      6.31: Optimization for marking relevant alpha nodes  */
 /*            in the object pattern network.                 */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_object
+
+#pragma once
+
 #define _H_object
 
 typedef struct defclassModule DEFCLASS_MODULE;
-typedef struct defclass DEFCLASS;
+typedef struct defclass Defclass;
 typedef struct packedClassLinks PACKED_CLASS_LINKS;
 typedef struct classLink CLASS_LINK;
 typedef struct slotName SLOT_NAME;
-typedef struct slotDescriptor SLOT_DESC;
-typedef struct messageHandler HANDLER;
-typedef struct instance INSTANCE_TYPE;
-typedef struct instanceSlot INSTANCE_SLOT;
+typedef struct slotDescriptor SlotDescriptor;
+typedef struct defmessageHandler DefmessageHandler;
+
+typedef struct instanceSlot InstanceSlot;
+
+typedef struct instanceBuilder InstanceBuilder;
+typedef struct instanceModifier InstanceModifier;
 
 /* Maximum # of simultaneous class hierarchy traversals
    should be a multiple of BITS_PER_BYTE and less than MAX_INT      */
@@ -49,45 +60,24 @@ typedef struct instanceSlot INSTANCE_SLOT;
 #define VALUE_PROHIBITED   1
 #define VALUE_NOT_REQUIRED 2
 
-#ifndef _H_constrct
+#include "entities.h"
 #include "constrct.h"
-#endif
-#ifndef _H_constrnt
 #include "constrnt.h"
-#endif
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_multifld
 #include "multifld.h"
-#endif
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
-
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_pattern
-#include "pattern.h"
-#endif
 
 #if DEFRULE_CONSTRUCT
 #include "objrtmch.h"
 #endif
 
-#define GetInstanceSlotLength(sp) GetMFLength(sp->value)
-
 struct packedClassLinks
   {
-   long classCount;
-   DEFCLASS **classArray;
+   unsigned long classCount;
+   Defclass **classArray;
   };
 
 struct defclassModule
@@ -97,33 +87,33 @@ struct defclassModule
 
 struct defclass
   {
-   struct constructHeader header;
+   ConstructHeader header;
    unsigned installed      : 1;
    unsigned system         : 1;
    unsigned abstract       : 1;
    unsigned reactive       : 1;
    unsigned traceInstances : 1;
    unsigned traceSlots     : 1;
-   unsigned id;
-   unsigned busy,
-            hashTableIndex;
-   PACKED_CLASS_LINKS directSuperclasses,
-                      directSubclasses,
-                      allSuperclasses;
-   SLOT_DESC *slots,
-             **instanceTemplate;
+   unsigned short id;
+   unsigned busy;
+   unsigned hashTableIndex;
+   PACKED_CLASS_LINKS directSuperclasses;
+   PACKED_CLASS_LINKS directSubclasses;
+   PACKED_CLASS_LINKS allSuperclasses;
+   SlotDescriptor *slots;
+   SlotDescriptor **instanceTemplate;
    unsigned *slotNameMap;
-   short slotCount;
-   short localInstanceSlotCount;
-   short instanceSlotCount;
-   short maxSlotNameID;
-   INSTANCE_TYPE *instanceList,
-                 *instanceListBottom;
-   HANDLER *handlers;
+   unsigned short slotCount;
+   unsigned short localInstanceSlotCount;
+   unsigned short instanceSlotCount;
+   unsigned short maxSlotNameID;
+   Instance *instanceList;
+   Instance *instanceListBottom;
+   DefmessageHandler *handlers;
    unsigned *handlerOrderMap;
-   short handlerCount;
-   DEFCLASS *nxtHash;
-   BITMAP_HN *scopeMap;
+   unsigned short handlerCount;
+   Defclass *nxtHash;
+   CLIPSBitMap *scopeMap;
 
    /*
     * Links this defclass to each of the terminal alpha nodes which could be
@@ -140,28 +130,40 @@ struct defclass
 
 struct classLink
   {
-   DEFCLASS *cls;
+   Defclass *cls;
    struct classLink *nxt;
   };
 
 struct slotName
   {
-   unsigned hashTableIndex,
-            use;
-   short id;
-   SYMBOL_HN *name,
-             *putHandlerName;
+   unsigned hashTableIndex;
+   unsigned use;
+   unsigned short id;
+   CLIPSLexeme *name;
+   CLIPSLexeme *putHandlerName;
    struct slotName *nxt;
-   long bsaveIndex;
+   unsigned long bsaveIndex;
   };
 
 struct instanceSlot
   {
-   SLOT_DESC *desc;
+   SlotDescriptor *desc;
    unsigned valueRequired : 1;
    unsigned override      : 1;
    unsigned short type;
-   void *value;
+   union
+     {
+      void *value;
+      TypeHeader *header;
+      CLIPSLexeme *lexemeValue;
+      CLIPSFloat *floatValue;
+      CLIPSInteger *integerValue;
+      CLIPSVoid *voidValue;
+      Fact *factValue;
+      Instance *instanceValue;
+      Multifield *multifieldValue;
+      CLIPSExternalAddress *externalAddressValue;
+     };
   };
 
 struct slotDescriptor
@@ -180,52 +182,69 @@ struct slotDescriptor
    unsigned createReadAccessor       : 1;
    unsigned createWriteAccessor      : 1;
    unsigned overrideMessageSpecified : 1;
-   DEFCLASS *cls;
+   Defclass *cls;
    SLOT_NAME *slotName;
-   SYMBOL_HN *overrideMessage;
+   CLIPSLexeme *overrideMessage;
    void *defaultValue;
    CONSTRAINT_RECORD *constraint;
    unsigned sharedCount;
-   long bsaveIndex;
-   INSTANCE_SLOT sharedValue;
+   unsigned long bsaveIndex;
+   InstanceSlot sharedValue;
   };
 
 struct instance
   {
-   struct patternEntity header;
+   union
+     {
+      struct patternEntity patternHeader;
+      TypeHeader header;
+     };
    void *partialMatchList;
-   INSTANCE_SLOT *basisSlots;
+   InstanceSlot *basisSlots;
    unsigned installed            : 1;
    unsigned garbage              : 1;
    unsigned initSlotsCalled      : 1;
    unsigned initializeInProgress : 1;
    unsigned reteSynchronized     : 1;
-   SYMBOL_HN *name;
+   CLIPSLexeme *name;
    unsigned hashTableIndex;
    unsigned busy;
-   DEFCLASS *cls;
-   INSTANCE_TYPE *prvClass,*nxtClass,
+   Defclass *cls;
+   Instance *prvClass,*nxtClass,
                  *prvHash,*nxtHash,
                  *prvList,*nxtList;
-   INSTANCE_SLOT **slotAddresses,
+   InstanceSlot **slotAddresses,
                  *slots;
   };
 
-struct messageHandler
+struct defmessageHandler
   {
+   ConstructHeader header;
    unsigned system         : 1;
    unsigned type           : 2;
    unsigned mark           : 1;
    unsigned trace          : 1;
    unsigned busy;
-   SYMBOL_HN *name;
-   DEFCLASS *cls;
-   short minParams;
-   short maxParams;
-   short localVarCount;
-   EXPRESSION *actions;
-   char *ppForm;
-   struct userData *usrData;
+   Defclass *cls;
+   unsigned short minParams;
+   unsigned short maxParams;
+   unsigned short localVarCount;
+   Expression *actions;
+  };
+
+struct instanceBuilder
+  {
+   Environment *ibEnv;
+   Defclass *ibDefclass;
+   CLIPSValue *ibValueArray;
+  };
+
+struct instanceModifier
+  {
+   Environment *imEnv;
+   Instance *imOldInstance;
+   CLIPSValue *imValueArray;
+   char *changeMap;
   };
 
 #endif /* _H_object */

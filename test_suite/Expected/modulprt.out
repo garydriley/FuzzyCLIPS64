@@ -81,28 +81,28 @@ FuzzyCLIPS> (clear) ; Test for importing undefined constructs
 FuzzyCLIPS> (defmodule A (export ?ALL))
 FuzzyCLIPS> (defmodule B (import A deftemplate foo))
 
-[MODULPSR1] Module A does not export the deftemplate foo.
+[MODULPSR1] Module 'A' does not export the deftemplate 'foo'.
 
 ERROR:
 (defmodule B
    (import A deftemplate foo)
 FuzzyCLIPS> (defmodule B (import A defglobal foo))
 
-[MODULPSR1] Module A does not export the defglobal foo.
+[MODULPSR1] Module 'A' does not export the defglobal 'foo'.
 
 ERROR:
 (defmodule B
    (import A defglobal foo)
 FuzzyCLIPS> (defmodule B (import A defclass FOO))
 
-[MODULPSR1] Module A does not export the defclass FOO.
+[MODULPSR1] Module 'A' does not export the defclass 'FOO'.
 
 ERROR:
 (defmodule B
    (import A defclass FOO)
 FuzzyCLIPS> (defmodule B (import A defgeneric foo))
 
-[MODULPSR1] Module A does not export the defgeneric foo.
+[MODULPSR1] Module 'A' does not export the defgeneric 'foo'.
 
 ERROR:
 (defmodule B
@@ -124,31 +124,31 @@ FuzzyCLIPS> (defrule B::foo (b) =>)
 FuzzyCLIPS> (deffacts B::foo)
 FuzzyCLIPS> (deftemplate B::foo)
 
-[CSTRCPSR3] Cannot define deftemplate foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define deftemplate 'foo' because of an import/export conflict.
 
 ERROR:
 (deftemplate B::foo
 FuzzyCLIPS> (defglobal B ?*foo* = 3)
 
-[CSTRCPSR3] Cannot define defglobal foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define defglobal 'foo' because of an import/export conflict.
 
 ERROR:
 (defglobal B ?*foo* 
 FuzzyCLIPS> (defgeneric B::foo)
 
-[CSTRCPSR3] Cannot define defgeneric foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define defgeneric 'foo' because of an import/export conflict.
 
 ERROR:
 (defgeneric B::foo
 FuzzyCLIPS> (defmethod B::foo ())
 
-[CSTRCPSR3] Cannot define defgeneric foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define defgeneric 'foo' because of an import/export conflict.
 
 ERROR:
 (defmethod B::foo
 FuzzyCLIPS> (defclass B::FOO (is-a USER))
 
-[CSTRCPSR3] Cannot define defclass FOO because of an import/export conflict.
+[CSTRCPSR3] Cannot define defclass 'FOO' because of an import/export conflict.
 
 ERROR:
 (defclass B::FOO
@@ -160,31 +160,31 @@ FuzzyCLIPS> (defrule C::foo =>)
 FuzzyCLIPS> (deffacts C::foo)
 FuzzyCLIPS> (deftemplate C::foo)
 
-[CSTRCPSR3] Cannot define deftemplate foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define deftemplate 'foo' because of an import/export conflict.
 
 ERROR:
 (deftemplate C::foo
 FuzzyCLIPS> (defglobal C ?*foo* = 3)
 
-[CSTRCPSR3] Cannot define defglobal foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define defglobal 'foo' because of an import/export conflict.
 
 ERROR:
 (defglobal C ?*foo* 
 FuzzyCLIPS> (defgeneric C::foo)
 
-[CSTRCPSR3] Cannot define defgeneric foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define defgeneric 'foo' because of an import/export conflict.
 
 ERROR:
 (defgeneric C::foo
 FuzzyCLIPS> (defmethod C::foo ())
 
-[CSTRCPSR3] Cannot define defgeneric foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define defgeneric 'foo' because of an import/export conflict.
 
 ERROR:
 (defmethod C::foo
 FuzzyCLIPS> (defclass C::FOO (is-a USER))
 
-[CSTRCPSR3] Cannot define defclass FOO because of an import/export conflict.
+[CSTRCPSR3] Cannot define defclass 'FOO' because of an import/export conflict.
 
 ERROR:
 (defclass C::FOO
@@ -209,7 +209,6 @@ E:
 For a total of 3 defrules.
 FuzzyCLIPS> (list-deffacts *)
 MAIN:
-   initial-fact
 A:
    foo
 B:
@@ -218,10 +217,9 @@ C:
    foo
 D:
 E:
-For a total of 4 deffacts.
+For a total of 3 deffacts.
 FuzzyCLIPS> (list-deftemplates *)
 MAIN:
-   initial-fact
 A:
    a
    foo
@@ -230,7 +228,7 @@ B:
 C:
 D:
 E:
-For a total of 4 deftemplates.
+For a total of 3 deftemplates.
 FuzzyCLIPS> (list-defglobals *)
 MAIN:
 A:
@@ -253,11 +251,11 @@ FuzzyCLIPS> (list-defmethods A::foo)
 foo #1  
 For a total of 1 method.
 FuzzyCLIPS> (list-defmethods B::foo)
-[GENRCFUN3] Unable to find generic function B::foo in function list-defmethods.
+[GENRCFUN3] Unable to find generic function 'B::foo' in function 'list-defmethods'.
 FuzzyCLIPS> (list-defmethods C::foo)
-[GENRCFUN3] Unable to find generic function C::foo in function list-defmethods.
+[GENRCFUN3] Unable to find generic function 'C::foo' in function 'list-defmethods'.
 FuzzyCLIPS> (list-defmethods D::foo)
-[GENRCFUN3] Unable to find generic function D::foo in function list-defmethods.
+[GENRCFUN3] Unable to find generic function 'D::foo' in function 'list-defmethods'.
 FuzzyCLIPS> (list-defclasses *)
 MAIN:
    FLOAT
@@ -277,26 +275,24 @@ MAIN:
    ADDRESS
    INSTANCE
    USER
-   INITIAL-OBJECT
 A:
    FOO
 B:
 C:
 D:
 E:
-For a total of 19 defclasses.
+For a total of 18 defclasses.
 FuzzyCLIPS> (list-defmessage-handlers A::FOO)
 bar primary in class A::FOO
 For a total of 1 message-handler.
 FuzzyCLIPS> (list-defmessage-handlers B::FOO)
-[CLASSFUN1] Unable to find class B::FOO in function list-defmessage-handlers.
+[CLASSFUN1] Unable to find class 'B::FOO' in function 'list-defmessage-handlers'.
 FuzzyCLIPS> (list-defmessage-handlers C::FOO)
-[CLASSFUN1] Unable to find class C::FOO in function list-defmessage-handlers.
+[CLASSFUN1] Unable to find class 'C::FOO' in function 'list-defmessage-handlers'.
 FuzzyCLIPS> (list-defmessage-handlers D::FOO)
-[CLASSFUN1] Unable to find class D::FOO in function list-defmessage-handlers.
+[CLASSFUN1] Unable to find class 'D::FOO' in function 'list-defmessage-handlers'.
 FuzzyCLIPS> (list-definstances *)
 MAIN:
-   initial-object
 A:
    foo
 B:
@@ -305,7 +301,7 @@ C:
    foo
 D:
 E:
-For a total of 4 definstances.
+For a total of 3 definstances.
 FuzzyCLIPS> (clear) ; Test for scope
 FuzzyCLIPS> (setgen 1)
 1
@@ -321,9 +317,8 @@ FuzzyCLIPS> (defrule B::bar (foo (x 3)) => (printout t ?*foo* " " (foo)))
 FuzzyCLIPS> (make-instance of FOO)
 [gen1]
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [gen1] of A::FOO
-For a total of 2 instances.
+For a total of 1 instance.
 FuzzyCLIPS> (clear) ; Test fact scoping
 FuzzyCLIPS> (defmodule A)
 FuzzyCLIPS> (assert (a))
@@ -336,7 +331,7 @@ FuzzyCLIPS> (assert (b))
 FuzzyCLIPS> (assert (c))
 <Fact-4>
 FuzzyCLIPS> (assert (c))
-FALSE
+<Fact-4>
 FuzzyCLIPS> (facts A)
 f-1     (a) CF 1.00 
 f-2     (b) CF 1.00 
@@ -346,20 +341,17 @@ f-3     (b) CF 1.00
 f-4     (c) CF 1.00 
 For a total of 2 facts.
 FuzzyCLIPS> (facts MAIN)
-f-0     (initial-fact) CF 1.00 
-For a total of 1 fact.
 FuzzyCLIPS> (facts *)
-f-0     (initial-fact) CF 1.00 
 f-1     (a) CF 1.00 
 f-2     (b) CF 1.00 
 f-3     (b) CF 1.00 
 f-4     (c) CF 1.00 
-For a total of 5 facts.
+For a total of 4 facts.
 FuzzyCLIPS> (clear) ; Test redefinition of MAIN module
 FuzzyCLIPS> (defmodule MAIN (export ?ALL))
 FuzzyCLIPS> (defmodule MAIN (export deftemplate ?ALL))
 
-[CSTRCPSR4] Cannot redefine defmodule MAIN while it is in use.
+[CSTRCPSR4] Cannot redefine defmodule 'MAIN' while it is in use.
 
 ERROR:
 (defmodule MAIN
@@ -385,7 +377,7 @@ FuzzyCLIPS> (deftemplate MAIN::foo (slot x))
 FuzzyCLIPS> (defmodule MAIN (export ?NONE))
 FuzzyCLIPS> (defmodule FOO (import MAIN ?NONE))
 
-[MODULPSR1] Module MAIN does not export any constructs.
+[MODULPSR1] Module 'MAIN' does not export any constructs.
 
 ERROR:
 (defmodule FOO
@@ -395,7 +387,7 @@ FuzzyCLIPS> (deftemplate MAIN::foo (slot x))
 FuzzyCLIPS> (defmodule MAIN (export ?NONE))
 FuzzyCLIPS> (defmodule FOO (import MAIN deftemplate ?NONE))
 
-[MODULPSR1] Module MAIN does not export any constructs.
+[MODULPSR1] Module 'MAIN' does not export any constructs.
 
 ERROR:
 (defmodule FOO
@@ -405,7 +397,7 @@ FuzzyCLIPS> (deftemplate MAIN::foo (slot x))
 FuzzyCLIPS> (defmodule MAIN (export deftemplate ?NONE))
 FuzzyCLIPS> (defmodule FOO (import MAIN ?NONE))
 
-[MODULPSR1] Module MAIN does not export any constructs.
+[MODULPSR1] Module 'MAIN' does not export any constructs.
 
 ERROR:
 (defmodule FOO
@@ -415,7 +407,7 @@ FuzzyCLIPS> (deftemplate MAIN::foo (slot x))
 FuzzyCLIPS> (defmodule MAIN (export deftemplate ?NONE))
 FuzzyCLIPS> (defmodule FOO (import MAIN deftemplate ?NONE))
 
-[MODULPSR1] Module MAIN does not export any constructs.
+[MODULPSR1] Module 'MAIN' does not export any constructs.
 
 ERROR:
 (defmodule FOO
@@ -426,21 +418,21 @@ FuzzyCLIPS> (defmodule MAIN (export deftemplate foo))
 FuzzyCLIPS> (defmodule FOO (import MAIN ?NONE))
 FuzzyCLIPS> (assert (foo (x 3)))
 
-[EXPRNPSR3] Missing function declaration for x.
+[EXPRNPSR3] Missing function declaration for 'x'.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (deftemplate MAIN::foo (slot x))
 FuzzyCLIPS> (defmodule MAIN (export deftemplate foo))
 FuzzyCLIPS> (defmodule FOO (import MAIN deftemplate ?NONE))
 FuzzyCLIPS> (assert (foo (x 3)))
 
-[EXPRNPSR3] Missing function declaration for x.
+[EXPRNPSR3] Missing function declaration for 'x'.
 FuzzyCLIPS> (clear) ; Miscellaneous (previously a bug)
 FuzzyCLIPS> (defmodule FOO (export deftemplate woz pif))
 FuzzyCLIPS> (deftemplate FOO::bar)
 FuzzyCLIPS> (deftemplate FOO::woz)
 FuzzyCLIPS> (defmodule YAK1 (import FOO deftemplate bar))
 
-[MODULPSR1] Module FOO does not export the deftemplate bar.
+[MODULPSR1] Module 'FOO' does not export the deftemplate 'bar'.
 
 ERROR:
 (defmodule YAK1
@@ -448,7 +440,7 @@ ERROR:
 FuzzyCLIPS> (defmodule YAK2 (import FOO deftemplate woz))
 FuzzyCLIPS> (defmodule YAK3 (import FOO deftemplate pif))
 
-[MODULPSR1] Module FOO does not export the deftemplate pif.
+[MODULPSR1] Module 'FOO' does not export the deftemplate 'pif'.
 
 ERROR:
 (defmodule YAK3
@@ -456,7 +448,7 @@ ERROR:
 FuzzyCLIPS> (defmodule FIB)
 FuzzyCLIPS> (defmodule BIK (import FIB ?ALL))
 
-[MODULPSR1] Module FIB does not export any constructs.
+[MODULPSR1] Module 'FIB' does not export any constructs.
 
 ERROR:
 (defmodule BIK
@@ -464,7 +456,7 @@ ERROR:
 FuzzyCLIPS> (defmodule FIB1 (export defglobal ?ALL))
 FuzzyCLIPS> (defmodule BIK1 (import FIB1 deftemplate ?ALL))
 
-[MODULPSR1] Module FIB1 does not export any deftemplate constructs.
+[MODULPSR1] Module 'FIB1' does not export any deftemplate constructs.
 
 ERROR:
 (defmodule BIK1
@@ -479,10 +471,10 @@ FuzzyCLIPS> (set-current-module MAIN)
 BAR
 FuzzyCLIPS> (assert (b 3))
 
-[CSTRCPSR3] Cannot define implied deftemplate b because of an import/export conflict.
+[CSTRCPSR3] Cannot define implied deftemplate 'b' because of an import/export conflict.
 FuzzyCLIPS> (defrule foo => (assert (b)))
 
-[CSTRCPSR3] Cannot define implied deftemplate b because of an import/export conflict.
+[CSTRCPSR3] Cannot define implied deftemplate 'b' because of an import/export conflict.
 
 ERROR:
 (defrule MAIN::foo
@@ -490,17 +482,16 @@ ERROR:
    (assert (b
 FuzzyCLIPS> (defrule foo (b) =>)
 
-[CSTRCPSR3] Cannot define implied deftemplate b because of an import/export conflict.
+[CSTRCPSR3] Cannot define implied deftemplate 'b' because of an import/export conflict.
 
 ERROR:
 (defrule MAIN::foo
    (b
 FuzzyCLIPS> (list-deftemplates *)
 MAIN:
-   initial-fact
 BAR:
    b
-For a total of 2 deftemplates.
+For a total of 1 deftemplate.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defmodule MAIN (export ?ALL))
 FuzzyCLIPS> (deftemplate a (slot x))

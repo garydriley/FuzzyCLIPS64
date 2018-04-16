@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -27,41 +27,42 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_genrcexe
+
+#pragma once
+
 #define _H_genrcexe
 
 #if DEFGENERIC_CONSTRUCT
 
-#include "genrcfun.h"
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
+#include "expressn.h"
+#include "genrcfun.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           GenericDispatch(Environment *,Defgeneric *,Defmethod *,Defmethod *,Expression *,UDFValue *);
+   void                           UnboundMethodErr(Environment *,const char *);
+   bool                           IsMethodApplicable(Environment *,Defmethod *);
 
-#ifdef _GENRCEXE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+   bool                           NextMethodP(Environment *);
+   void                           NextMethodPCommand(Environment *,UDFContext *,UDFValue *);
+   void                           CallNextMethod(Environment *,UDFContext *,UDFValue *);
+   void                           CallSpecificMethod(Environment *,UDFContext *,UDFValue *);
+   void                           OverrideNextMethod(Environment *,UDFContext *,UDFValue *);
 
-   LOCALE void                           GenericDispatch(void *,DEFGENERIC *,DEFMETHOD *,DEFMETHOD *,EXPRESSION *,DATA_OBJECT *);
-   LOCALE void                           UnboundMethodErr(void *);
-   LOCALE intBool                        IsMethodApplicable(void *,DEFMETHOD *);
-
-   LOCALE int                            NextMethodP(void *);
-   LOCALE void                           CallNextMethod(void *,DATA_OBJECT *);
-   LOCALE void                           CallSpecificMethod(void *,DATA_OBJECT *);
-   LOCALE void                           OverrideNextMethod(void *,DATA_OBJECT *);
-
-   LOCALE void                           GetGenericCurrentArgument(void *,DATA_OBJECT *);
+   void                           GetGenericCurrentArgument(Environment *,UDFContext *,UDFValue *);
 
 #endif /* DEFGENERIC_CONSTRUCT */
 

@@ -33,15 +33,14 @@ FuzzyCLIPS>
                  (allowed-floats 10.5 8.9 3.2)
                  (default ?NONE)))
 FuzzyCLIPS> (deftemplate-slot-names huh)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-names 3)
-[ARGACCES5] Function deftemplate-slot-names expected argument #1 to be of type deftemplate name
-FALSE
+[ARGACCES2] Function 'deftemplate-slot-names' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (deftemplate-slot-names foo bar)
-[ARGACCES4] Function deftemplate-slot-names expected exactly 1 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-names' expected exactly 1 argument.
 FuzzyCLIPS> (deftemplate-slot-names)
-[ARGACCES4] Function deftemplate-slot-names expected exactly 1 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-names' expected exactly 1 argument.
 FuzzyCLIPS> (deftemplate-slot-names foo)
 (implied)
 FuzzyCLIPS> (deftemplate-slot-names bar)
@@ -49,28 +48,28 @@ FuzzyCLIPS> (deftemplate-slot-names bar)
 FuzzyCLIPS> (deftemplate-slot-names yak)
 (x1 x2 x3 y1 y2 y3)
 FuzzyCLIPS> (deftemplate-slot-default-value)
-[ARGACCES4] Function deftemplate-slot-default-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-default-value' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-default-value foo)
-[ARGACCES4] Function deftemplate-slot-default-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-default-value' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-default-value bar)
-[ARGACCES4] Function deftemplate-slot-default-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-default-value' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-default-value yak)
-[ARGACCES4] Function deftemplate-slot-default-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-default-value' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-default-value huh)
-[ARGACCES4] Function deftemplate-slot-default-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-default-value' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-default-value yak x 3)
-[ARGACCES4] Function deftemplate-slot-default-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-default-value' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-default-value foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-default-value bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-default-value yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-default-value huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-default-value foo implied)
 ()
@@ -87,28 +86,28 @@ FuzzyCLIPS> (deftemplate-slot-default-value yak y2)
 FuzzyCLIPS> (deftemplate-slot-default-value yak y3)
 ?NONE
 FuzzyCLIPS> (deftemplate-slot-defaultp)
-[ARGACCES4] Function deftemplate-slot-defaultp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-defaultp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-defaultp foo)
-[ARGACCES4] Function deftemplate-slot-defaultp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-defaultp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-defaultp bar)
-[ARGACCES4] Function deftemplate-slot-defaultp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-defaultp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-defaultp yak)
-[ARGACCES4] Function deftemplate-slot-defaultp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-defaultp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-defaultp huh)
-[ARGACCES4] Function deftemplate-slot-defaultp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-defaultp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-defaultp yak x 3)
-[ARGACCES4] Function deftemplate-slot-defaultp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-defaultp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-defaultp foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-defaultp bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-defaultp yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-defaultp huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-defaultp foo implied)
 static
@@ -125,28 +124,28 @@ dynamic
 FuzzyCLIPS> (deftemplate-slot-defaultp yak y3)
 FALSE
 FuzzyCLIPS> (deftemplate-slot-singlep)
-[ARGACCES4] Function deftemplate-slot-singlep expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-singlep' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-singlep foo)
-[ARGACCES4] Function deftemplate-slot-singlep expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-singlep' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-singlep bar)
-[ARGACCES4] Function deftemplate-slot-singlep expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-singlep' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-singlep yak)
-[ARGACCES4] Function deftemplate-slot-singlep expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-singlep' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-singlep huh)
-[ARGACCES4] Function deftemplate-slot-singlep expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-singlep' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-singlep yak x 3)
-[ARGACCES4] Function deftemplate-slot-singlep expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-singlep' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-singlep foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-singlep bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-singlep yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-singlep huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-singlep foo implied)
 FALSE
@@ -155,28 +154,28 @@ TRUE
 FuzzyCLIPS> (deftemplate-slot-singlep yak y1)
 FALSE
 FuzzyCLIPS> (deftemplate-slot-multip)
-[ARGACCES4] Function deftemplate-slot-multip expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-multip' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-multip foo)
-[ARGACCES4] Function deftemplate-slot-multip expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-multip' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-multip bar)
-[ARGACCES4] Function deftemplate-slot-multip expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-multip' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-multip yak)
-[ARGACCES4] Function deftemplate-slot-multip expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-multip' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-multip huh)
-[ARGACCES4] Function deftemplate-slot-multip expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-multip' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-multip yak x 3)
-[ARGACCES4] Function deftemplate-slot-multip expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-multip' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-multip foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-multip bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-multip yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-multip huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-multip foo implied)
 TRUE
@@ -185,17 +184,17 @@ FALSE
 FuzzyCLIPS> (deftemplate-slot-multip yak y1)
 TRUE
 FuzzyCLIPS> (deftemplate-slot-existp)
-[ARGACCES4] Function deftemplate-slot-existp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-existp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-existp foo)
-[ARGACCES4] Function deftemplate-slot-existp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-existp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-existp bar)
-[ARGACCES4] Function deftemplate-slot-existp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-existp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-existp yak)
-[ARGACCES4] Function deftemplate-slot-existp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-existp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-existp huh)
-[ARGACCES4] Function deftemplate-slot-existp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-existp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-existp yak x 3)
-[ARGACCES4] Function deftemplate-slot-existp expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-existp' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-existp foo zip)
 FALSE
 FuzzyCLIPS> (deftemplate-slot-existp bar zip)
@@ -203,7 +202,7 @@ FALSE
 FuzzyCLIPS> (deftemplate-slot-existp yak zip)
 FALSE
 FuzzyCLIPS> (deftemplate-slot-existp huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 FALSE
 FuzzyCLIPS> (deftemplate-slot-existp foo implied)
 TRUE
@@ -212,28 +211,28 @@ TRUE
 FuzzyCLIPS> (deftemplate-slot-existp yak y1)
 TRUE
 FuzzyCLIPS> (deftemplate-slot-cardinality)
-[ARGACCES4] Function deftemplate-slot-cardinality expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-cardinality' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-cardinality foo)
-[ARGACCES4] Function deftemplate-slot-cardinality expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-cardinality' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-cardinality bar)
-[ARGACCES4] Function deftemplate-slot-cardinality expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-cardinality' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-cardinality yak)
-[ARGACCES4] Function deftemplate-slot-cardinality expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-cardinality' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-cardinality huh)
-[ARGACCES4] Function deftemplate-slot-cardinality expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-cardinality' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-cardinality yak x 3)
-[ARGACCES4] Function deftemplate-slot-cardinality expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-cardinality' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-cardinality foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 ()
 FuzzyCLIPS> (deftemplate-slot-cardinality bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 ()
 FuzzyCLIPS> (deftemplate-slot-cardinality yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 ()
 FuzzyCLIPS> (deftemplate-slot-cardinality huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 ()
 FuzzyCLIPS> (deftemplate-slot-cardinality foo implied)
 (0 +oo)
@@ -250,28 +249,28 @@ FuzzyCLIPS> (deftemplate-slot-cardinality yak y2)
 FuzzyCLIPS> (deftemplate-slot-cardinality yak y3)
 (0 +oo)
 FuzzyCLIPS> (deftemplate-slot-range)
-[ARGACCES4] Function deftemplate-slot-range expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-range' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-range foo)
-[ARGACCES4] Function deftemplate-slot-range expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-range' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-range bar)
-[ARGACCES4] Function deftemplate-slot-range expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-range' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-range yak)
-[ARGACCES4] Function deftemplate-slot-range expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-range' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-range huh)
-[ARGACCES4] Function deftemplate-slot-range expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-range' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-range yak x 3)
-[ARGACCES4] Function deftemplate-slot-range expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-range' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-range foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 ()
 FuzzyCLIPS> (deftemplate-slot-range bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 ()
 FuzzyCLIPS> (deftemplate-slot-range yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 ()
 FuzzyCLIPS> (deftemplate-slot-range huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 ()
 FuzzyCLIPS> (deftemplate-slot-range foo implied)
 (-oo +oo)
@@ -288,28 +287,28 @@ FuzzyCLIPS> (deftemplate-slot-range yak y2)
 FuzzyCLIPS> (deftemplate-slot-range yak y3)
 (-oo +oo)
 FuzzyCLIPS> (deftemplate-slot-allowed-values)
-[ARGACCES4] Function deftemplate-slot-allowed-values expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-allowed-values' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-allowed-values foo)
-[ARGACCES4] Function deftemplate-slot-allowed-values expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-allowed-values' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-allowed-values bar)
-[ARGACCES4] Function deftemplate-slot-allowed-values expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-allowed-values' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-allowed-values yak)
-[ARGACCES4] Function deftemplate-slot-allowed-values expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-allowed-values' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-allowed-values huh)
-[ARGACCES4] Function deftemplate-slot-allowed-values expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-allowed-values' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-allowed-values yak x 3)
-[ARGACCES4] Function deftemplate-slot-allowed-values expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-allowed-values' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-allowed-values foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 ()
 FuzzyCLIPS> (deftemplate-slot-allowed-values bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 ()
 FuzzyCLIPS> (deftemplate-slot-allowed-values yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 ()
 FuzzyCLIPS> (deftemplate-slot-allowed-values huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 ()
 FuzzyCLIPS> (deftemplate-slot-allowed-values foo implied)
 FALSE
@@ -326,28 +325,28 @@ FALSE
 FuzzyCLIPS> (deftemplate-slot-allowed-values yak y3)
 (a b c "a" "b" "c" [a] [b] [c] 3 4 5 10.5 8.9 3.2)
 FuzzyCLIPS> (deftemplate-slot-types)
-[ARGACCES4] Function deftemplate-slot-types expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-types' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-types foo)
-[ARGACCES4] Function deftemplate-slot-types expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-types' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-types bar)
-[ARGACCES4] Function deftemplate-slot-types expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-types' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-types yak)
-[ARGACCES4] Function deftemplate-slot-types expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-types' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-types huh)
-[ARGACCES4] Function deftemplate-slot-types expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-types' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-types yak x 3)
-[ARGACCES4] Function deftemplate-slot-types expected exactly 2 argument(s)
+[ARGACCES1] Function 'deftemplate-slot-types' expected exactly 2 arguments.
 FuzzyCLIPS> (deftemplate-slot-types foo zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'foo'.
 ()
 FuzzyCLIPS> (deftemplate-slot-types bar zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate bar.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'bar'.
 ()
 FuzzyCLIPS> (deftemplate-slot-types yak zip)
-[TMPLTDEF1] Invalid slot zip not defined in corresponding deftemplate yak.
+[TMPLTDEF1] Invalid slot 'zip' not defined in corresponding deftemplate 'yak'.
 ()
 FuzzyCLIPS> (deftemplate-slot-types huh x)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 ()
 FuzzyCLIPS> (deftemplate-slot-types foo implied)
 (FLOAT INTEGER SYMBOL STRING EXTERNAL-ADDRESS FACT-ADDRESS INSTANCE-ADDRESS INSTANCE-NAME)

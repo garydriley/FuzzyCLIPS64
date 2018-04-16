@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  10/02/17            */
+   /*             CLIPS Version 6.40  10/11/17            */
    /*                                                     */
    /*            MEMORY ALLOCATION HEADER FILE            */
    /*******************************************************/
@@ -41,28 +41,33 @@
 /*                                                           */
 /*      6.31: Fix for get_mem macro.                         */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_memalloc
 
-#include <string.h>
+#pragma once
 
 #define _H_memalloc
 
+#include <string.h>
+
 struct memoryPtr;
+
+typedef bool OutOfMemoryFunction(Environment *,size_t);
 
 #ifndef MEM_TABLE_SIZE
 #define MEM_TABLE_SIZE 500
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MEMORY_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
 #endif
 
 struct memoryPtr
@@ -106,7 +111,7 @@ struct memoryPtr
     (MemoryData(theEnv)->TempMemoryPtr = (struct memoryPtr *) struct_ptr,\
      MemoryData(theEnv)->TempMemoryPtr->next = MemoryData(theEnv)->MemoryTable[MemoryData(theEnv)->TempSize], \
      MemoryData(theEnv)->MemoryTable[MemoryData(theEnv)->TempSize] =  MemoryData(theEnv)->TempMemoryPtr) : \
-    (genfree(theEnv,(void *) struct_ptr,MemoryData(theEnv)->TempSize),(struct memoryPtr *) struct_ptr)))
+    (genfree(theEnv,struct_ptr,MemoryData(theEnv)->TempSize),(struct memoryPtr *) struct_ptr)))
 
 #define get_mem(theEnv,size) \
   (((size <  MEM_TABLE_SIZE) ? \
@@ -122,7 +127,7 @@ struct memoryPtr
     (MemoryData(theEnv)->TempMemoryPtr = (struct memoryPtr *) ptr,\
      MemoryData(theEnv)->TempMemoryPtr->next = MemoryData(theEnv)->MemoryTable[MemoryData(theEnv)->TempSize], \
      MemoryData(theEnv)->MemoryTable[MemoryData(theEnv)->TempSize] =  MemoryData(theEnv)->TempMemoryPtr) : \
-    (genfree(theEnv,(void *) ptr,MemoryData(theEnv)->TempSize),(struct memoryPtr *) ptr)))
+    (genfree(theEnv,ptr,MemoryData(theEnv)->TempSize),(struct memoryPtr *) ptr)))
 
 #else // MEM_TABLE_SIZE == 0
 /*
@@ -151,11 +156,11 @@ struct memoryPtr
 #define MEMORY_DATA 59
 
 struct memoryData
-  { 
-   long int MemoryAmount;
-   long int MemoryCalls;
-   intBool ConserveMemory;
-   int (*OutOfMemoryFunction)(void *,size_t);
+  {
+   long long MemoryAmount;
+   long long MemoryCalls;
+   bool ConserveMemory;
+   OutOfMemoryFunction *OutOfMemoryCallback;
    struct memoryPtr *TempMemoryPtr;
    struct memoryPtr **MemoryTable;
    size_t TempSize;
@@ -163,39 +168,25 @@ struct memoryData
 
 #define MemoryData(theEnv) ((struct memoryData *) GetEnvironmentData(theEnv,MEMORY_DATA))
 
-   LOCALE void                           InitializeMemory(void *);
-   LOCALE void                          *genalloc(void *,size_t);
-   LOCALE int                            DefaultOutOfMemoryFunction(void *,size_t);
-   LOCALE int                          (*EnvSetOutOfMemoryFunction(void *,int (*)(void *,size_t)))(void *,size_t);
-   LOCALE int                            genfree(void *,void *,size_t);
-   LOCALE void                          *genrealloc(void *,void *,size_t,size_t);
-   LOCALE long                           EnvMemUsed(void *);
-   LOCALE long                           EnvMemRequests(void *);
-   LOCALE long                           UpdateMemoryUsed(void *,long int);
-   LOCALE long                           UpdateMemoryRequests(void *,long int);
-   LOCALE long                           EnvReleaseMem(void *,long);
-   LOCALE void                          *gm1(void *,size_t);
-   LOCALE void                          *gm2(void *,size_t);
-   LOCALE void                          *gm3(void *,size_t);
-   LOCALE int                            rm(void *,void *,size_t);
-   LOCALE int                            rm3(void *,void *,size_t);
-   LOCALE unsigned long                  PoolSize(void *);
-   LOCALE unsigned long                  ActualPoolSize(void *);
-   LOCALE intBool                        EnvSetConserveMemory(void *,intBool);
-   LOCALE intBool                        EnvGetConserveMemory(void *);
-   LOCALE void                           genmemcpy(char *,char *,unsigned long);
-   LOCALE void                           ReturnAllBlocks(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        GetConserveMemory(void);
-   LOCALE long int                       MemRequests(void);
-   LOCALE long int                       MemUsed(void);
-   LOCALE long int                       ReleaseMem(long);
-   LOCALE intBool                        SetConserveMemory(intBool);
-   LOCALE int                          (*SetOutOfMemoryFunction(int (*)(void *,size_t)))(void *,size_t);
- 
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           InitializeMemory(Environment *);
+   void                          *genalloc(Environment *,size_t);
+   bool                           DefaultOutOfMemoryFunction(Environment *,size_t);
+   OutOfMemoryFunction           *SetOutOfMemoryFunction(Environment *,OutOfMemoryFunction *);
+   void                           genfree(Environment *,void *,size_t);
+   void                          *genrealloc(Environment *,void *,size_t,size_t);
+   long long                      MemUsed(Environment *);
+   long long                      MemRequests(Environment *);
+   long long                      UpdateMemoryUsed(Environment *,long long);
+   long long                      UpdateMemoryRequests(Environment *,long long);
+   long long                      ReleaseMem(Environment *,long long);
+   void                          *gm1(Environment *,size_t);
+   void                          *gm2(Environment *,size_t);
+   void                           rm(Environment *,void *,size_t);
+   unsigned long                  PoolSize(Environment *);
+   unsigned long                  ActualPoolSize(Environment *);
+   bool                           SetConserveMemory(Environment *,bool);
+   bool                           GetConserveMemory(Environment *);
+   void                           genmemcpy(char *,char *,unsigned long);
 
 #endif /* _H_memalloc */
 

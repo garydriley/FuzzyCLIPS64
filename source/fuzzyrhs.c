@@ -109,58 +109,58 @@
     Local Internal Function Declarations
  ******************************************************************/
  
-  static struct fuzzy_value   *ParseLExpr(void *theEnv,
+  static struct fuzzy_value   *ParseLExpr(Environment *theEnv,
                                           const char *readSource,
                                           struct token *tempToken,
                                           struct fuzzyLv *lvp,
-                                          int *error);
-  static struct fuzzy_value   *ParseLTerm(void *theEnv,
+                                          bool *error);
+  static struct fuzzy_value   *ParseLTerm(Environment *theEnv,
                                           const char *readSource,
                                           struct token *tempToken,
                                           struct fuzzyLv *lvp,
-                                          int *error);
-  static struct fuzzy_value   *ParseModExpr(void *theEnv,
+                                          bool *error);
+  static struct fuzzy_value   *ParseModExpr(Environment *theEnv,
                                             const char *readSource,
                                             struct token *tempToken,
                                             struct fuzzyLv *lvp,
-                                            int *error);
-  static struct fuzzy_value   *PrimaryTerm(void *theEnv,
+                                            bool *error);
+  static struct fuzzy_value   *PrimaryTerm(Environment *theEnv,
                                            const char *readSource,
                                            struct token *tempToken,
                                            struct fuzzyLv *lvp,
-                                           int *error);
-  static char                 *modifyName(void *theEnv,char *str1, char *str2);
-  static struct primary_term  *FindPrimaryTerm(struct fuzzyLv *lvp, void *pt_name);
-  static struct expr          *assertParseFuzzySet(void *theEnv,
+                                           bool *error);
+  static char                 *modifyName(Environment *theEnv,char *str1, char *str2);
+  static struct primary_term  *FindPrimaryTerm(struct fuzzyLv *lvp, CLIPSLexeme *pt_name);
+  static struct expr          *assertParseFuzzySet(Environment *theEnv,
                                                    const char *readSource,
                                                    struct token *tempToken,
-                                                   int  *error,
+                                                   bool  *error,
                                                    struct deftemplate *t,
                                                    int constantsOnly,
                                                    int *onlyConstantsFound);
-  static struct expr          *assertParseStandardSet(void *theEnv,
+  static struct expr          *assertParseStandardSet(Environment *theEnv,
                                                       const char *readSource,
                                                       struct token *tempToken,
-                                                      int  *error,
+                                                      bool  *error,
                                                       struct deftemplate *t,
                                                       int constantsOnly,
                                                       int *onlyConstantsFound,
                                                       int function_type);
-  static struct expr          *assertParseSingletonSet(void *theEnv,
+  static struct expr          *assertParseSingletonSet(Environment *theEnv,
                                                        const char *readSource,
                                                       struct token *tempToken,
-                                                      int  *error,
+                                                      bool  *error,
                                                       struct deftemplate *t,
                                                       int constantsOnly,
                                                       int *onlyConstantsFound);
-  static struct fuzzy_value   *convertStandardSet(void *theEnv,struct expr *top, int *error);
-  static struct fuzzy_value   *convertSingletonSet(void *theEnv,struct expr *top, int *error);
-  static void                  expressionToFloat(void *theEnv,struct expr *test_ptr,
+  static struct fuzzy_value   *convertStandardSet(Environment *theEnv,struct expr *top, bool *error);
+  static struct fuzzy_value   *convertSingletonSet(Environment *theEnv,struct expr *top, bool *error);
+  static void                  expressionToFloat(Environment *theEnv,struct expr *test_ptr,
                                                  double *result,
-                                                 int *error);
-  static void                  expressionToInteger(void *theEnv,struct expr *test_ptr,
+                                                 bool *error);
+  static void                  expressionToInteger(Environment *theEnv,struct expr *test_ptr,
                                                   int *result,
-                                                  int *error);
+                                                  bool *error);
 
    
 /******************************************************************
@@ -185,8 +185,8 @@
 /* CopyFuzzyValue:                                           */
 /* copies a Fuzzy Value structure                            */
 /*************************************************************/
-globle struct fuzzy_value *CopyFuzzyValue(
-  void *theEnv,
+struct fuzzy_value *CopyFuzzyValue(
+  Environment *theEnv,
   struct fuzzy_value *fv)
 {
     int i, num;
@@ -218,8 +218,8 @@ globle struct fuzzy_value *CopyFuzzyValue(
 /* compacts the membership values of a Fuzzy Value structure */
 /* so that n and maxn are the same                           */
 /*************************************************************/
-globle void CompactFuzzyValue(
-  void *theEnv,
+void CompactFuzzyValue(
+  Environment *theEnv,
   struct fuzzy_value *fv)
 {
     int i, num, maxnum;
@@ -271,14 +271,14 @@ globle void CompactFuzzyValue(
 #pragma argsused
 #endif
 
-globle struct expr *ParseAssertFuzzyFact(
-  void *theEnv,
+struct expr *ParseAssertFuzzyFact(
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
-  int *error,
-  int endType,
+  bool *error,
+  TokenType endType,
   int constantsOnly, /* TRUE if only Constants allowed in fuzzy set descriptions */
-  struct deftemplate *theDeftemplate,
+  Deftemplate *theDeftemplate,
   int variablesAllowed)
 {
 #if MAC_MPW
@@ -289,7 +289,7 @@ globle struct expr *ParseAssertFuzzyFact(
     struct fuzzy_value *fv;
     int onlyConstantsFound; /* TRUE if find only Constants in fuzzy set description */
     
-    *error = FALSE;
+    *error = false;
 
     /*=======================================*/
     /* Put a space between the template name */
@@ -299,7 +299,8 @@ globle struct expr *ParseAssertFuzzyFact(
     SavePPBuffer(theEnv," ");
     GetToken(theEnv,readSource,tempToken);
     
-    if (tempToken->type == SF_VARIABLE || tempToken->type == GBL_VARIABLE)
+    if (tempToken->tknType == SF_VARIABLE_TOKEN ||
+        tempToken->tknType == GBL_VARIABLE_TOKEN)
       {
         struct token dummyToken;
 		
@@ -309,29 +310,29 @@ globle struct expr *ParseAssertFuzzyFact(
         */
         if (constantsOnly || !variablesAllowed)
           {
-            *error = TRUE;
+            *error = true;
             SyntaxErrorMessage(theEnv,"deftemplate pattern (Variables not allowed)");
             return( NULL );
           }
         
         GetToken(theEnv,readSource,&dummyToken);
-        if (dummyToken.type != RPAREN)
+        if (dummyToken.tknType != RIGHT_PARENTHESIS_TOKEN)
           {
-            *error = TRUE;
+            *error = true;
             SyntaxErrorMessage(theEnv,"Fuzzy Expression (expecting ')' to terminate)");
             return( NULL );
           }
         else
-            return( GenConstant(theEnv,tempToken->type, tempToken->value) );
+            return( GenConstant(theEnv,TokenTypeToType(tempToken->tknType), tempToken->value) );
       }
-    else if ((tempToken->type == LPAREN) ||
-             ((tempToken->type == SYMBOL) &&
-              (strcmp(ValueToString(tempToken->value),"#") == 0)
+    else if ((tempToken->tknType == LEFT_PARENTHESIS_TOKEN) ||
+             ((tempToken->tknType == SYMBOL_TOKEN) &&
+              (strcmp(tempToken->lexemeValue->contents,"#") == 0)
              )
             )
        {
          /* fuzzy set specified - # is optional so expect  '# (' or  '('  */
-         if (tempToken->type == SYMBOL)
+         if (tempToken->tknType == SYMBOL_TOKEN)
            {  
              SavePPBuffer(theEnv," ");
              /* assertParseFuzzySet is expecting to see a LPAREN as current token */
@@ -341,7 +342,7 @@ globle struct expr *ParseAssertFuzzyFact(
          next_one = assertParseFuzzySet(theEnv,readSource, tempToken, error,
                                          theDeftemplate,
                                          constantsOnly, &onlyConstantsFound);
-         if (*error == TRUE)
+         if (*error == true)
            {
             return(NULL);
            }
@@ -350,7 +351,7 @@ globle struct expr *ParseAssertFuzzyFact(
             if (onlyConstantsFound)
               {
                 fv = getConstantFuzzyValue (theEnv,next_one, error);
-                if (*error == TRUE)
+                if (*error == true)
                   {
                    ReturnExpression(theEnv,next_one);
                    return(NULL);
@@ -358,9 +359,9 @@ globle struct expr *ParseAssertFuzzyFact(
                 temp = get_struct(theEnv,expr);
                 temp->argList = NULL;
                 temp->nextArg = NULL;
-                temp->type = FUZZY_VALUE;
-                temp->value = (void *)AddFuzzyValue(theEnv,fv);
-                /* AddFuzzyValue makes a copy of fv .. so return it */
+                temp->type = FUZZY_VALUE_TYPE;
+                temp->fuzzyValue = CreateFuzzyValue(theEnv,fv);
+                /* CreateFuzzyValue makes a copy of fv .. so return it */
                 rtnFuzzyValue(theEnv,fv);
                 ReturnExpression(theEnv,next_one);
                   return(temp);
@@ -374,7 +375,7 @@ globle struct expr *ParseAssertFuzzyFact(
     else if ((fv = ParseLinguisticExpr(theEnv,readSource,tempToken,lvp,error))
               == NULL)
        {
-         *error = TRUE;
+         *error = true;
          return(NULL);
        }
     else
@@ -382,9 +383,9 @@ globle struct expr *ParseAssertFuzzyFact(
          next_one = get_struct(theEnv,expr);
          next_one->argList = NULL;
          next_one->nextArg = NULL;
-         next_one->type = FUZZY_VALUE;
-         next_one->value = (void *)AddFuzzyValue(theEnv,fv);
-         /* AddFuzzyValue makes a copy of fv .. so return it */
+         next_one->type = FUZZY_VALUE_TYPE;
+         next_one->fuzzyValue = CreateFuzzyValue(theEnv,fv);
+         /* CreateFuzzyValue makes a copy of fv .. so return it */
          rtnFuzzyValue(theEnv,fv);
          return(next_one);
        } 
@@ -415,23 +416,23 @@ globle struct expr *ParseAssertFuzzyFact(
 /*                                                             */
 /***************************************************************/
 
-globle struct fuzzy_value *ParseLinguisticExpr(
-  void *theEnv,
+struct fuzzy_value *ParseLinguisticExpr(
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
-  int *error)
+  bool *error)
 {
    struct fuzzy_value *fvptr;
 
    fvptr = ParseLExpr(theEnv,readSource,tempToken,lvp,error);
 
-   if (*error == TRUE)
+   if (*error == true)
       return( NULL );
 
-   if (tempToken->type != RPAREN)
+   if (tempToken->tknType != RIGHT_PARENTHESIS_TOKEN)
      {
-       *error = TRUE;
+       *error = true;
        SyntaxErrorMessage(theEnv,"Fuzzy Expression (expecting ')' to terminate)");
        rtnFuzzyValue(theEnv,fvptr);
        return( NULL );
@@ -453,11 +454,11 @@ globle struct fuzzy_value *ParseLinguisticExpr(
 /*                                                             */
 /***************************************************************/
 static struct fuzzy_value *ParseLExpr(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
-  int *error)
+  bool *error)
 {
    struct fuzzy_value *fvLeft, *fvRight, *fvTemp;
    char *tmpstr, *tmpstr2;
@@ -467,9 +468,9 @@ static struct fuzzy_value *ParseLExpr(
    if (*error)
      return( NULL );
 
-   if ((tempToken->type == SYMBOL) && 
-       ((strcmp(ValueToString(tempToken->value), "OR") == 0) ||
-        (strcmp(ValueToString(tempToken->value), "or") == 0)
+   if ((tempToken->tknType == SYMBOL_TOKEN) &&
+       ((strcmp(tempToken->lexemeValue->contents, "OR") == 0) ||
+        (strcmp(tempToken->lexemeValue->contents, "or") == 0)
       ))
      {
        SavePPBuffer(theEnv," "); /* space after the OR */
@@ -506,11 +507,11 @@ static struct fuzzy_value *ParseLExpr(
 /*                                                             */
 /***************************************************************/
 static struct fuzzy_value *ParseLTerm(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
-  int *error)
+  bool *error)
 {
    struct fuzzy_value *fvLeft, *fvRight, *fvTemp;
    char *tmpstr, *tmpstr2;
@@ -520,9 +521,9 @@ static struct fuzzy_value *ParseLTerm(
    if (*error)
      return( NULL );
 
-   if ((tempToken->type == SYMBOL) && 
-       ((strcmp(ValueToString(tempToken->value), "AND") == 0) ||
-        (strcmp(ValueToString(tempToken->value), "and") == 0)
+   if ((tempToken->tknType == SYMBOL_TOKEN) &&
+       ((strcmp(tempToken->lexemeValue->contents, "AND") == 0) ||
+        (strcmp(tempToken->lexemeValue->contents, "and") == 0)
       ))
      {
        SavePPBuffer(theEnv," "); /* space after the AND */
@@ -561,27 +562,27 @@ static struct fuzzy_value *ParseLTerm(
 /*                                                             */
 /***************************************************************/
 static struct fuzzy_value *ParseModExpr(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
-  int *error)
+  bool *error)
 {
    struct modifierListItem *mptr;
    struct fuzzy_value *fvptr;
    char *tmpstr, *tmpstr2;
 
    /* next token must be a symbol -- modifier or primary term or [ */
-   if (tempToken->type != SYMBOL)
+   if (tempToken->tknType != SYMBOL_TOKEN)
      {
-       *error = TRUE;
+       *error = true;
        SyntaxErrorMessage(theEnv,"Fuzzy Expression (expecting modifier, primary term or '[' )");
        return( NULL );
      }
 
    /* next token could be a [ to bracket the expressions */
-   if (tempToken->type == SYMBOL &&
-       strcmp(ValueToString(tempToken->value), "[") == 0
+   if (tempToken->tknType == SYMBOL_TOKEN &&
+       strcmp(tempToken->lexemeValue->contents, "[") == 0
       )
      {
        SavePPBuffer(theEnv," "); /* space after the [ */
@@ -589,12 +590,12 @@ static struct fuzzy_value *ParseModExpr(
 
        fvptr = ParseLExpr(theEnv,readSource,tempToken,lvp,error);
 
-       if (*error == TRUE)
+       if (*error == true)
            return( NULL );
 
        /* next token must now be the closing ']' */
-       if (tempToken->type == SYMBOL &&
-	   strcmp(ValueToString(tempToken->value), "]") == 0
+       if (tempToken->tknType == SYMBOL_TOKEN &&
+	   strcmp(tempToken->lexemeValue->contents, "]") == 0
 	  )
          {
            SavePPBuffer(theEnv," "); /* space after the ] */
@@ -610,21 +611,21 @@ static struct fuzzy_value *ParseModExpr(
            return( fvptr );
          }
 
-       *error = TRUE;
+       *error = true;
        SyntaxErrorMessage(theEnv,"Fuzzy Expression (expecting ']' )");
        rtnFuzzyValue(theEnv,fvptr);
        return( NULL );
      }
 
    /* next token could be a modifier */
-   mptr = FindModifier(theEnv,ValueToString(tempToken->value));
+   mptr = FindModifier(theEnv,tempToken->lexemeValue->contents);
    if (mptr != NULL)
      {
       SavePPBuffer(theEnv," "); /* space after the modifier */
       GetToken(theEnv,readSource,tempToken);
 
       fvptr = ParseModExpr(theEnv,readSource,tempToken,lvp,error);
-      if (*error == TRUE) 
+      if (*error == true) 
           return(NULL);
         
       /* perform the modifier function of the current fuzzy value */
@@ -645,24 +646,24 @@ static struct fuzzy_value *ParseModExpr(
 /* Error flag is set to true if an error occurs.               */
 /***************************************************************/
 static struct fuzzy_value *PrimaryTerm(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
   struct fuzzyLv *lvp,
-  int *error)
+  bool *error)
 {
    struct primary_term *pt;
    struct fuzzy_value *fv;
 
-   if ((pt = FindPrimaryTerm(lvp,tempToken->value)) == NULL)
+   if ((pt = FindPrimaryTerm(lvp,tempToken->lexemeValue)) == NULL)
      {
-       *error = TRUE;
+       *error = true;
        SyntaxErrorMessage(theEnv,"Fuzzy Expression (expecting a Primary Term or Modifier)");
        return(NULL);
      }
    else
      {
-       fv = CopyFuzzyValue(theEnv,(struct fuzzy_value *) ValueToFuzzyValue(pt->fuzzy_value_description));
+       fv = CopyFuzzyValue(theEnv,pt->fuzzy_value_description->contents);
        SavePPBuffer(theEnv," ");
        GetToken(theEnv,readSource,tempToken);
        return(fv);
@@ -681,8 +682,8 @@ static struct fuzzy_value *PrimaryTerm(
 /*                                                             */
 /* Modifies fuzzy_value without making a new one.              */
 /***************************************************************/
-globle void ModifyFuzzyValue(
-  void *theEnv,
+void ModifyFuzzyValue(
+  Environment *theEnv,
   struct modifierListItem *mptr,
   struct fuzzy_value *fv)
 {
@@ -707,12 +708,12 @@ globle void ModifyFuzzyValue(
 /* modifyName:                                              */
 /*************************************************************/
 static char *modifyName(
-  void *theEnv,
+  Environment *theEnv,
   char *str1, 
   char *str2)
 {
    char *temp;
-   int str1len = strlen(str1);
+   size_t str1len = strlen(str1);
 
    temp = (char *) gm2(theEnv,sizeof(char) * (str1len + strlen(str2) + 2));
    strcpy(temp,str1);
@@ -721,8 +722,6 @@ static char *modifyName(
    strcpy(temp+str1len+1, str2);
    return(temp);
 }
-   
-
 
 /*************************************************************/
 /* FindPrimaryTerm: Searches for primary term.               */
@@ -731,25 +730,21 @@ static char *modifyName(
 /*************************************************************/
 static struct primary_term *FindPrimaryTerm(
   struct fuzzyLv *lvp,
-  void *pt_name)
+  CLIPSLexeme *pt_name)
 {
    struct primary_term *ptptr;
 
    ptptr = lvp->primary_term_list;
    while (ptptr != NULL)
      {
-      struct fuzzy_value *fvptr = (struct fuzzy_value *)
-                                  ValueToFuzzyValue(ptptr->fuzzy_value_description);
-      if (strcmp(fvptr->name, ((SYMBOL_HN *)pt_name)->contents) == 0)
+      struct fuzzy_value *fvptr = ptptr->fuzzy_value_description->contents;
+      if (strcmp(fvptr->name,pt_name->contents) == 0)
         {  return(ptptr);  }
 
       ptptr = ptptr->next;
      }
    return(NULL);
 }
-  
-  
-  
 
 /******************************************************************
     assertParseFuzzySet()
@@ -766,30 +761,30 @@ static struct primary_term *FindPrimaryTerm(
         NOTE: the # is optional !!! This routine expects that the
               current token should be a LPAREN [ '(' ]
         
-        numeric values may be expressions if constantsOnly is FALSE
+        numeric values may be expressions if constantsOnly is false
         
         sets onlyConstantsFound to TRUE if no expressions used
         
  ******************************************************************/
 
 static struct expr *assertParseFuzzySet(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
-  int  *error,
+  bool  *error,
   struct deftemplate *theDeftemplate,
   int constantsOnly,
   int *onlyConstantsFound)
 {
-      struct expr *parse_result;
+      struct expr *parse_result = NULL;
       int function_type = -1;
       
-      if (tempToken->type == LPAREN)
+      if (tempToken->tknType == LEFT_PARENTHESIS_TOKEN)
         {
           GetToken(theEnv,readSource,tempToken);
-          if (tempToken->type == SYMBOL) /* check for the s, z, or PI functions */
+          if (tempToken->tknType == SYMBOL_TOKEN) /* check for the s, z, or PI functions */
             {
-              const char *tokenStr = ValueToString(tempToken->value);
+              const char *tokenStr = tempToken->lexemeValue->contents;
               
               if (strcmp(tokenStr,"S") == 0 ||
                   strcmp(tokenStr,"s") == 0)
@@ -823,10 +818,10 @@ static struct expr *assertParseFuzzySet(
          }  
       else
         {
-          *error = TRUE;
+          *error = true;
           SyntaxErrorMessage(theEnv,"Fuzzy Term (expecting Fuzzy Set description)");
         }
-      if (*error == TRUE)
+      if (*error == true)
         {
          return(NULL);
         }
@@ -844,17 +839,17 @@ static struct expr *assertParseFuzzySet(
     S_FUNCTION, or Z_FUNCTION
  **********************************************************************/
 static struct expr *assertParseStandardSet(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
-  int  *error,
+  bool  *error,
   struct deftemplate *theDeftemplate,
   int constantsOnly,
   int *onlyConstantsFound,
   int function_type)
 {
     struct expr *top, *deft, *arg1, *arg2;
-    *onlyConstantsFound = FALSE;
+    *onlyConstantsFound = false;
         
     SavePPBuffer(theEnv," ");
 
@@ -871,7 +866,7 @@ static struct expr *assertParseStandardSet(
     SavePPBuffer(theEnv," ");
     
     arg1 = tokenToFloatExpression ( theEnv, readSource, tempToken, error, constantsOnly);
-    if ( *error == TRUE)
+    if ( *error == true)
       {
         ReturnExpression(theEnv,top);
         return(NULL);
@@ -884,7 +879,7 @@ static struct expr *assertParseStandardSet(
     /* get 2nd parameter */
     GetToken(theEnv,readSource, tempToken);   
     arg2 = tokenToFloatExpression ( theEnv, readSource, tempToken, error, constantsOnly);
-    if ( *error == TRUE)
+    if ( *error == true)
       {
         ReturnExpression(theEnv,top);
         return(NULL);
@@ -895,18 +890,18 @@ static struct expr *assertParseStandardSet(
       }
         
     GetToken(theEnv,readSource,tempToken);
-    if (tempToken->type == RPAREN)
+    if (tempToken->tknType == RIGHT_PARENTHESIS_TOKEN)
       {    
-        if (arg1->type == FLOAT && arg2->type == FLOAT )
+        if (arg1->type == FLOAT_TYPE && arg2->type == FLOAT_TYPE )
           { 
-            *onlyConstantsFound = TRUE; 
+            *onlyConstantsFound = true; 
           }
         GetToken(theEnv,readSource,tempToken);
         return(top);
       }
     else
       {
-        *error = TRUE;
+        *error = true;
         SyntaxErrorMessage(theEnv,"standard set (expecting ')' )");
         ReturnExpression(theEnv,top);
         return(NULL);
@@ -920,10 +915,10 @@ static struct expr *assertParseStandardSet(
     
  **********************************************************************/
 static struct expr *assertParseSingletonSet(
-  void *theEnv,
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
-  int  *error,
+  bool  *error,
   struct deftemplate *theDeftemplate,
   int constantsOnly,
   int *onlyConstantsFound)
@@ -932,25 +927,25 @@ static struct expr *assertParseSingletonSet(
     int  count;    /* number of (x,y) pairs input */
     struct expr *top, *first, *next, *deft, *countExpr;
 
-    *onlyConstantsFound = TRUE;
+    *onlyConstantsFound = true;
     
     /********************************************************
      Initialize start of linked list and assign first element.
      Token should be x coordinate.
      ********************************************************/
     first  = tokenToFloatExpression (theEnv,readSource, tempToken, error, constantsOnly);
-    if (*error == TRUE)
+    if (*error == true)
     {
         SyntaxErrorMessage(theEnv,"Singleton specification (Error in parsing Fuzzy Set x coordinate)");
         return(NULL);
     }
     next = first;
-    if (next->type != FLOAT)
-        *onlyConstantsFound = FALSE;
+    if (next->type != FLOAT_TYPE)
+        *onlyConstantsFound = false;
 
     count = 0;
 
-    while (TRUE)
+    while (true)
       {
         /*************************************************
         Get the next token, which should be y coordinate
@@ -958,29 +953,29 @@ static struct expr *assertParseSingletonSet(
         SavePPBuffer(theEnv," ");
         GetToken(theEnv,readSource,tempToken);
         next->next_arg = tokenToFloatExpression(theEnv,readSource, tempToken, error, constantsOnly);
-        if (*error == TRUE)
+        if (*error == true)
           {
             SyntaxErrorMessage(theEnv,"Singleton specification (Error in parsing Fuzzy Set y coordinate)");
             ReturnExpression(theEnv,first);
             return(NULL);
           }
         next = next->nextArg;
-        if (next->type != FLOAT)
-            *onlyConstantsFound = FALSE;
+        if (next->type != FLOAT_TYPE)
+            *onlyConstantsFound = false;
  
         /*********************************************************************
         Get the next token, which should be closing bracket for the(x,y) pair
         ********************************************************************/
         GetToken(theEnv,readSource,tempToken);
 
-        if (tempToken->type == RPAREN)
+        if (tempToken->tknType == RIGHT_PARENTHESIS_TOKEN)
           {
             count++;
             SavePPBuffer(theEnv," ");
           }     
         else
           {
-             *error = TRUE;
+             *error = true;
              SyntaxErrorMessage(theEnv,"Singleton specification (Expected ')' )");
             ReturnExpression(theEnv,first);
             return(NULL);
@@ -991,7 +986,8 @@ static struct expr *assertParseSingletonSet(
         the start of another (x,y) pair.
         *************************************************************/
         GetToken(theEnv,readSource,tempToken);
-        if ((tempToken->type == RPAREN) || (tempToken->type == STOP))
+        if ((tempToken->tknType == RIGHT_PARENTHESIS_TOKEN) ||
+            (tempToken->tknType == STOP_TOKEN))
           {
             top = get_struct(theEnv,expr);
             top->type = SINGLETON_EXPRESSION;
@@ -1002,15 +998,15 @@ static struct expr *assertParseSingletonSet(
             top->argList = deft;
 
             /* put the count of the x,y pairs as the 2nd arg in list of args */
-            countExpr = GenConstant(theEnv,INTEGER,(void *)EnvAddLong(theEnv,(long)count));
+            countExpr = GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,count));
             deft->nextArg = countExpr;
             countExpr->nextArg = first;
         
                return(top);
           }
-          else if (tempToken->type != LPAREN)
+          else if (tempToken->tknType != LEFT_PARENTHESIS_TOKEN)
           {
-             *error = TRUE;
+             *error = true;
              SyntaxErrorMessage(theEnv,"Singleton specification (Expected '(' )");
             ReturnExpression(theEnv,first);
              return(NULL);
@@ -1030,10 +1026,10 @@ static struct expr *assertParseSingletonSet(
           }
         
         next = next->nextArg;
-        if (next->type != FLOAT)
-                *onlyConstantsFound = FALSE;
+        if (next->type != FLOAT_TYPE)
+                *onlyConstantsFound = false;
 
-    } /* end of while (TRUE)  */
+    } /* end of while (true)  */
 }
 
 
@@ -1044,10 +1040,10 @@ static struct expr *assertParseSingletonSet(
     this function evaluates the parameter expressions and returns 
     a fuzzy value structure.
  **********************************************************************/
-globle struct fuzzy_value *getConstantFuzzyValue(
-  void *theEnv,
+struct fuzzy_value *getConstantFuzzyValue(
+  Environment *theEnv,
   struct expr *top,
-  int *error)
+  bool *error)
 {
     struct fuzzy_value *new_fv = NULL;
     
@@ -1062,7 +1058,7 @@ globle struct fuzzy_value *getConstantFuzzyValue(
     else if (top->type == SINGLETON_EXPRESSION)
       {
         new_fv = convertSingletonSet ( theEnv, top, error );
-        if (*error == TRUE)
+        if (*error == true)
             return (NULL);
         
       }
@@ -1088,9 +1084,9 @@ globle struct fuzzy_value *getConstantFuzzyValue(
 
  **********************************************************************/
 static struct fuzzy_value *convertStandardSet(
-  void *theEnv,
+  Environment *theEnv,
   struct expr *top,
-  int *error)
+  bool *error)
 {
     struct expr *next;
     struct fuzzy_value *fv;
@@ -1098,7 +1094,7 @@ static struct fuzzy_value *convertStandardSet(
     struct deftemplate *deftPtr;
     struct fuzzyLv *fzLv;
     
-    double from, to, alfa, beta, gamma;
+    double from, to, alfa, beta = 0.0, gamma;
     int function_type = top->type;
 
     /* get the 1st parameter  - deftemplate ptr (fuzzy) */
@@ -1106,8 +1102,8 @@ static struct fuzzy_value *convertStandardSet(
     deftPtr = (struct deftemplate *)next->value;
     fzLv = deftPtr->fuzzyTemplate;
     if (fzLv == NULL) /* should never happen */
-      { *error = TRUE;
-        EnvPrintRouter(theEnv,WERROR,
+      { *error = true;
+        WriteString(theEnv,STDERR,
                "Standard Function (PI, S or Z) has no Fuzzy Deftemplate (possible internal error");
         return(NULL);
       }
@@ -1117,7 +1113,7 @@ static struct fuzzy_value *convertStandardSet(
     /* get the 2rd parameter  - alpha */
     next = next->nextArg;    
     expressionToFloat(theEnv,next, &alfa, error);
-    if (*error == TRUE)
+    if (*error == true)
         return(NULL);
     
     /* We want to allow specifications for Standard functions and singleton sets
@@ -1133,8 +1129,8 @@ static struct fuzzy_value *convertStandardSet(
       {
         if (alfa < 0.0)
           {
-            *error = TRUE;
-            EnvPrintRouter(theEnv,WERROR,"PI function 1st parameter must be >= 0\n");
+            *error = true;
+            WriteString(theEnv,STDERR,"PI function 1st parameter must be >= 0\n");
             return(NULL);
           }
         else 
@@ -1146,8 +1142,8 @@ static struct fuzzy_value *convertStandardSet(
       {
         if (from-alfa > xtolerance)
           {
-            *error = TRUE;
-            EnvPrintRouter(theEnv,WERROR,"S or Z function 1st parameter out of range (too small)\n");
+            *error = true;
+            WriteString(theEnv,STDERR,"S or Z function 1st parameter out of range (too small)\n");
             return(NULL);
           }
         alfa = from;
@@ -1156,8 +1152,8 @@ static struct fuzzy_value *convertStandardSet(
       {
         if (alfa-to < xtolerance)
           {
-            *error = TRUE;
-            EnvPrintRouter(theEnv,WERROR,"S or Z function 1st parameter out of range (too large)\n");
+            *error = true;
+            WriteString(theEnv,STDERR,"S or Z function 1st parameter out of range (too large)\n");
             return(NULL);
           }
         alfa = to;
@@ -1167,23 +1163,23 @@ static struct fuzzy_value *convertStandardSet(
     next = next->next_arg;
     
     expressionToFloat(theEnv,next, &gamma, error);
-    if (*error == TRUE)
+    if (*error == true)
         return(NULL);
 
     if  (function_type == PI_FUNCTION)
       { 
         if ((gamma > to) || (gamma < from))
            {
-             *error = TRUE;
-             EnvPrintRouter(theEnv,WERROR,"PI function produces x values out of range\n");
+             *error = true;
+             WriteString(theEnv,STDERR,"PI function produces x values out of range\n");
              return(NULL);
            }    
         else if ((gamma - beta) < from)
            {
              if (from - (gamma - beta) > xtolerance)
                {
-                 *error = TRUE;
-                 EnvPrintRouter(theEnv,WERROR,"PI function produces x values too small\n");
+                 *error = true;
+                 WriteString(theEnv,STDERR,"PI function produces x values too small\n");
                  return(NULL);
                }
               beta = gamma - from;
@@ -1192,8 +1188,8 @@ static struct fuzzy_value *convertStandardSet(
            {
              if (gamma + beta - to > xtolerance)
                {
-                 *error = TRUE;
-                 EnvPrintRouter(theEnv,WERROR,"PI function produces x values too large\n");
+                 *error = true;
+                 WriteString(theEnv,STDERR,"PI function produces x values too large\n");
                  return(NULL);
                }
               beta = to - gamma;
@@ -1201,16 +1197,16 @@ static struct fuzzy_value *convertStandardSet(
       }
     else if (gamma < alfa)
       {
-        *error = TRUE;
-        EnvPrintRouter(theEnv,WERROR,"S or Z function 2nd parameter must be >= 1st parameter\n");
+        *error = true;
+        WriteString(theEnv,STDERR,"S or Z function 2nd parameter must be >= 1st parameter\n");
         return(NULL);
       }
     else if (gamma > to)
       {
         if (gamma-to > xtolerance)
           {
-            *error = TRUE;
-            EnvPrintRouter(theEnv,WERROR,"S or Z function 2nd parameter out of range (too large)\n");
+            *error = true;
+            WriteString(theEnv,STDERR,"S or Z function 2nd parameter out of range (too large)\n");
             return(NULL);
           }
         gamma = to;
@@ -1244,9 +1240,9 @@ static struct fuzzy_value *convertStandardSet(
 
  **********************************************************************/
 static struct fuzzy_value *convertSingletonSet(
-  void *theEnv,
+  Environment *theEnv,
   struct expr *top,
-  int *error)
+  bool *error)
 {
     struct expr *next;
     struct fuzzy_value *fv;
@@ -1262,8 +1258,8 @@ static struct fuzzy_value *convertSingletonSet(
     deftPtr = (struct deftemplate *)next->value;
     fzLv = deftPtr->fuzzyTemplate;
     if (fzLv == NULL) /* should never happen */
-      { *error = TRUE;
-        EnvPrintRouter(theEnv,WERROR,
+      { *error = true;
+        WriteString(theEnv,STDERR,
                "Standard Function (PI, S or Z) has no Fuzzy Deftemplate (possible internal error");
         return(NULL);
       }
@@ -1275,7 +1271,7 @@ static struct fuzzy_value *convertSingletonSet(
      **************************************************************/
     next = next->nextArg;
     expressionToInteger(theEnv,next, &num, error);
-    if (*error == TRUE)   /* should never happen */
+    if (*error == true)   /* should never happen */
         return(NULL);
 
     fv = get_struct(theEnv,fuzzy_value);
@@ -1309,14 +1305,14 @@ static struct fuzzy_value *convertSingletonSet(
          Next Expression should be x coordinate.
          ************************************************/
         expressionToFloat(theEnv,next, &newx, error);
-        if (*error == FALSE)
+        if (*error == false)
           {
             if (newx > to)
               {
                 if (newx-to > xtolerance)
                   {
-                    *error = TRUE;
-                    EnvPrintRouter(theEnv,WERROR,"X coordinate of Fuzzy Set out of range (too large)\n");
+                    *error = true;
+                    WriteString(theEnv,STDERR,"X coordinate of Fuzzy Set out of range (too large)\n");
                   }
                 newx = to;
               }
@@ -1324,8 +1320,8 @@ static struct fuzzy_value *convertSingletonSet(
               {
                 if (from-newx > xtolerance)
                   {
-                    *error = TRUE;
-                    EnvPrintRouter(theEnv,WERROR,"X coordinate of Fuzzy Set out of range (too small)\n");
+                    *error = true;
+                    WriteString(theEnv,STDERR,"X coordinate of Fuzzy Set out of range (too small)\n");
                   }
                 newx = from;
               }
@@ -1338,15 +1334,15 @@ static struct fuzzy_value *convertSingletonSet(
               {
                if (previous - newx > FUZZY_TOLERANCE)
                  {
-                   *error = TRUE;
-                   EnvPrintRouter(theEnv,WERROR,"(x,y) pairs should be in increasing x order in Fuzzy Set\n");
-                   EnvPrintRouter(theEnv,WERROR,"      and successive x values must not be the same\n");
+                   *error = true;
+                   WriteString(theEnv,STDERR,"(x,y) pairs should be in increasing x order in Fuzzy Set\n");
+                   WriteString(theEnv,STDERR,"      and successive x values must not be the same\n");
                  }
                else
                  newx = previous;
               }
           }
-        if (*error == TRUE)
+        if (*error == true)
           {
             rtnFuzzyValue(theEnv,fv);
             return(NULL);
@@ -1360,20 +1356,20 @@ static struct fuzzy_value *convertSingletonSet(
         next = next->nextArg;
         if ( next == NULL )
         {    
-            *error = TRUE;
-            EnvPrintRouter(theEnv,WERROR,"Y coordinate of fuzzy set missing (possible internal error)\n");
+            *error = true;
+            WriteString(theEnv,STDERR,"Y coordinate of fuzzy set missing (possible internal error)\n");
             rtnFuzzyValue(theEnv,fv);
             return(NULL);
         }
         expressionToFloat(theEnv,next, &newy, error);
-        if (*error == FALSE)
+        if (*error == false)
           {
               if (newy < 0.0)
               {
                 if (newy < -FUZZY_TOLERANCE)
                   {
-                    *error = TRUE;
-                    EnvPrintRouter(theEnv,WERROR,"Fuzzy membership value (y coordinate) must be >= 0.0\n");
+                    *error = true;
+                    WriteString(theEnv,STDERR,"Fuzzy membership value (y coordinate) must be >= 0.0\n");
                   }
                 newy = 0.0;
               }
@@ -1381,13 +1377,13 @@ static struct fuzzy_value *convertSingletonSet(
               {
                 if (newy-1.0 > FUZZY_TOLERANCE)
                   {
-                    *error = TRUE;
-                    EnvPrintRouter(theEnv,WERROR,"Fuzzy membership value (y coordinate) must be <= 1.0\n");
+                    *error = true;
+                    WriteString(theEnv,STDERR,"Fuzzy membership value (y coordinate) must be <= 1.0\n");
                   }
                 newy = 1.0;
               }
           }
-        if (*error == TRUE)
+        if (*error == true)
           {
             rtnFuzzyValue(theEnv,fv);
             return(NULL);
@@ -1432,8 +1428,8 @@ static struct fuzzy_value *convertSingletonSet(
     if ( numpairs_retrieved != num || next != NULL)
       {
         /* impossible error ??? */
-        *error = TRUE;
-        EnvPrintRouter(theEnv,WERROR,"Fuzzy set - incorrect number of (x,y) pairs - internal error\n");
+        *error = true;
+        WriteString(theEnv,STDERR,"Fuzzy set - incorrect number of (x,y) pairs - internal error\n");
         rtnFuzzyValue(theEnv,fv);
           return(NULL);
       }
@@ -1451,8 +1447,6 @@ static struct fuzzy_value *convertSingletonSet(
     return(fv);
 }
 
-
-
 /**********************************************************************
     expressionToFloat()
 
@@ -1460,34 +1454,30 @@ static struct fuzzy_value *convertSingletonSet(
     this function evaluates the expression and returns the float value.
  **********************************************************************/
 static void expressionToFloat(
-  void *theEnv,
+  Environment *theEnv,
   struct expr *exprPtr,
   double *result,
-  int *error)
+  bool *error)
 {
 
-  DATA_OBJECT exprValue;
-  int type;
+  UDFValue exprValue;
+  unsigned short type;
   
   EvaluateExpression( theEnv, exprPtr, &exprValue );
-  type = exprValue.type;
+  type = exprValue.header->type;
   
-  if (type == INTEGER)
-     *result = (double) DOToLong(exprValue);
+  if (type == INTEGER_TYPE)
+     *result = (double) exprValue.integerValue->contents;
      
-  else if (type == FLOAT)
-     *result = DOToDouble(exprValue);
+  else if (type == FLOAT_TYPE)
+     *result = exprValue.floatValue->contents;
      
   else 
     {
-      *error = TRUE;
-      EnvPrintRouter(theEnv,WERROR,"Fuzzy set value (expecting FLOAT value)\n");
+      *error = true;
+      WriteString(theEnv,STDERR,"Fuzzy set value (expecting FLOAT value)\n");
     }
 }
-
-
-
-
 
 /**********************************************************************
     expressionToInteger()
@@ -1496,25 +1486,25 @@ static void expressionToFloat(
     this function evaluates the expression and returns the integer value.
  **********************************************************************/
 static void expressionToInteger(
-  void *theEnv,
+  Environment *theEnv,
   struct expr *exprPtr,
   int *result,
-  int *error)
+  bool *error)
 {
 
-  DATA_OBJECT exprValue;
-  int type;
+  UDFValue exprValue;
+  unsigned short type;
   
   EvaluateExpression( theEnv, exprPtr, &exprValue );
-  type = exprValue.type;
+  type = exprValue.header->type;
   
-  if (type == INTEGER)
-     *result = (int) DOToLong(exprValue);
+  if (type == INTEGER_TYPE)
+     *result = (int) exprValue.integerValue->contents;
      
   else 
     {
-      *error = TRUE;
-      EnvPrintRouter(theEnv,WERROR,"Fuzzy set internal evaluation (expecting int value)\n");
+      *error = true;
+      WriteString(theEnv,STDERR,"Fuzzy set internal evaluation (expecting int value)\n");
     }
 }
 
@@ -1531,8 +1521,8 @@ static void expressionToInteger(
     Allocates memory for a floating point array of size "length" and
     returns a pointer to the allocated array.
  ************************************************************************/
-globle double *FgetArray ( 
-  void *theEnv,
+double *FgetArray ( 
+  Environment *theEnv,
   int length)
 {
     double *p;
@@ -1547,8 +1537,8 @@ globle double *FgetArray (
     
     Deallocates memory of floating point array p of size "length".
  ************************************************************************/
-globle void FrtnArray (
-  void *theEnv,
+void FrtnArray (
+  Environment *theEnv,
   double *p,
   int length)
 {
@@ -1561,8 +1551,8 @@ globle void FrtnArray (
     Allocates memory for an integer array of size "length" and
     returns a pointer to the allocated array.
  ************************************************************************/
-globle int *IgetArray (
-  void *theEnv,
+int *IgetArray (
+  Environment *theEnv,
   int length)
 {
     int *p;
@@ -1577,8 +1567,8 @@ globle int *IgetArray (
     
     Deallocates memory of integer array p of size "length".
  ************************************************************************/
-globle void IrtnArray ( 
-  void *theEnv,
+void IrtnArray ( 
+  Environment *theEnv,
   int *p,
   int length)
 {
@@ -1588,8 +1578,8 @@ globle void IrtnArray (
 /************************************************************************
     CgetArray(length)
  ************************************************************************/
-globle char *CgetArray (
-  void *theEnv,
+char *CgetArray (
+  Environment *theEnv,
   int length)
 {
     char *p = NULL;
@@ -1600,8 +1590,8 @@ globle char *CgetArray (
 /************************************************************************
     CrtnArray ( p, length )
  ************************************************************************/
-globle void CrtnArray (
-void *theEnv,
+void CrtnArray (
+Environment *theEnv,
 char *p,
 int length)
 {
@@ -1631,30 +1621,32 @@ int length)
     parses constants, variables and functions and returns
     appropriate expr structures
  ****************************************************************/
-globle struct expr *tokenToFloatExpression ( 
-  void *theEnv,
+struct expr *tokenToFloatExpression ( 
+  Environment *theEnv,
   const char *readSource,
   struct token *tempToken,
-  int  *error,
+  bool  *error,
   int constantsOnly)
-{
-    struct expr *result=NULL;
-    int exprType;
+  {
+   struct expr *result=NULL;
+   unsigned exprType;
 
-    if (tempToken->type == FLOAT || tempToken->type == INTEGER)    
-      {
-       /******************************************************
-        Constant - FLOAT or INTEGER allowed
-        ******************************************************/
-           if (tempToken->type == INTEGER)
-            result = GenConstant(theEnv,FLOAT,
-                                 (void *) EnvAddDouble(theEnv,(double) ValueToLong(tempToken->value)));
-         else
-            result = GenConstant(theEnv,FLOAT,tempToken->value);
+   if (tempToken->tknType == FLOAT_TOKEN ||
+       tempToken->tknType == INTEGER_TOKEN)
+     {
+      /******************************************************
+       Constant - FLOAT or INTEGER allowed
+       ******************************************************/
+      if (tempToken->tknType == INTEGER_TOKEN)
+        result = GenConstant(theEnv,FLOAT_TYPE,
+                                 CreateFloat(theEnv,(double) tempToken->integerValue->contents));
+      else
+        result = GenConstant(theEnv,FLOAT_TYPE,
+                                 CreateFloat(theEnv,tempToken->floatValue->contents));
             
-         return(result);
+      return(result);
 
-         }
+     }
         
    /*=============================================================*/
    /* If an equal sign or left parenthesis was parsed, then parse */
@@ -1667,43 +1659,38 @@ globle struct expr *tokenToFloatExpression (
    /* matching.                                                   */
    /*=============================================================*/
    
-   if ((tempToken->type == SYMBOL) ? 
-       (strcmp(ValueToString(tempToken->value),"=") == 0) : 
-       (tempToken->type == LPAREN))
+   if ((tempToken->tknType == SYMBOL_TOKEN) ?
+       (strcmp(tempToken->lexemeValue->contents,"=") == 0) : 
+       (tempToken->tknType == LEFT_PARENTHESIS_TOKEN))
      {
       if (constantsOnly)
         {
          SyntaxErrorMessage(theEnv,"numeric expression (Constants Only Allowed)");
-         *error = TRUE;
+         *error = true;
          return(NULL);
         }
 
 #if ! RUN_TIME
-      if (tempToken->type == LPAREN) 
+      if (tempToken->tknType == LEFT_PARENTHESIS_TOKEN)
          result = Function1Parse(theEnv,readSource);
       else 
          result = Function0Parse(theEnv,readSource);
 #endif
       if (result == NULL)
         {
-         *error = TRUE;
+         *error = true;
         }
       else
         {
-          exprType = ExpressionFunctionType(result);
-          if (EnvGetStaticConstraintChecking(theEnv) == TRUE)
-            if ((result->type == FCALL) && 
-                 exprType != 'd' &&
-                  exprType != 'f' &&
-                  exprType != 'n' &&
-                 exprType != 'i' 
-               )
-              {
-               SyntaxErrorMessage(theEnv,"numeric expression (Expected numeric result from function)");
-               *error = TRUE;
-               ReturnExpression(theEnv,result);
-               return( NULL );
-              }
+          exprType = ExpressionUnknownFunctionType(result);
+          if ((result->type == FCALL) &&
+              ! (exprType & NUMBER_BITS))
+            {
+             SyntaxErrorMessage(theEnv,"numeric expression (Expected numeric result from function)");
+             *error = true;
+             ReturnExpression(theEnv,result);
+             return( NULL );
+            }
          }
        
       return(result);
@@ -1714,19 +1701,19 @@ globle struct expr *tokenToFloatExpression (
    /* values under some circumstances.       */
    /*========================================*/
    
-   if ((tempToken->type == SF_VARIABLE) 
+   if ((tempToken->tknType == SF_VARIABLE_TOKEN)
 #if DEFGLOBAL_CONSTRUCT
-       || (tempToken->type == GBL_VARIABLE) 
+       || (tempToken->tknType == GBL_VARIABLE_TOKEN) 
 #endif
       )
      {
       if (constantsOnly)
         {
-         *error = TRUE;
+         *error = true;
          return(NULL);
         }
 
-      return(GenConstant(theEnv,tempToken->type,tempToken->value));
+      return(GenConstant(theEnv,TokenTypeToType(tempToken->tknType),tempToken->value));
      }
 
    /*==========================================================*/
@@ -1735,7 +1722,7 @@ globle struct expr *tokenToFloatExpression (
    /*==========================================================*/
    
    SyntaxErrorMessage(theEnv,"singleton or standard fuzzy set (Numeric expression expected)");
-   *error = TRUE;
+   *error = true;
    return(NULL);
 
 }

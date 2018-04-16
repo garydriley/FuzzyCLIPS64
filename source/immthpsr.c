@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  11/01/16             */
    /*                                                     */
    /*         IMPLICIT SYSTEM METHODS PARSING MODULE      */
    /*******************************************************/
@@ -30,6 +30,20 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Changed restrictions from char * to            */
+/*            CLIPSLexeme * to support strings               */
+/*            originating from sources that are not          */
+/*            statically allocated.                          */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 /* =========================================
@@ -47,15 +61,14 @@
 #include "classcom.h"
 #include "classfun.h"
 #endif
-
-#include "envrnmnt.h"
-#include "memalloc.h"
 #include "cstrnutl.h"
+#include "envrnmnt.h"
+#include "exprnpsr.h"
 #include "extnfunc.h"
 #include "genrcpsr.h"
+#include "memalloc.h"
 #include "prccode.h"
 
-#define _IMMTHPSR_SOURCE_
 #include "immthpsr.h"
 
 /* =========================================
@@ -64,9 +77,10 @@
    =========================================
    ***************************************** */
 
-static void FormMethodsFromRestrictions(void *,DEFGENERIC *,const char *,EXPRESSION *);
-static RESTRICTION *ParseRestrictionType(void *,int);
-static EXPRESSION *GenTypeExpression(void *,EXPRESSION *,int,int,const char *);
+   static void                    FormMethodsFromRestrictions(Environment *,Defgeneric *,struct functionDefinition *,Expression *);
+   static RESTRICTION            *ParseRestrictionType(Environment *,unsigned);
+   static Expression             *GenTypeExpression(Environment *,Expression *,int,int,const char *);
+   static Expression             *ParseRestrictionCreateTypes(Environment *,CONSTRAINT_RECORD *);
 
 /* =========================================
    *****************************************
@@ -84,21 +98,21 @@ static EXPRESSION *GenTypeExpression(void *,EXPRESSION *,int,int,const char *);
   NOTES        : Method marked as system
                  Assumes no other methods already present
  ********************************************************/
-globle void AddImplicitMethods(
-  void *theEnv,
-  DEFGENERIC *gfunc)
+void AddImplicitMethods(
+  Environment *theEnv,
+  Defgeneric *gfunc)
   {
-   struct FunctionDefinition *sysfunc;
-   EXPRESSION action;
+   struct functionDefinition *sysfunc;
+   Expression action;
 
-   sysfunc = FindFunction(theEnv,ValueToString(gfunc->header.name));
+   sysfunc = FindFunction(theEnv,gfunc->header.name->contents);
    if (sysfunc == NULL)
      return;
    action.type = FCALL;
-   action.value = (void *) sysfunc;
+   action.value = sysfunc;
    action.nextArg = NULL;
    action.argList = NULL;
-   FormMethodsFromRestrictions(theEnv,gfunc,sysfunc->restrictions,&action);
+   FormMethodsFromRestrictions(theEnv,gfunc,sysfunc,&action);
   }
 
 /* =========================================
@@ -120,78 +134,47 @@ globle void AddImplicitMethods(
   NOTES        : None
  **********************************************************************/
 static void FormMethodsFromRestrictions(
-  void *theEnv,
-  DEFGENERIC *gfunc,
-  const char *rstring,
-  EXPRESSION *actions)
+  Environment *theEnv,
+  Defgeneric *gfunc,
+  struct functionDefinition *sysfunc,
+  Expression *actions)
   {
-   DEFMETHOD *meth;
-   EXPRESSION *plist,*tmp,*bot,*svBot;
+   Defmethod *meth;
+   Expression *plist,*tmp,*bot,*svBot;
    RESTRICTION *rptr;
-   char theChar[2],defaultc;
-   int min,max,mposn,needMinimumMethod;
-   register int i,j;
+   unsigned defaultc2, argRestriction2;
+   int mposn;
+   unsigned short min, max;
+   bool needMinimumMethod;
+   unsigned short i;
+   const char *rstring;
 
-   /* ===================================
-      The system function will accept any
-      number of any type of arguments
-      =================================== */
-   if (rstring == NULL)
-     {
-      tmp = get_struct(theEnv,expr);
-      rptr = get_struct(theEnv,restriction);
-      PackRestrictionTypes(theEnv,rptr,NULL);
-      rptr->query = NULL;
-      tmp->argList = (EXPRESSION *) rptr;
-      tmp->nextArg = NULL;
-      meth = AddMethod(theEnv,gfunc,NULL,0,0,tmp,1,0,(SYMBOL_HN *) EnvTrueSymbol(theEnv),
-                       PackExpression(theEnv,actions),NULL,FALSE);
-      meth->system = 1;
-      DeleteTempRestricts(theEnv,tmp);
-      return;
-     }
+   if (sysfunc->restrictions == NULL)
+     { rstring = NULL; }
+   else
+     { rstring = sysfunc->restrictions->contents; }
 
-   /* ==============================
-      Extract the range of arguments
-      from the restriction string
-      ============================== */
-   theChar[1] = '\0';
-   if (rstring[0] == '*')
-     min = 0;
-   else
-     {
-      theChar[0] = rstring[0];
-      min = atoi(theChar);
-     }
-   if (rstring[1] == '*')
-     max = -1;
-   else
-     {
-      theChar[0] = rstring[1];
-      max = atoi(theChar);
-     }
-   if (rstring[2] != '\0')
-     {
-      defaultc = rstring[2];
-      j = 3;
-     }
-   else
-     {
-      defaultc = 'u';
-      j= 2;
-     }
+   /*================================*/
+   /* Extract the range of arguments */
+   /* from the restriction string.   */
+   /*================================*/
 
-   /* ================================================
-      Form a list of method restrictions corresponding
-      to the minimum number of arguments
-      ================================================ */
+   min = sysfunc->minArgs;
+   max = sysfunc->maxArgs;
+   PopulateRestriction(theEnv,&defaultc2,ANY_TYPE_BITS,rstring,0);
+
+   /*==================================================*/
+   /* Form a list of method restrictions corresponding */
+   /* to the minimum number of arguments.              */
+   /*==================================================*/
+
    plist = bot = NULL;
    for (i = 0 ; i < min ; i++)
      {
-      theChar[0] = (rstring[j] != '\0') ? rstring[j++] : defaultc;
-      rptr = ParseRestrictionType(theEnv,(int) theChar[0]);
+      PopulateRestriction(theEnv,&argRestriction2,defaultc2,rstring,i+1);
+      rptr = ParseRestrictionType(theEnv,argRestriction2);
       tmp = get_struct(theEnv,expr);
-      tmp->argList = (EXPRESSION *) rptr;
+      tmp->argList = (Expression *) rptr;
       tmp->nextArg = NULL;
       if (plist == NULL)
         plist = tmp;
@@ -200,30 +183,37 @@ static void FormMethodsFromRestrictions(
       bot = tmp;
      }
 
-   /* ===============================
-      Remember where restrictions end
-      for minimum number of arguments
-      =============================== */
+   /*==================================*/
+   /* Remember where restrictions end  */
+   /* for minimum number of arguments. */
+   /*==================================*/
+
    svBot = bot;
-   needMinimumMethod = TRUE;
+   needMinimumMethod = true;
 
-   /* =======================================================
-      Attach one or more new methods to correspond
-      to the possible variations of the extra arguments
+   /*=====================================================*/
+   /* Attach one or more new methods to correspond to the */
+   /* possible variations of the extra arguments. Add a   */
+   /* separate method for each specified extra argument.  */
+   /*=====================================================*/
 
-      Add a separate method for each specified extra argument
-      ======================================================= */
    i = 0;
-   while (rstring[j] != '\0')
+   while (RestrictionExists(rstring,min+i+1))
      {
-      if ((rstring[j+1] == '\0') && ((min + i + 1) == max))
+      if ((min + i + 1) == max)
         {
-         defaultc = rstring[j];
-         break;
+         if (! RestrictionExists(rstring,min+i+2))
+           {
+            PopulateRestriction(theEnv,&defaultc2,ANY_TYPE_BITS,rstring,min+i+1);
+            break;
+           }
         }
-      rptr = ParseRestrictionType(theEnv,(int) rstring[j]);
+
+      PopulateRestriction(theEnv,&argRestriction2,defaultc2,rstring,min+i+1);
+      rptr = ParseRestrictionType(theEnv,argRestriction2);
+
       tmp = get_struct(theEnv,expr);
-      tmp->argList = (EXPRESSION *) rptr;
+      tmp->argList = (Expression *) rptr;
       tmp->nextArg = NULL;
       if (plist == NULL)
         plist = tmp;
@@ -231,60 +221,64 @@ static void FormMethodsFromRestrictions(
         bot->nextArg = tmp;
       bot = tmp;
       i++;
-      j++;
-      if ((rstring[j] != '\0') || ((min + i) == max))
+      if (RestrictionExists(rstring,min+i+1) ||
+          ((min + i) == max))
         {
          FindMethodByRestrictions(gfunc,plist,min + i,NULL,&mposn);
          meth = AddMethod(theEnv,gfunc,NULL,mposn,0,plist,min + i,0,NULL,
-                          PackExpression(theEnv,actions),NULL,TRUE);
+                          PackExpression(theEnv,actions),NULL,true);
          meth->system = 1;
         }
      }
 
-   /* ==============================================
-      Add a method to account for wildcard arguments
-      and attach a query in case there is a limit
-      ============================================== */
+   /*================================================*/
+   /* Add a method to account for wildcard arguments */
+   /* and attach a query in case there is a limit.   */
+   /*================================================*/
+
    if ((min + i) != max)
      {
-      /* ================================================
-         If a wildcard is present immediately after the
-         minimum number of args - then the minimum case
-         will already be handled by this method. We don't
-         need to add an extra method for that case
-         ================================================ */
-      if (i == 0)
-        needMinimumMethod = FALSE;
+      /*==================================================*/
+      /* If a wildcard is present immediately after the   */
+      /* minimum number of args - then the minimum case   */
+      /* will already be handled by this method. We don't */
+      /* need to add an extra method for that case.       */
+      /*==================================================*/
 
-      rptr = ParseRestrictionType(theEnv,(int) defaultc);
-      if (max != -1)
+      if (i == 0)
+        { needMinimumMethod = false; }
+
+      rptr = ParseRestrictionType(theEnv,defaultc2);
+
+      if (max != UNBOUNDED)
         {
-         rptr->query = GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"<="));
-         rptr->query->argList = GenConstant(theEnv,FCALL,(void *) FindFunction(theEnv,"length$"));
+         rptr->query = GenConstant(theEnv,FCALL,FindFunction(theEnv,"<="));
+         rptr->query->argList = GenConstant(theEnv,FCALL,FindFunction(theEnv,"length$"));
          rptr->query->argList->argList = GenProcWildcardReference(theEnv,min + i + 1);
          rptr->query->argList->nextArg =
-               GenConstant(theEnv,INTEGER,(void *) EnvAddLong(theEnv,(long long) (max - min - i)));
+               GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,(long long) (max - min - i)));
         }
       tmp = get_struct(theEnv,expr);
-      tmp->argList = (EXPRESSION *) rptr;
+      tmp->argList = (Expression *) rptr;
       tmp->nextArg = NULL;
       if (plist == NULL)
         plist = tmp;
       else
         bot->nextArg = tmp;
-      FindMethodByRestrictions(gfunc,plist,min + i + 1,(SYMBOL_HN *) EnvTrueSymbol(theEnv),&mposn);
-      meth = AddMethod(theEnv,gfunc,NULL,mposn,0,plist,min + i + 1,0,(SYMBOL_HN *) EnvTrueSymbol(theEnv),
-                       PackExpression(theEnv,actions),NULL,FALSE);
+      FindMethodByRestrictions(gfunc,plist,min + i + 1,TrueSymbol(theEnv),&mposn);
+      meth = AddMethod(theEnv,gfunc,NULL,mposn,0,plist,min + i + 1,0,TrueSymbol(theEnv),
+                       PackExpression(theEnv,actions),NULL,false);
       meth->system = 1;
      }
 
-   /* ===================================================
-      When extra methods had to be added because of
-      different restrictions on the optional arguments OR
-      the system function accepts a fixed number of args,
-      we must add a specific method for the minimum case.
-      Otherwise, the method with the wildcard covers it.
-      =================================================== */
+   /*=====================================================*/
+   /* When extra methods had to be added because of       */
+   /* different restrictions on the optional arguments OR */
+   /* the system function accepts a fixed number of args, */
+   /* we must add a specific method for the minimum case. */
+   /* Otherwise, the method with the wildcard covers it.  */
+   /*=====================================================*/
+
    if (needMinimumMethod)
      {
       if (svBot != NULL)
@@ -295,11 +289,63 @@ static void FormMethodsFromRestrictions(
         }
       FindMethodByRestrictions(gfunc,plist,min,NULL,&mposn);
       meth = AddMethod(theEnv,gfunc,NULL,mposn,0,plist,min,0,NULL,
-                       PackExpression(theEnv,actions),NULL,TRUE);
+                       PackExpression(theEnv,actions),NULL,true);
       meth->system = 1;
      }
    DeleteTempRestricts(theEnv,plist);
   }
+
+/*******************************/
+/* ParseRestrictionCreateTypes */
+/*******************************/
+static Expression *ParseRestrictionCreateTypes(
+  Environment *theEnv,
+  CONSTRAINT_RECORD *rv)
+  {
+   Expression *types = NULL;
+
+   if (rv->anyAllowed == false)
+     {
+      if (rv->symbolsAllowed && rv->stringsAllowed)
+        types = GenTypeExpression(theEnv,types,LEXEME_TYPE_CODE,-1,LEXEME_TYPE_NAME);
+      else if (rv->symbolsAllowed)
+        types = GenTypeExpression(theEnv,types,SYMBOL_TYPE,SYMBOL_TYPE,NULL);
+      else if (rv->stringsAllowed)
+        types = GenTypeExpression(theEnv,types,STRING_TYPE,STRING_TYPE,NULL);
+
+      if (rv->floatsAllowed && rv->integersAllowed)
+        types = GenTypeExpression(theEnv,types,NUMBER_TYPE_CODE,-1,NUMBER_TYPE_NAME);
+      else if (rv->integersAllowed)
+        types = GenTypeExpression(theEnv,types,INTEGER_TYPE,INTEGER_TYPE,NULL);
+      else if (rv->floatsAllowed)
+        types = GenTypeExpression(theEnv,types,FLOAT_TYPE,FLOAT_TYPE,NULL);
+
+      if (rv->instanceNamesAllowed && rv->instanceAddressesAllowed)
+        types = GenTypeExpression(theEnv,types,INSTANCE_TYPE_CODE,-1,INSTANCE_TYPE_NAME);
+      else if (rv->instanceNamesAllowed)
+        types = GenTypeExpression(theEnv,types,INSTANCE_NAME_TYPE,INSTANCE_NAME_TYPE,NULL);
+      else if (rv->instanceAddressesAllowed)
+        types = GenTypeExpression(theEnv,types,INSTANCE_ADDRESS_TYPE,INSTANCE_ADDRESS_TYPE,NULL);
+
+      if (rv->externalAddressesAllowed && rv->instanceAddressesAllowed &&
+          rv->factAddressesAllowed)
+        types = GenTypeExpression(theEnv,types,ADDRESS_TYPE_CODE,-1,ADDRESS_TYPE_NAME);
+      else
+        {
+         if (rv->externalAddressesAllowed)
+           types = GenTypeExpression(theEnv,types,EXTERNAL_ADDRESS_TYPE,EXTERNAL_ADDRESS_TYPE,NULL);
+         if (rv->instanceAddressesAllowed && (rv->instanceNamesAllowed == 0))
+           types = GenTypeExpression(theEnv,types,INSTANCE_ADDRESS_TYPE,INSTANCE_ADDRESS_TYPE,NULL);
+         if (rv->factAddressesAllowed)
+           types = GenTypeExpression(theEnv,types,FACT_ADDRESS_TYPE,FACT_ADDRESS_TYPE,NULL);
+        }
+
+      if (rv->multifieldsAllowed)
+        types = GenTypeExpression(theEnv,types,MULTIFIELD_TYPE,MULTIFIELD_TYPE,NULL);
+     }
+
+   return(types);
+   }
 
 /*******************************************************************
   NAME         : ParseRestrictionType
@@ -312,55 +358,18 @@ static void FormMethodsFromRestrictions(
   NOTES        : None
  *******************************************************************/
 static RESTRICTION *ParseRestrictionType(
-  void *theEnv,
-  int code)
+  Environment *theEnv,
+  unsigned code)
   {
    RESTRICTION *rptr;
    CONSTRAINT_RECORD *rv;
-   EXPRESSION *types = NULL;
+   Expression *types = NULL;
 
    rptr = get_struct(theEnv,restriction);
    rptr->query = NULL;
    rv = ArgumentTypeToConstraintRecord(theEnv,code);
-   if (rv->anyAllowed == FALSE)
-     {
-      if (rv->symbolsAllowed && rv->stringsAllowed)
-        types = GenTypeExpression(theEnv,types,LEXEME_TYPE_CODE,-1,LEXEME_TYPE_NAME);
-      else if (rv->symbolsAllowed)
-        types = GenTypeExpression(theEnv,types,SYMBOL,SYMBOL,NULL);
-      else if (rv->stringsAllowed)
-        types = GenTypeExpression(theEnv,types,STRING,STRING,NULL);
 
-      if (rv->floatsAllowed && rv->integersAllowed)
-        types = GenTypeExpression(theEnv,types,NUMBER_TYPE_CODE,-1,NUMBER_TYPE_NAME);
-      else if (rv->integersAllowed)
-        types = GenTypeExpression(theEnv,types,INTEGER,INTEGER,NULL);
-      else if (rv->floatsAllowed)
-        types = GenTypeExpression(theEnv,types,FLOAT,FLOAT,NULL);
-
-      if (rv->instanceNamesAllowed && rv->instanceAddressesAllowed)
-        types = GenTypeExpression(theEnv,types,INSTANCE_TYPE_CODE,-1,INSTANCE_TYPE_NAME);
-      else if (rv->instanceNamesAllowed)
-        types = GenTypeExpression(theEnv,types,INSTANCE_NAME,INSTANCE_NAME,NULL);
-      else if (rv->instanceAddressesAllowed)
-        types = GenTypeExpression(theEnv,types,INSTANCE_ADDRESS,INSTANCE_ADDRESS,NULL);
-
-      if (rv->externalAddressesAllowed && rv->instanceAddressesAllowed &&
-          rv->factAddressesAllowed)
-        types = GenTypeExpression(theEnv,types,ADDRESS_TYPE_CODE,-1,ADDRESS_TYPE_NAME);
-      else
-        {
-         if (rv->externalAddressesAllowed)
-           types = GenTypeExpression(theEnv,types,EXTERNAL_ADDRESS,EXTERNAL_ADDRESS,NULL);
-         if (rv->instanceAddressesAllowed && (rv->instanceNamesAllowed == 0))
-           types = GenTypeExpression(theEnv,types,INSTANCE_ADDRESS,INSTANCE_ADDRESS,NULL);
-         if (rv->factAddressesAllowed)
-           types = GenTypeExpression(theEnv,types,FACT_ADDRESS,FACT_ADDRESS,NULL);
-        }
-
-      if (rv->multifieldsAllowed)
-        types = GenTypeExpression(theEnv,types,MULTIFIELD,MULTIFIELD,NULL);
-     }
+   types = ParseRestrictionCreateTypes(theEnv,rv);
    RemoveConstraint(theEnv,rv);
    PackRestrictionTypes(theEnv,rptr,types);
    return(rptr);
@@ -387,9 +396,9 @@ static RESTRICTION *ParseRestrictionType(
                  environment, they are pointers
                  to classes
  ***************************************************/
-static EXPRESSION *GenTypeExpression(
-  void *theEnv,
-  EXPRESSION *top,
+static Expression *GenTypeExpression(
+  Environment *theEnv,
+  Expression *top,
   int nonCOOLCode,
   int primitiveCode,
   const char *COOLName)
@@ -404,15 +413,15 @@ static EXPRESSION *GenTypeExpression(
 #pragma unused(COOLName)
 #endif
 #endif
-   EXPRESSION *tmp;
+   Expression *tmp;
 
 #if OBJECT_SYSTEM
    if (primitiveCode != -1)
-     tmp = GenConstant(theEnv,0,(void *) DefclassData(theEnv)->PrimitiveClassMap[primitiveCode]);
+     tmp = GenConstant(theEnv,0,DefclassData(theEnv)->PrimitiveClassMap[primitiveCode]);
    else
-     tmp = GenConstant(theEnv,0,(void *) LookupDefclassByMdlOrScope(theEnv,COOLName));
+     tmp = GenConstant(theEnv,0,LookupDefclassByMdlOrScope(theEnv,COOLName));
 #else
-   tmp = GenConstant(theEnv,0,EnvAddLong(theEnv,(long long) nonCOOLCode));
+   tmp = GenConstant(theEnv,0,CreateInteger(theEnv,nonCOOLCode));
 #endif
    tmp->nextArg = top;
    return(tmp);

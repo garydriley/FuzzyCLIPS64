@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  10/18/16             */
    /*                                                     */
    /*             CONSTRAINT UTILITY MODULE               */
    /*******************************************************/
@@ -15,6 +15,10 @@
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Brian Dantes                                         */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -22,24 +26,32 @@
 /*                                                           */
 /*      6.30: Support for long long integers.                */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Eval support for run time and bload only.      */
+/*                                                           */
 /*************************************************************/
 
-#define _CSTRNUTL_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 
 #include "setup.h"
 
+#include "argacces.h"
 #include "constant.h"
 #include "envrnmnt.h"
-#include "memalloc.h"
-#include "router.h"
 #include "extnfunc.h"
-#include "scanner.h"
+#include "memalloc.h"
 #include "multifld.h"
-#include "argacces.h"
+#include "router.h"
+#include "scanner.h"
 
 #include "cstrnutl.h"
 
@@ -47,8 +59,8 @@
 /* GetConstraintRecord: Creates and initializes */
 /*   the values of a constraint record.         */
 /************************************************/
-globle struct constraintRecord *GetConstraintRecord(
-  void *theEnv)
+struct constraintRecord *GetConstraintRecord(
+  Environment *theEnv)
   {
    CONSTRAINT_RECORD *constraints;
    unsigned i;
@@ -58,57 +70,58 @@ globle struct constraintRecord *GetConstraintRecord(
    for (i = 0 ; i < sizeof(CONSTRAINT_RECORD) ; i++)
      { ((char *) constraints)[i] = '\0'; }
 
-   SetAnyAllowedFlags(constraints,TRUE);
+   SetAnyAllowedFlags(constraints,true);
 
-   constraints->multifieldsAllowed = FALSE;
-   constraints->singlefieldsAllowed = TRUE;
+   constraints->multifieldsAllowed = false;
+   constraints->singlefieldsAllowed = true;
 
 #if FUZZY_DEFTEMPLATES
-   constraints->fuzzyValueRestriction = FALSE;
+   constraints->fuzzyValueRestriction = false;
 #endif
-   constraints->anyRestriction = FALSE;
-   constraints->symbolRestriction = FALSE;
-   constraints->stringRestriction = FALSE;
-   constraints->floatRestriction = FALSE;
-   constraints->integerRestriction = FALSE;
-   constraints->classRestriction = FALSE;
-   constraints->instanceNameRestriction = FALSE;
+   constraints->anyRestriction = false;
+   constraints->symbolRestriction = false;
+   constraints->stringRestriction = false;
+   constraints->floatRestriction = false;
+   constraints->integerRestriction = false;
+   constraints->classRestriction = false;
+   constraints->instanceNameRestriction = false;
    constraints->classList = NULL;
    constraints->restrictionList = NULL;
-   constraints->minValue = GenConstant(theEnv,SYMBOL,SymbolData(theEnv)->NegativeInfinity);
-   constraints->maxValue = GenConstant(theEnv,SYMBOL,SymbolData(theEnv)->PositiveInfinity);
-   constraints->minFields = GenConstant(theEnv,INTEGER,SymbolData(theEnv)->Zero);
-   constraints->maxFields = GenConstant(theEnv,SYMBOL,SymbolData(theEnv)->PositiveInfinity);
-   constraints->bucket = -1;
+   constraints->minValue = GenConstant(theEnv,SYMBOL_TYPE,SymbolData(theEnv)->NegativeInfinity);
+   constraints->maxValue = GenConstant(theEnv,SYMBOL_TYPE,SymbolData(theEnv)->PositiveInfinity);
+   constraints->minFields = GenConstant(theEnv,INTEGER_TYPE,SymbolData(theEnv)->Zero);
+   constraints->maxFields = GenConstant(theEnv,SYMBOL_TYPE,SymbolData(theEnv)->PositiveInfinity);
+   constraints->installed = false;
+   constraints->bucket = 0;
    constraints->count = 0;
    constraints->multifield = NULL;
    constraints->next = NULL;
 
-   return(constraints);
+   return constraints;
   }
 
 /********************************************************/
 /* SetAnyAllowedFlags: Sets the allowed type flags of a */
 /*   constraint record to allow all types. If passed an */
-/*   argument of TRUE, just the "any allowed" flag is   */
-/*   set to TRUE. If passed an argument of FALSE, then  */
-/*   all of the individual type flags are set to TRUE.  */
+/*   argument of true, just the "any allowed" flag is   */
+/*   set to true. If passed an argument of false, then  */
+/*   all of the individual type flags are set to true.  */
 /********************************************************/
-globle void SetAnyAllowedFlags(
+void SetAnyAllowedFlags(
   CONSTRAINT_RECORD *theConstraint,
-  int justOne)
+  bool justOne)
   {
-   int flag1, flag2;
+   bool flag1, flag2;
 
    if (justOne)
      {
-      flag1 = TRUE;
-      flag2 = FALSE;
+      flag1 = true;
+      flag2 = false;
      }
    else
      {
-      flag1 = FALSE;
-      flag2 = TRUE;
+      flag1 = false;
+      flag2 = true;
      }
 
    theConstraint->anyAllowed = flag1;
@@ -129,13 +142,13 @@ globle void SetAnyAllowedFlags(
 /*****************************************************/
 /* CopyConstraintRecord: Copies a constraint record. */
 /*****************************************************/
-globle struct constraintRecord *CopyConstraintRecord(
-  void *theEnv,
+struct constraintRecord *CopyConstraintRecord(
+  Environment *theEnv,
   CONSTRAINT_RECORD *sourceConstraint)
   {
    CONSTRAINT_RECORD *theConstraint;
 
-   if (sourceConstraint == NULL) return(NULL);
+   if (sourceConstraint == NULL) return NULL;
 
    theConstraint = get_struct(theEnv,constraintRecord);
 
@@ -168,7 +181,8 @@ globle struct constraintRecord *CopyConstraintRecord(
    theConstraint->maxValue = CopyExpression(theEnv,sourceConstraint->maxValue);
    theConstraint->minFields = CopyExpression(theEnv,sourceConstraint->minFields);
    theConstraint->maxFields = CopyExpression(theEnv,sourceConstraint->maxFields);
-   theConstraint->bucket = -1;
+   theConstraint->bucket = 0;
+   theConstraint->installed = false;
    theConstraint->count = 0;
    theConstraint->multifield = CopyConstraintRecord(theEnv,sourceConstraint->multifield);
    theConstraint->next = NULL;
@@ -176,31 +190,29 @@ globle struct constraintRecord *CopyConstraintRecord(
    return(theConstraint);
   }
 
-#if (! RUN_TIME) && (! BLOAD_ONLY)
-
 /**************************************************************/
 /* SetAnyRestrictionFlags: Sets the restriction type flags of */
 /*   a constraint record to indicate there are restriction on */
-/*   all types. If passed an argument of TRUE, just the       */
-/*   "any restriction" flag is set to TRUE. If passed an      */
-/*   argument of FALSE, then all of the individual type       */
-/*   restriction flags are set to TRUE.                       */
+/*   all types. If passed an argument of true, just the       */
+/*   "any restriction" flag is set to true. If passed an      */
+/*   argument of false, then all of the individual type       */
+/*   restriction flags are set to true.                       */
 /**************************************************************/
-globle void SetAnyRestrictionFlags(
+void SetAnyRestrictionFlags(
   CONSTRAINT_RECORD *theConstraint,
-  int justOne)
+  bool justOne)
   {
-   int flag1, flag2;
+   bool flag1, flag2;
 
    if (justOne)
      {
-      flag1 = TRUE;
-      flag2 = FALSE;
+      flag1 = true;
+      flag2 = false;
      }
    else
      {
-      flag1 = FALSE;
-      flag2 = TRUE;
+      flag1 = false;
+      flag2 = true;
      }
 
    theConstraint->anyRestriction = flag1;
@@ -214,101 +226,103 @@ globle void SetAnyRestrictionFlags(
 #endif
   }
 
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+
 /*****************************************************/
 /* SetConstraintType: Given a constraint type and a  */
 /*   constraint, sets the allowed type flags for the */
-/*   specified type in the constraint to TRUE.       */
+/*   specified type in the constraint to true.       */
 /*****************************************************/
-globle int SetConstraintType(
+bool SetConstraintType(
   int theType,
   CONSTRAINT_RECORD *constraints)
   {
-   int rv = TRUE;
+   bool rv = true;
 
    switch(theType)
      {
       case UNKNOWN_VALUE:
          rv = constraints->anyAllowed;
-         constraints->anyAllowed = TRUE;
+         constraints->anyAllowed = true;
          break;
 
-      case SYMBOL:
+      case SYMBOL_TYPE:
          rv = constraints->symbolsAllowed;
-         constraints->symbolsAllowed = TRUE;
+         constraints->symbolsAllowed = true;
          break;
 
-      case STRING:
+      case STRING_TYPE:
          rv = constraints->stringsAllowed;
-         constraints->stringsAllowed = TRUE;
+         constraints->stringsAllowed = true;
          break;
 
       case SYMBOL_OR_STRING:
-         rv = (constraints->stringsAllowed | constraints->symbolsAllowed);
-         constraints->symbolsAllowed = TRUE;
-         constraints->stringsAllowed = TRUE;
+         rv = (constraints->stringsAllowed || constraints->symbolsAllowed);
+         constraints->symbolsAllowed = true;
+         constraints->stringsAllowed = true;
          break;
 
-      case INTEGER:
+      case INTEGER_TYPE:
          rv = constraints->integersAllowed;
-         constraints->integersAllowed = TRUE;
+         constraints->integersAllowed = true;
          break;
 
-      case FLOAT:
+      case FLOAT_TYPE:
          rv = constraints->floatsAllowed;
-         constraints->floatsAllowed = TRUE;
+         constraints->floatsAllowed = true;
          break;
 
       case INTEGER_OR_FLOAT:
-         rv = (constraints->integersAllowed | constraints->floatsAllowed);
-         constraints->integersAllowed = TRUE;
-         constraints->floatsAllowed = TRUE;
+         rv = (constraints->integersAllowed || constraints->floatsAllowed);
+         constraints->integersAllowed = true;
+         constraints->floatsAllowed = true;
          break;
 
-      case INSTANCE_ADDRESS:
+      case INSTANCE_ADDRESS_TYPE:
          rv = constraints->instanceAddressesAllowed;
-         constraints->instanceAddressesAllowed = TRUE;
+         constraints->instanceAddressesAllowed = true;
          break;
 
-      case INSTANCE_NAME:
+      case INSTANCE_NAME_TYPE:
          rv = constraints->instanceNamesAllowed;
-         constraints->instanceNamesAllowed = TRUE;
+         constraints->instanceNamesAllowed = true;
          break;
 
       case INSTANCE_OR_INSTANCE_NAME:
-         rv = (constraints->instanceNamesAllowed | constraints->instanceAddressesAllowed);
-         constraints->instanceNamesAllowed = TRUE;
-         constraints->instanceAddressesAllowed = TRUE;
+         rv = (constraints->instanceNamesAllowed || constraints->instanceAddressesAllowed);
+         constraints->instanceNamesAllowed = true;
+         constraints->instanceAddressesAllowed = true;
          break;
 
-      case EXTERNAL_ADDRESS:
+      case EXTERNAL_ADDRESS_TYPE:
          rv = constraints->externalAddressesAllowed;
-         constraints->externalAddressesAllowed = TRUE;
+         constraints->externalAddressesAllowed = true;
          break;
 
-      case RVOID:
+      case VOID_TYPE:
          rv = constraints->voidAllowed;
-         constraints->voidAllowed = TRUE;
+         constraints->voidAllowed = true;
          break;
 
-      case FACT_ADDRESS:
+      case FACT_ADDRESS_TYPE:
          rv = constraints->factAddressesAllowed;
-         constraints->factAddressesAllowed = TRUE;
+         constraints->factAddressesAllowed = true;
          break;
 
-      case MULTIFIELD:
+      case MULTIFIELD_TYPE:
          rv = constraints->multifieldsAllowed;
-         constraints->multifieldsAllowed = TRUE;
+         constraints->multifieldsAllowed = true;
          break;
 
 #if FUZZY_DEFTEMPLATES
-      case FUZZY_VALUE:
+      case FUZZY_VALUE_TYPE:
          rv = constraints->fuzzyValuesAllowed;
-         constraints->fuzzyValuesAllowed = TRUE;
+         constraints->fuzzyValuesAllowed = true;
          break;
 #endif
      }
 
-   if (theType != UNKNOWN_VALUE) constraints->anyAllowed = FALSE;
+   if (theType != UNKNOWN_VALUE) constraints->anyAllowed = false;
    return(rv);
   }
 
@@ -320,8 +334,8 @@ globle int SetConstraintType(
 /*   returns the relationship between the numbers (greater   */
 /*   than, less than or equal).                              */
 /*************************************************************/
-globle int CompareNumbers(
-  void *theEnv,
+int CompareNumbers(
+  Environment *theEnv,
   int type1,
   void *vptr1,
   int type2,
@@ -351,11 +365,11 @@ globle int CompareNumbers(
    /* Compare two integers. */
    /*=======================*/
 
-   if ((type1 == INTEGER) && (type2 == INTEGER))
+   if ((type1 == INTEGER_TYPE) && (type2 == INTEGER_TYPE))
      {
-      if (ValueToLong(vptr1) < ValueToLong(vptr2))
+      if (((CLIPSInteger *) vptr1)->contents < ((CLIPSInteger *) vptr2)->contents)
         { return(LESS_THAN); }
-      else if (ValueToLong(vptr1) > ValueToLong(vptr2))
+      else if (((CLIPSInteger *) vptr1)->contents > ((CLIPSInteger *) vptr2)->contents)
         { return(GREATER_THAN); }
 
       return(EQUAL);
@@ -365,11 +379,11 @@ globle int CompareNumbers(
    /* Compare two floats. */
    /*=====================*/
 
-   if ((type1 == FLOAT) && (type2 == FLOAT))
+   if ((type1 == FLOAT_TYPE) && (type2 == FLOAT_TYPE))
      {
-      if (ValueToDouble(vptr1) < ValueToDouble(vptr2))
+      if (((CLIPSFloat *) vptr1)->contents < ((CLIPSFloat *) vptr2)->contents)
         { return(LESS_THAN); }
-      else if (ValueToDouble(vptr1) > ValueToDouble(vptr2))
+      else if (((CLIPSFloat *) vptr1)->contents > ((CLIPSFloat *) vptr2)->contents)
         { return(GREATER_THAN); }
 
       return(EQUAL);
@@ -379,11 +393,11 @@ globle int CompareNumbers(
    /* Compare an integer to a float. */
    /*================================*/
 
-   if ((type1 == INTEGER) && (type2 == FLOAT))
+   if ((type1 == INTEGER_TYPE) && (type2 == FLOAT_TYPE))
      {
-      if (((double) ValueToLong(vptr1)) < ValueToDouble(vptr2))
+      if (((double) ((CLIPSInteger *) vptr1)->contents) < ((CLIPSFloat *) vptr2)->contents)
         { return(LESS_THAN); }
-      else if (((double) ValueToLong(vptr1)) > ValueToDouble(vptr2))
+      else if (((double) ((CLIPSInteger *) vptr1)->contents) > ((CLIPSFloat *) vptr2)->contents)
         { return(GREATER_THAN); }
 
       return(EQUAL);
@@ -393,11 +407,11 @@ globle int CompareNumbers(
    /* Compare a float to an integer. */
    /*================================*/
 
-   if ((type1 == FLOAT) && (type2 == INTEGER))
+   if ((type1 == FLOAT_TYPE) && (type2 == INTEGER_TYPE))
      {
-      if (ValueToDouble(vptr1) < ((double) ValueToLong(vptr2)))
+      if (((CLIPSFloat *) vptr1)->contents < ((double) ((CLIPSInteger *) vptr2)->contents))
         { return(LESS_THAN); }
-      else if (ValueToDouble(vptr1) > ((double) ValueToLong(vptr2)))
+      else if (((CLIPSFloat *) vptr1)->contents > ((double) ((CLIPSInteger *) vptr2)->contents))
         { return(GREATER_THAN); }
 
       return(EQUAL);
@@ -415,10 +429,10 @@ globle int CompareNumbers(
 /* ExpressionToConstraintRecord: Converts an expression into a  */
 /*   constraint record. For example, an expression representing */
 /*   the symbol BLUE would be converted to a  record with       */
-/*   allowed types SYMBOL and allow-values BLUE.                */
+/*   allowed types SYMBOL_TYPE and allow-values BLUE.                */
 /****************************************************************/
-globle CONSTRAINT_RECORD *ExpressionToConstraintRecord(
-  void *theEnv,
+CONSTRAINT_RECORD *ExpressionToConstraintRecord(
+  Environment *theEnv,
   struct expr *theExpression)
   {
    CONSTRAINT_RECORD *rv;
@@ -431,7 +445,7 @@ globle CONSTRAINT_RECORD *ExpressionToConstraintRecord(
    if (theExpression == NULL)
      {
       rv = GetConstraintRecord(theEnv);
-      rv->anyAllowed = FALSE;
+      rv->anyAllowed = false;
       return(rv);
      }
 
@@ -451,7 +465,7 @@ globle CONSTRAINT_RECORD *ExpressionToConstraintRecord(
        (theExpression->type == MF_GBL_VARIABLE))
      {
       rv = GetConstraintRecord(theEnv);
-      rv->multifieldsAllowed = TRUE;
+      rv->multifieldsAllowed = true;
       return(rv);
      }
    else if (theExpression->type == FCALL)
@@ -462,277 +476,115 @@ globle CONSTRAINT_RECORD *ExpressionToConstraintRecord(
    /*============================================*/
 
    rv = GetConstraintRecord(theEnv);
-   rv->anyAllowed = FALSE;
+   rv->anyAllowed = false;
 
-   if (theExpression->type == FLOAT)
+   switch (theExpression->type)
      {
-      rv->floatRestriction = TRUE;
-      rv->floatsAllowed = TRUE;
-     }
-   else if (theExpression->type == INTEGER)
-     {
-      rv->integerRestriction = TRUE;
-      rv->integersAllowed = TRUE;
-     }
-   else if (theExpression->type == SYMBOL)
-     {
-      rv->symbolRestriction = TRUE;
-      rv->symbolsAllowed = TRUE;
-     }
-   else if (theExpression->type == STRING)
-     {
-      rv->stringRestriction = TRUE;
-      rv->stringsAllowed = TRUE;
-     }
-   else if (theExpression->type == INSTANCE_NAME)
-     {
-      rv->instanceNameRestriction = TRUE;
-      rv->instanceNamesAllowed = TRUE;
-     }
+      case FLOAT_TYPE:
+        rv->floatRestriction = true;
+        rv->floatsAllowed = true;
+        break;
+        
+      case INTEGER_TYPE:
+        rv->integerRestriction = true;
+        rv->integersAllowed = true;
+        break;
+        
+      case SYMBOL_TYPE:
+        rv->symbolRestriction = true;
+        rv->symbolsAllowed = true;
+        break;
+        
+      case STRING_TYPE:
+        rv->stringRestriction = true;
+        rv->stringsAllowed = true;
+        break;
+        
+      case INSTANCE_NAME_TYPE:
+      rv->instanceNameRestriction = true;
+      rv->instanceNamesAllowed = true;
+        break;
+        
+      case INSTANCE_ADDRESS_TYPE:
+        rv->instanceAddressesAllowed = true;
+        break;
+        
 #if FUZZY_DEFTEMPLATES
-   else if (theExpression->type == FUZZY_VALUE)
-     {
-      rv->fuzzyValueRestriction = TRUE;
-      rv->fuzzyValuesAllowed = TRUE;
-      rv->restrictionList = GenConstant(theEnv,DEFTEMPLATE_PTR,
-                  (ValueToFuzzyValue(theExpression->value))->whichDeftemplate);
-     }
+      case FUZZY_VALUE_TYPE:
+        rv->fuzzyValueRestriction = true;
+        rv->fuzzyValuesAllowed = true;
+        rv->restrictionList = GenConstant(theEnv,DEFTEMPLATE_PTR,
+            ((CLIPSFuzzyValue *) theExpression->value)->contents->whichDeftemplate);
+        break;
 #endif
-   else if (theExpression->type == INSTANCE_ADDRESS)
-     { rv->instanceAddressesAllowed = TRUE; }
+
+      default:
+        break;
+     }
 
    if (rv->floatsAllowed || rv->integersAllowed || rv->symbolsAllowed ||
        rv->stringsAllowed || rv->instanceNamesAllowed)
      { rv->restrictionList = GenConstant(theEnv,theExpression->type,theExpression->value); }
 
-   return(rv);
+   return rv;
   }
 
 /*******************************************************/
 /* FunctionCallToConstraintRecord: Converts a function */
 /*   call to a constraint record. For example, the +   */
 /*   function when converted would be a constraint     */
-/*   record with allowed types INTEGER and FLOAT.      */
+/*   record with allowed types INTEGER_TYPE and FLOAT_TYPE.      */
 /*******************************************************/
-globle CONSTRAINT_RECORD *FunctionCallToConstraintRecord(
-  void *theEnv,
+CONSTRAINT_RECORD *FunctionCallToConstraintRecord(
+  Environment *theEnv,
   void *theFunction)
   {
-   CONSTRAINT_RECORD *rv;
-
-   rv = GetConstraintRecord(theEnv);
-   rv->anyAllowed = FALSE;
-
-   switch ((char) ValueFunctionType(theFunction))
-     {
-      case 'a':
-        rv->externalAddressesAllowed = TRUE;
-        break;
-
-      case 'f':
-      case 'd':
-        rv->floatsAllowed = TRUE;
-        break;
-
-      case 'i':
-      case 'g':
-      case 'l':
-        rv->integersAllowed = TRUE;
-        break;
-
-      case 'j':
-        rv->instanceNamesAllowed = TRUE;
-        rv->symbolsAllowed = TRUE;
-        rv->stringsAllowed = TRUE;
-        break;
-
-      case 'k':
-        rv->symbolsAllowed = TRUE;
-        rv->stringsAllowed = TRUE;
-        break;
-
-      case 'm':
-        rv->singlefieldsAllowed = FALSE;
-        rv->multifieldsAllowed = TRUE;
-        break;
-
-      case 'n':
-        rv->floatsAllowed = TRUE;
-        rv->integersAllowed = TRUE;
-        break;
-
-      case 'o':
-        rv->instanceNamesAllowed = TRUE;
-        break;
-
-      case 's':
-        rv->stringsAllowed = TRUE;
-        break;
-
-      case 'u':
-        rv->anyAllowed = TRUE;
-        rv->multifieldsAllowed = TRUE;
-        break;
-
-      case 'w':
-      case 'c':
-      case 'b':
-        rv->symbolsAllowed = TRUE;
-        break;
-
-      case 'x':
-        rv->instanceAddressesAllowed = TRUE;
-        break;
-
-      case 'y':
-        rv->factAddressesAllowed = TRUE;
-        break;
-
-      case 'v':
-        rv->voidAllowed = TRUE;
-        break;
-
-#if FUZZY_DEFTEMPLATES
-      case 'F':
-        rv->fuzzyValuesAllowed = TRUE;
-        break;
-#endif
-     }
-
-   return(rv);
+   return ArgumentTypeToConstraintRecord(theEnv,UnknownFunctionType(theFunction));
   }
 
-/*******************************************************/
-/* ArgumentTypeToConstraintRecord: Converts one of the */
-/*   function argument types (used by DefineFunction2) */
-/*   to a constraint record.                           */
-/*******************************************************/
-globle CONSTRAINT_RECORD *ArgumentTypeToConstraintRecord(
-  void *theEnv,
-  int theRestriction)
+/*********************************************/
+/* ArgumentTypeToConstraintRecord2: Uses the */
+/*   new argument type codes for 6.4.        */
+/*********************************************/
+CONSTRAINT_RECORD *ArgumentTypeToConstraintRecord(
+  Environment *theEnv,
+  unsigned bitTypes)
   {
    CONSTRAINT_RECORD *rv;
 
    rv = GetConstraintRecord(theEnv);
-   rv->anyAllowed = FALSE;
+   rv->anyAllowed = false;
 
-   switch (theRestriction)
-     {
-      case 'a':
-        rv->externalAddressesAllowed = TRUE;
-        break;
-
-      case 'e':
-        rv->symbolsAllowed = TRUE;
-        rv->instanceNamesAllowed = TRUE;
-        rv->instanceAddressesAllowed = TRUE;
-        break;
-
-      case 'd':
-      case 'f':
-        rv->floatsAllowed = TRUE;
-        break;
-
+   if (bitTypes & VOID_BIT)
+     { rv->voidAllowed = true; }
+   if (bitTypes & FLOAT_BIT)
+     { rv->floatsAllowed = true; }
+   if (bitTypes & INTEGER_BIT)
+     { rv->integersAllowed = true; }
+   if (bitTypes & SYMBOL_BIT)
+     { rv->symbolsAllowed = true; }
+   if (bitTypes & STRING_BIT)
+     { rv->stringsAllowed = true; }
+   if (bitTypes & MULTIFIELD_BIT)
+     { rv->multifieldsAllowed = true; }
+   if (bitTypes & EXTERNAL_ADDRESS_BIT)
+     { rv->externalAddressesAllowed = true; }
+   if (bitTypes & FACT_ADDRESS_BIT)
+     { rv->factAddressesAllowed = true; }
+   if (bitTypes & INSTANCE_ADDRESS_BIT)
+     { rv->instanceAddressesAllowed = true; }
+   if (bitTypes & INSTANCE_NAME_BIT)
+     { rv->instanceNamesAllowed = true; }
+   if (bitTypes & BOOLEAN_BIT)
+     { rv->symbolsAllowed = true; }
 #if FUZZY_DEFTEMPLATES
-       case 'F':
-        rv->fuzzyValuesAllowed = TRUE;
+   if (bitTypes & FUZZY_BIT)
+     { rv->fuzzyValuesAllowed = true; }
 #endif
 
-      case 'g':
-        rv->integersAllowed = TRUE;
-        rv->floatsAllowed = TRUE;
-        rv->symbolsAllowed = TRUE;
-        break;
-
-      case 'h':
-        rv->factAddressesAllowed = TRUE;
-        rv->integersAllowed = TRUE;
-        rv->symbolsAllowed = TRUE;
-        rv->instanceNamesAllowed = TRUE;
-        rv->instanceAddressesAllowed = TRUE;
-        break;
-
-      case 'i':
-      case 'l':
-        rv->integersAllowed = TRUE;
-        break;
-
-      case 'j':
-        rv->symbolsAllowed = TRUE;
-        rv->stringsAllowed = TRUE;
-        rv->instanceNamesAllowed = TRUE;
-        break;
-
-      case 'k':
-        rv->symbolsAllowed = TRUE;
-        rv->stringsAllowed = TRUE;
-        break;
-
-      case 'm':
-        rv->singlefieldsAllowed = FALSE;
-        rv->multifieldsAllowed = TRUE;
-        break;
-
-      case 'n':
-        rv->floatsAllowed = TRUE;
-        rv->integersAllowed = TRUE;
-        break;
-
-      case 'o':
-        rv->instanceNamesAllowed = TRUE;
-        break;
-
-      case 'p':
-        rv->instanceNamesAllowed = TRUE;
-        rv->symbolsAllowed = TRUE;
-        break;
-
-      case 'q':
-        rv->symbolsAllowed = TRUE;
-        rv->stringsAllowed = TRUE;
-        rv->multifieldsAllowed = TRUE;
-        break;
-
-      case 's':
-        rv->stringsAllowed = TRUE;
-        break;
-
-      case 'w':
-        rv->symbolsAllowed = TRUE;
-        break;
-
-      case 'x':
-        rv->instanceAddressesAllowed = TRUE;
-        break;
-
-      case 'y':
-        rv->factAddressesAllowed = TRUE;
-        break;
-
-#if FUZZY_DEFTEMPLATES
-       case 'Z':
-        rv->fuzzyValuesAllowed = TRUE;
-#endif
-
-      case 'z':
-        rv->symbolsAllowed = TRUE;
-        rv->factAddressesAllowed = TRUE;
-        rv->integersAllowed = TRUE;
-        break;
-
-      case 'u':
-        rv->anyAllowed = TRUE;
-        rv->multifieldsAllowed = TRUE;
-        break;
-
-      case 'v':
-        rv->voidAllowed = TRUE;
-        break;
-     }
+   if (bitTypes == ANY_TYPE_BITS)
+     { rv->anyAllowed = true; }
 
    return(rv);
   }
-
-
-
 

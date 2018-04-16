@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
-   /*           MULTIFIELD FUNCTIONS HEADER FILE          */
+   /*           MULTIFIELD_TYPE FUNCTIONS HEADER FILE          */
    /*******************************************************/
 
 /*************************************************************/
@@ -40,59 +40,57 @@
 /*            Fixed linkage issue when DEFMODULE_CONSTRUCT   */
 /*            compiler flag is set to 0.                     */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_multifun
+
+#pragma once
+
 #define _H_multifun
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+#define VALUE_NOT_FOUND SIZE_MAX
 
-#ifdef _MULTIFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    MultifieldFunctionDefinitions(void *);
+   void                    MultifieldFunctionDefinitions(Environment *);
 #if MULTIFIELD_FUNCTIONS
-   LOCALE void                    DeleteFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MVDeleteFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ReplaceFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MVReplaceFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    DeleteMemberFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ReplaceMemberFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    InsertFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ExplodeFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                   *ImplodeFunction(void *);
-   LOCALE void                    SubseqFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MVSubseqFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    FirstFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    RestFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    NthFunction(void *,DATA_OBJECT_PTR);
-   LOCALE intBool                 SubsetpFunction(void *);
-   LOCALE void                    MemberFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    MultifieldPrognFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    ForeachFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                    GetMvPrognField(void *,DATA_OBJECT_PTR);
-   LOCALE long                    GetMvPrognIndex(void *);
-   LOCALE intBool                 FindDOsInSegment(DATA_OBJECT_PTR,int,DATA_OBJECT_PTR,
-                                                   long *,long *,long *,int);
+   void                    DeleteFunction(Environment *,UDFContext *,UDFValue *);
+   void                    ReplaceFunction(Environment *,UDFContext *,UDFValue *);
+   void                    DeleteMemberFunction(Environment *,UDFContext *,UDFValue *);
+   void                    ReplaceMemberFunction(Environment *,UDFContext *,UDFValue *);
+   void                    InsertFunction(Environment *,UDFContext *,UDFValue *);
+   void                    ExplodeFunction(Environment *,UDFContext *,UDFValue *);
+   void                    ImplodeFunction(Environment *,UDFContext *,UDFValue *);
+   void                    SubseqFunction(Environment *,UDFContext *,UDFValue *);
+   void                    FirstFunction(Environment *,UDFContext *,UDFValue *);
+   void                    RestFunction(Environment *,UDFContext *,UDFValue *);
+   void                    NthFunction(Environment *,UDFContext *,UDFValue *);
+   void                    SubsetpFunction(Environment *,UDFContext *,UDFValue *);
+   void                    MemberFunction(Environment *,UDFContext *,UDFValue *);
+   void                    MultifieldPrognFunction(Environment *,UDFContext *,UDFValue *);
+   void                    ForeachFunction(Environment *,UDFContext *,UDFValue *);
+   void                    GetMvPrognField(Environment *,UDFContext *,UDFValue *);
+   void                    GetMvPrognIndex(Environment *,UDFContext *,UDFValue *);
+   bool                    FindDOsInSegment(UDFValue *,unsigned int,UDFValue *,
+                                            size_t *,size_t *,size_t *,unsigned int);
 #endif
-   LOCALE int                     ReplaceMultiValueField(void *,struct dataObject *,
-                                                         struct dataObject *,
-                                                         long,long,
-                                                         struct dataObject *,const char *);
-   LOCALE int                     InsertMultiValueField(void *,struct dataObject *,
-                                                        struct dataObject *,
-                                                        long,struct dataObject *,const char *);
-   LOCALE int                     DeleteMultiValueField(void *,struct dataObject *,struct dataObject *,
-                                                        long,long,const char *);
+   bool                    ReplaceMultiValueFieldSizet(Environment *,UDFValue *,UDFValue *,
+                                                  size_t,size_t,UDFValue *,const char *);
+   bool                    InsertMultiValueField(Environment *,UDFValue *,UDFValue *,
+                                                 size_t,UDFValue *,const char *);
+   void                    MVRangeError(Environment *,long long,long long,size_t,const char *);
+   size_t                  FindValueInMultifield(UDFValue *,UDFValue *);
 
 #endif /* _H_multifun */
 

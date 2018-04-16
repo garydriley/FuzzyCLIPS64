@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*         DEFFACTS BASIC COMMANDS HEADER FILE         */
    /*******************************************************/
@@ -33,45 +33,40 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dffctbsc
+
+#pragma once
+
 #define _H_dffctbsc
 
-#ifndef _H_evaluatn
+#include "dffctdef.h"
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFCTBSC_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeffactsBasicCommands(void *);
-   LOCALE void                           UndeffactsCommand(void *);
-   LOCALE intBool                        EnvUndeffacts(void *,void *);
-   LOCALE void                           GetDeffactsListFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           EnvGetDeffactsList(void *,DATA_OBJECT_PTR,void *);
-   LOCALE void                          *DeffactsModuleFunction(void *);
-   LOCALE void                           PPDeffactsCommand(void *);
-   LOCALE int                            PPDeffacts(void *,const char *,const char *);
-   LOCALE void                           ListDeffactsCommand(void *);
-   LOCALE void                           EnvListDeffacts(void *,const char *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           GetDeffactsList(DATA_OBJECT_PTR,void *);
-   LOCALE intBool                        Undeffacts(void *);
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                           ListDeffacts(const char *,void *);
-#endif
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           DeffactsBasicCommands(Environment *);
+   void                           UndeffactsCommand(Environment *,UDFContext *,UDFValue *);
+   bool                           Undeffacts(Deffacts *,Environment *);
+   void                           GetDeffactsListFunction(Environment *,UDFContext *,UDFValue *);
+   void                           GetDeffactsList(Environment *,CLIPSValue *,Defmodule *);
+   void                           DeffactsModuleFunction(Environment *,UDFContext *,UDFValue *);
+   void                           PPDeffactsCommand(Environment *,UDFContext *,UDFValue *);
+   bool                           PPDeffacts(Environment *,const char *,const char *);
+   void                           ListDeffactsCommand(Environment *,UDFContext *,UDFValue *);
+   void                           ListDeffacts(Environment *,const char *,Defmodule *);
 
 #endif /* _H_dffctbsc */
 

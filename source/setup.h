@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  02/05/15            */
+   /*             CLIPS Version 6.40  08/23/17            */
    /*                                                     */
    /*                  SETUP HEADER FILE                  */
    /*******************************************************/
@@ -65,13 +65,13 @@
 /*                                                           */
 /*            Combined BASIC_IO and EXT_IO compilation       */
 /*            flags into the IO_FUNCTIONS compilation flag.  */
-/*                                                           */    
+/*                                                           */
 /*            Changed the EX_MATH compilation flag to        */
 /*            EXTENDED_MATH_FUNCTIONS.                       */
 /*                                                           */
 /*            Removed VOID definition because of conflict    */
 /*            with Windows.h header file.                    */
-/*                                                           */    
+/*                                                           */
 /*            Removed deprecated definitions.                */
 /*                                                           */
 /*            The ALLOW_ENVIRONMENT_GLOBALS flag now         */
@@ -80,9 +80,24 @@
 /*                                                           */
 /*            Removed support for BLOCK_MEMORY.              */
 /*                                                           */
+/*      6.40: Removed globle definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            Removed VAX_VMS support.                       */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_setup
+
+#pragma once
+
 #define _H_setup
 
 /****************************************************************/
@@ -94,6 +109,24 @@
 /* Only one of these flags should be turned on (set to 1) at a time. */
 /*********************************************************************/
 
+#ifndef LINUX
+#define LINUX   0   /* Tested with Ubuntu 16.04, Debian 9.1, */
+#endif              /* Fedora 26, Mint 18, and CentOS 7.     */
+
+#ifndef DARWIN
+#define DARWIN  0   /* Darwin Mac OS 10.12 with Console */
+#endif
+
+#ifndef MAC_XCD
+#define MAC_XCD 0   /* MacOS 10.12 with Xcode 8.3 */
+#endif
+
+#ifndef WIN_MVC
+#define WIN_MVC 0   /* Windows 7 or 10, with Visual Studio 2015 */
+#endif
+
+/* The following are untested: */
+
 #ifndef UNIX_V
 #define UNIX_V  0   /* UNIX System V, 4.2bsd, or HP Unix, presumably with gcc */
 #endif
@@ -102,30 +135,8 @@
 #define UNIX_7  0   /* UNIX System III Version 7 or Sun Unix, presumably with gcc */
 #endif
 
-#ifndef LINUX
-#define LINUX   0   /* Untested, presumably with gcc */
-#endif
-
-#ifndef DARWIN
-#define DARWIN  0   /* Darwin Mac OS 10.10.2, presumably with gcc or Xcode 6.2 with Console */
-#endif
-
-#ifndef MAC_XCD
-#define MAC_XCD 0   /* MacOS 10.10.2, with Xcode 6.2 and Cocoa GUI */
-#endif
-
-#ifndef WIN_MVC
-#define WIN_MVC 0   /* Windows 7, with Visual Studio 2013 */
-#endif
-
-/* The following are unsupported: */
-
 #ifndef WIN_GCC
 #define WIN_GCC 0   /* Windows XP, with DJGPP 3.21 */
-#endif
-
-#ifndef VAX_VMS                    
-#define VAX_VMS 0   /* VAX VMS */
 #endif
 
 /* Use GENERIC if nothing else is used. */
@@ -133,15 +144,14 @@
 #ifndef GENERIC
 #if (! UNIX_V) && (! LINUX) && (! UNIX_7) && \
     (! MAC_XCD) && (! DARWIN) && \
-    (! WIN_MVC) && (! WIN_GCC) && \
-    (! VAX_VMS)
+    (! WIN_MVC) && (! WIN_GCC)
 #define GENERIC 1   /* Generic (any machine)                   */
 #else
 #define GENERIC 0   /* Generic (any machine)                   */
 #endif
 #endif
 
-#if WIN_MVC
+#if WIN_MVC || WIN_GCC
 #define IBM 1
 #else
 #define IBM 0
@@ -151,11 +161,7 @@
 /* Some definitions for use with declarations. */
 /***********************************************/
 
-#define VOID_ARG void
 #define STD_SIZE size_t
-
-#define intBool int
-#define globle
 
 /*******************************************/
 /* RUN_TIME:  Specifies whether a run-time */
@@ -486,17 +492,6 @@
 
 #ifndef WINDOW_INTERFACE
 #define WINDOW_INTERFACE 0
-#endif
-
-/*************************************************************/
-/* ALLOW_ENVIRONMENT_GLOBALS: If enabled, tracks the current */
-/*   environment and allows environments to be referred to   */
-/*   by index. If disabled, CLIPS makes no use of global     */
-/*   variables.                                              */
-/*************************************************************/
-
-#ifndef ALLOW_ENVIRONMENT_GLOBALS
-#define ALLOW_ENVIRONMENT_GLOBALS 0
 #endif
 
 /********************************************/

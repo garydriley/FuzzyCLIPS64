@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*           CONSTRUCT COMPILER HEADER FILE            */
    /*******************************************************/
@@ -49,9 +49,21 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_conscomp
+
+#pragma once
+
 #define _H_conscomp
 
 #define ArbitraryPrefix(codeItem,i)    (codeItem)->arrayNames[(i)]
@@ -59,93 +71,77 @@
 #define ModulePrefix(codeItem)         (codeItem)->arrayNames[0]
 #define ConstructPrefix(codeItem)      (codeItem)->arrayNames[1]
 
-#ifndef _H_constrct
+#include <stdio.h>
+
 #include "constrct.h"
-#endif
-#ifndef _H_extnfunc
 #include "extnfunc.h"
-#endif
-#ifndef _H_symblcmp
 #include "symblcmp.h"
-#endif
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
 
 #define CONSTRUCT_COMPILER_DATA 41
 
 struct CodeGeneratorItem
   {
    const char *name;
-   void (*beforeFunction)(void *);
-   void (*initFunction)(void *,FILE *,int,int);
-   int (*generateFunction)(void *,const char *,const char *,char *,int,FILE *,int,int);
+   void (*beforeFunction)(Environment *);
+   void (*initFunction)(Environment *,FILE *,unsigned,unsigned);
+   bool (*generateFunction)(Environment *,const char *,const char *,char *,
+                            unsigned int,FILE *,unsigned int,unsigned int);
    int priority;
    char **arrayNames;
-   int arrayCount;
+   unsigned int arrayCount;
    struct CodeGeneratorItem *next;
   };
 
 struct constructCompilerData
-  { 
-   int ImageID;
+  {
+   unsigned ImageID;
    FILE *HeaderFP;
-   int MaxIndices;
+   unsigned MaxIndices;
    FILE *ExpressionFP;
    FILE *FixupFP;
    const char *FilePrefix;
    const char *PathName;
    char *FileNameBuffer;
-   intBool ExpressionHeader;
-   long ExpressionCount;
-   int ExpressionVersion;
-   int CodeGeneratorCount;
+   bool ExpressionHeader;
+   unsigned long ExpressionCount;
+   unsigned ExpressionVersion;
+   unsigned CodeGeneratorCount;
    struct CodeGeneratorItem *ListOfCodeGeneratorItems;
   };
 
 #define ConstructCompilerData(theEnv) ((struct constructCompilerData *) GetEnvironmentData(theEnv,CONSTRUCT_COMPILER_DATA))
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
-#include <stdio.h>
-#endif
 
 struct CodeGeneratorFile
  {
   const char *filePrefix;
   const char *pathName;
   char *fileNameBuffer;
-  int id,version;
+  unsigned int id;
+  unsigned int version;
  };
 
-#ifdef _CONSCOMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                      InitializeConstructCompilerData(void *);
-   LOCALE void                      ConstructsToCCommandDefinition(void *);
-   LOCALE FILE                     *NewCFile(void *,const char *,const char *,char *,int,int,int);
-   LOCALE int                       ExpressionToCode(void *,FILE *,struct expr *);
-   LOCALE void                      PrintFunctionReference(void *,FILE *,struct FunctionDefinition *);
-   LOCALE struct CodeGeneratorItem *AddCodeGeneratorItem(void *,const char *,int,
-                                                         void (*)(void *),
-                                                         void (*)(void *,FILE *,int,int),
-                                                         int (*)(void *,const char *,const char *,char *,int,FILE *,int,int),int);
-   LOCALE FILE                     *CloseFileIfNeeded(void *,FILE *,int *,int *,int,int *,struct CodeGeneratorFile *);
-   LOCALE FILE                     *OpenFileIfNeeded(void *,FILE *,const char *,const char *,char *,int,int,int *,
-                                                     int,FILE *,const char *,char *,int,struct CodeGeneratorFile *);
-   LOCALE void                      MarkConstructBsaveIDs(void *,int);
-   LOCALE void                      ConstructHeaderToCode(void *,FILE *,struct constructHeader *,int,int,
-                                                         int,const char *,const char *);
-   LOCALE void                      ConstructModuleToCode(void *,FILE *,struct defmodule *,int,int,
-                                                         int,const char *);
-   LOCALE void                      PrintHashedExpressionReference(void *,FILE *,struct expr *,int,int);
+   void                      InitializeConstructCompilerData(Environment *);
+   void                      ConstructsToCCommandDefinition(Environment *);
+   FILE                     *NewCFile(Environment *,const char *,const char *,char *,unsigned,unsigned,bool);
+   int                       ExpressionToCode(Environment *,FILE *,struct expr *);
+   void                      PrintFunctionReference(Environment *,FILE *,struct functionDefinition *);
+   struct CodeGeneratorItem *AddCodeGeneratorItem(Environment *,const char *,int,
+                                                  void (*)(Environment *),
+                                                  void (*)(Environment *,FILE *,unsigned,unsigned),
+                                                  bool (*)(Environment *,const char *,const char *,char *,
+                                                           unsigned int,FILE *,unsigned int,unsigned int),
+                                                  unsigned);
+   FILE                     *CloseFileIfNeeded(Environment *,FILE *,unsigned int *,unsigned int *,unsigned int,
+                                               bool *,struct CodeGeneratorFile *);
+   FILE                     *OpenFileIfNeeded(Environment *,FILE *,const char *,const char *,char *,unsigned int,
+                                              unsigned int,unsigned int *,unsigned int,FILE *,const char *,char *,bool,struct CodeGeneratorFile *);
+   void                      MarkConstructBsaveIDs(Environment *,unsigned int);
+   void                      ConstructHeaderToCode(Environment *,FILE *,ConstructHeader *,unsigned int,
+                                                   unsigned int,unsigned int,const char *,const char *);
+   void                      ConstructModuleToCode(Environment *,FILE *,Defmodule *,unsigned int,
+                                                   unsigned int,unsigned int,const char *);
+   void                      PrintHashedExpressionReference(Environment *,FILE *,struct expr *,unsigned,unsigned);
 
 #endif
 

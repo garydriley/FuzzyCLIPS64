@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                USER DATA HEADER FILE                */
    /*******************************************************/
@@ -15,20 +15,20 @@
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_userdata
+
+#pragma once
+
 #define _H_userdata
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _USERDATA_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 struct userData
   {
@@ -38,14 +38,14 @@ struct userData
 
 typedef struct userData USER_DATA;
 typedef struct userData * USER_DATA_PTR;
-  
+
 struct userDataRecord
   {
    unsigned char dataID;
-   void *(*createUserData)(void *);
-   void (*deleteUserData)(void *,void *);
+   void *(*createUserData)(Environment *);
+   void (*deleteUserData)(Environment *,void *);
   };
-  
+
 typedef struct userDataRecord USER_DATA_RECORD;
 typedef struct userDataRecord * USER_DATA_RECORD_PTR;
 
@@ -54,19 +54,19 @@ typedef struct userDataRecord * USER_DATA_RECORD_PTR;
 #define USER_DATA_DATA 56
 
 struct userDataData
-  { 
+  {
    struct userDataRecord *UserDataRecordArray[MAXIMUM_USER_DATA_RECORDS];
    unsigned char UserDataRecordCount;
   };
 
 #define UserDataData(theEnv) ((struct userDataData *) GetEnvironmentData(theEnv,USER_DATA_DATA))
 
-   LOCALE void                           InitializeUserDataData(void *);
-   LOCALE unsigned char                  InstallUserDataRecord(void *,struct userDataRecord *);
-   LOCALE struct userData               *FetchUserData(void *,unsigned char,struct userData **);
-   LOCALE struct userData               *TestUserData(unsigned char,struct userData *);
-   LOCALE void                           ClearUserDataList(void *,struct userData *);
-   LOCALE struct userData               *DeleteUserData(void *,unsigned char,struct userData *);
+   void                           InitializeUserDataData(Environment *);
+   unsigned char                  InstallUserDataRecord(Environment *,struct userDataRecord *);
+   struct userData               *FetchUserData(Environment *,unsigned char,struct userData **);
+   struct userData               *TestUserData(unsigned char,struct userData *);
+   void                           ClearUserDataList(Environment *,struct userData *);
+   struct userData               *DeleteUserData(Environment *,unsigned char,struct userData *);
 
 #endif
 

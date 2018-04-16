@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -30,36 +30,48 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factqury
+
+#pragma once
+
 #define _H_factqury
 
 #if FACT_SET_QUERIES
 
-#ifndef _H_factmngr
 #include "factmngr.h"
-#endif
 
 typedef struct query_template
   {
-   struct deftemplate *templatePtr;
+   Deftemplate *templatePtr;
    struct query_template *chain, *nxt;
   } QUERY_TEMPLATE;
 
 typedef struct query_soln
   {
-   struct fact **soln;
+   Fact **soln;
    struct query_soln *nxt;
   } QUERY_SOLN;
 
 typedef struct query_core
   {
-   struct fact **solns;
-   EXPRESSION *query,*action;
+   Fact **solns;
+   Expression *query,*action;
    QUERY_SOLN *soln_set,*soln_bottom;
    unsigned soln_size,soln_cnt;
-   DATA_OBJECT *result;
+   UDFValue *result;
   } QUERY_CORE;
 
 typedef struct query_stack
@@ -71,36 +83,26 @@ typedef struct query_stack
 #define FACT_QUERY_DATA 63
 
 struct factQueryData
-  { 
-   SYMBOL_HN *QUERY_DELIMETER_SYMBOL;
+  {
+   CLIPSLexeme *QUERY_DELIMITER_SYMBOL;
    QUERY_CORE *QueryCore;
    QUERY_STACK *QueryCoreStack;
-   int AbortQuery;
+   bool AbortQuery;
   };
 
 #define FactQueryData(theEnv) ((struct factQueryData *) GetEnvironmentData(theEnv,FACT_QUERY_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+#define QUERY_DELIMITER_STRING     "(QDS)"
 
-#ifdef _FACTQURY_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#define QUERY_DELIMETER_STRING     "(QDS)"
-
-   LOCALE void                           SetupFactQuery(void *);
-   LOCALE void                           GetQueryFact(void *,DATA_OBJECT *);
-   LOCALE void                           GetQueryFactSlot(void *,DATA_OBJECT *);
-   LOCALE intBool                        AnyFacts(void *);
-   LOCALE void                           QueryFindFact(void *,DATA_OBJECT *);
-   LOCALE void                           QueryFindAllFacts(void *,DATA_OBJECT *);
-   LOCALE void                           QueryDoForFact(void *,DATA_OBJECT *);
-   LOCALE void                           QueryDoForAllFacts(void *,DATA_OBJECT *);
-   LOCALE void                           DelayedQueryDoForAllFacts(void *,DATA_OBJECT *);
+   void                           SetupFactQuery(Environment *);
+   void                           GetQueryFact(Environment *,UDFContext *,UDFValue *);
+   void                           GetQueryFactSlot(Environment *,UDFContext *,UDFValue *);
+   void                           AnyFacts(Environment *,UDFContext *,UDFValue *);
+   void                           QueryFindFact(Environment *,UDFContext *,UDFValue *);
+   void                           QueryFindAllFacts(Environment *,UDFContext *,UDFValue *);
+   void                           QueryDoForFact(Environment *,UDFContext *,UDFValue *);
+   void                           QueryDoForAllFacts(Environment *,UDFContext *,UDFValue *);
+   void                           DelayedQueryDoForAllFacts(Environment *,UDFContext *,UDFValue *);
 
 #endif /* FACT_SET_QUERIES */
 

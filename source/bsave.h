@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*                 BSAVE HEADER FILE                   */
    /*******************************************************/
@@ -31,42 +31,43 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_bsave
+
+#pragma once
+
 #define _H_bsave
 
 struct BinaryItem;
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _BSAVE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 struct BinaryItem
   {
    const char *name;
-   void (*findFunction)(void *);
-   void (*bloadStorageFunction)(void *);
-   void (*bloadFunction)(void *);
-   void (*clearFunction)(void *);
-   void (*expressionFunction)(void *,FILE *);
-   void (*bsaveStorageFunction)(void *,FILE *);
-   void (*bsaveFunction)(void *,FILE *);
+   void (*findFunction)(Environment *);
+   void (*bloadStorageFunction)(Environment *);
+   void (*bloadFunction)(Environment *);
+   void (*clearFunction)(Environment *);
+   void (*expressionFunction)(Environment *,FILE *);
+   void (*bsaveStorageFunction)(Environment *,FILE *);
+   void (*bsaveFunction)(Environment *,FILE *);
    int priority;
    struct BinaryItem *next;
   };
@@ -74,7 +75,7 @@ struct BinaryItem
 #if BLOAD_AND_BSAVE
 typedef struct bloadcntsv
   {
-   long val;
+   unsigned long val;
    struct bloadcntsv *nxt;
   } BLOADCNTSV;
 #endif
@@ -82,7 +83,9 @@ typedef struct bloadcntsv
 typedef struct bsave_expr
   {
    unsigned short type;
-   long value,arg_list,next_arg;
+   unsigned long value;
+   unsigned long arg_list;
+   unsigned long next_arg;
   } BSAVE_EXPRESSION;
 
 #define CONSTRUCT_HEADER_SIZE 20
@@ -90,7 +93,7 @@ typedef struct bsave_expr
 #define BSAVE_DATA 39
 
 struct bsaveData
-  { 
+  {
    struct BinaryItem *ListOfBinaryItems;
 #if BLOAD_AND_BSAVE
    BLOADCNTSV *BloadCountSaveTop;
@@ -99,28 +102,23 @@ struct bsaveData
 
 #define BsaveData(theEnv) ((struct bsaveData *) GetEnvironmentData(theEnv,BSAVE_DATA))
 
-   LOCALE void                    InitializeBsaveData(void *);
-   LOCALE int                     BsaveCommand(void *);
+   void                    InitializeBsaveData(Environment *);
+   void                    BsaveCommand(Environment *,UDFContext *,UDFValue *);
 #if BLOAD_AND_BSAVE
-   LOCALE intBool                 EnvBsave(void *,const char *);
-   LOCALE void                    MarkNeededItems(void *,struct expr *);
-   LOCALE void                    SaveBloadCount(void *,long);
-   LOCALE void                    RestoreBloadCount(void *,long *);
+   bool                    Bsave(Environment *,const char *);
+   void                    MarkNeededItems(Environment *,struct expr *);
+   void                    SaveBloadCount(Environment *,unsigned long);
+   void                    RestoreBloadCount(Environment *,unsigned long *);
 #endif
-   LOCALE intBool                 AddBinaryItem(void *,const char *,int,
-                                                void (*)(void *),
-                                                void (*)(void *,FILE *),
-                                                void (*)(void *,FILE *),
-                                                void (*)(void *,FILE *),
-                                                void (*)(void *),
-                                                void (*)(void *),
-                                                void (*)(void *));
+   bool                    AddBinaryItem(Environment *,const char *,int,
+                                         void (*)(Environment *),
+                                         void (*)(Environment *,FILE *),
+                                         void (*)(Environment *,FILE *),
+                                         void (*)(Environment *,FILE *),
+                                         void (*)(Environment *),
+                                         void (*)(Environment *),
+                                         void (*)(Environment *));
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                 Bsave(const char *);
-
-#endif
 
 #endif /* _H_bsave */
 

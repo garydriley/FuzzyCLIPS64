@@ -27,22 +27,14 @@
 /*                                                           */
 /*************************************************************/
 
-
-
 #ifndef _H_fuzzyval
+
+#pragma once
+
 #define _H_fuzzyval
 
-
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-
-#ifndef _H_tmpltdef
+#include "entities.h"
 #include "tmpltdef.h"
-#endif
-
-
-
 
 /*********************************************************************/
 /* FUZZY_VALUE STRUCTURE:                                            */
@@ -59,13 +51,14 @@
 /*********************************************************************/
 struct fuzzy_value
   {
-    struct deftemplate *whichDeftemplate; /* the template (fuzzy) */
-    char *name;      /* the fuzzy value linguistic */
-                     /* expression eg. "very cold" */
-    int maxn;
-    int n;
-    double *x;
-    double *y;
+   TypeHeader header;
+   Deftemplate *whichDeftemplate; /* the template (fuzzy) */
+   char *name;                    /* the fuzzy value linguistic */
+                                  /* expression eg. "very cold" */
+   int maxn;
+   int n;
+   double *x;
+   double *y;
   };
   
   

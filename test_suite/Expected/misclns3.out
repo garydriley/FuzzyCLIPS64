@@ -24,22 +24,22 @@ FuzzyCLIPS> (agenda)
 For a total of 1 activation.
 FuzzyCLIPS> (get-dynamic-deftemplate-checking) ;; CR0191
 
-[EXPRNPSR3] Missing function declaration for get-dynamic-deftemplate-checking.
+[EXPRNPSR3] Missing function declaration for 'get-dynamic-deftemplate-checking'.
 FuzzyCLIPS> (set-dynamic-deftemplate-checking)
 
-[EXPRNPSR3] Missing function declaration for set-dynamic-deftemplate-checking.
+[EXPRNPSR3] Missing function declaration for 'set-dynamic-deftemplate-checking'.
 FuzzyCLIPS> (crsv-trace-on) ;; CR0207
 
-[EXPRNPSR3] Missing function declaration for crsv-trace-on.
+[EXPRNPSR3] Missing function declaration for 'crsv-trace-on'.
 FuzzyCLIPS> (crsv-trace-off)
 
-[EXPRNPSR3] Missing function declaration for crsv-trace-off.
+[EXPRNPSR3] Missing function declaration for 'crsv-trace-off'.
 FuzzyCLIPS> (defexternal) ;; CR0219
 
-[EXPRNPSR3] Missing function declaration for defexternal.
+[EXPRNPSR3] Missing function declaration for 'defexternal'.
 FuzzyCLIPS> (defrelation) 
 
-[EXPRNPSR3] Missing function declaration for defrelation.
+[EXPRNPSR3] Missing function declaration for 'defrelation'.
 FuzzyCLIPS> (defrule foo (?x ?y) =>) ;; CR0220
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for the first field of a pattern.
@@ -58,7 +58,7 @@ FuzzyCLIPS> (clear) ;; CR0222
 FuzzyCLIPS> (remove blah.clp)
 FALSE
 FuzzyCLIPS> (load blah.clp)
-[ARGACCES2] Function load was unable to open file blah.clp.
+[ARGACCES3] Function 'load' was unable to open file 'blah.clp'.
 FALSE
 FuzzyCLIPS> (save blah.clp)
 TRUE
@@ -70,7 +70,7 @@ TRUE
 FuzzyCLIPS> (remove blah.bin)
 FALSE
 FuzzyCLIPS> (bload blah.bin)
-[ARGACCES2] Function bload was unable to open file blah.bin.
+[ARGACCES3] Function 'bload' was unable to open file 'blah.bin'.
 FALSE
 FuzzyCLIPS> (bsave blah.bin)
 TRUE
@@ -84,16 +84,15 @@ FuzzyCLIPS> (assert (a =(+ 3 4)))
 FuzzyCLIPS> (assert (a (+ 5 6)))
 <Fact-2>
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (a 7) CF 1.00 
 f-2     (a 11) CF 1.00 
-For a total of 3 facts.
+For a total of 2 facts.
 FuzzyCLIPS> (remove) ;; CR0240
-[ARGACCES4] Function remove expected exactly 1 argument(s)
+[ARGACCES1] Function 'remove' expected exactly 1 argument.
 FuzzyCLIPS> (remove 7)
-[ARGACCES5] Function remove expected argument #1 to be of type symbol or string
+[ARGACCES2] Function 'remove' expected argument #1 to be of type symbol or string.
 FuzzyCLIPS> (remove blah.txt 7)
-[ARGACCES4] Function remove expected exactly 1 argument(s)
+[ARGACCES1] Function 'remove' expected exactly 1 argument.
 FuzzyCLIPS> (open "blah.txt" blah "w")
 TRUE
 FuzzyCLIPS> (printout blah "(printout t Greetings from blah.txt crlf)" crlf)
@@ -106,18 +105,18 @@ Greetingsfromblah.txt
 FuzzyCLIPS> (remove blah.txt)
 TRUE
 FuzzyCLIPS> (batch blah.txt)
-[ARGACCES2] Function batch was unable to open file blah.txt.
+[ARGACCES3] Function 'batch' was unable to open file 'blah.txt'.
 FALSE
 FuzzyCLIPS> (remove yuck.txt)
 FALSE
 FuzzyCLIPS> (rename)
-[ARGACCES4] Function rename expected exactly 2 argument(s)
+[ARGACCES1] Function 'rename' expected exactly 2 arguments.
 FuzzyCLIPS> (rename 7)
-[ARGACCES4] Function rename expected exactly 2 argument(s)
+[ARGACCES1] Function 'rename' expected exactly 2 arguments.
 FuzzyCLIPS> (rename blah.txt 7)
-[ARGACCES5] Function rename expected argument #2 to be of type symbol or string
+[ARGACCES2] Function 'rename' expected argument #2 to be of type symbol or string.
 FuzzyCLIPS> (rename blah.txt yuck.txt 7)
-[ARGACCES4] Function rename expected exactly 2 argument(s)
+[ARGACCES1] Function 'rename' expected exactly 2 arguments.
 FuzzyCLIPS> (open "blah.txt" blah "w")
 TRUE
 FuzzyCLIPS> (printout blah "(printout t Greetings from blah.txt crlf)" crlf)
@@ -134,20 +133,20 @@ Greetingsfromblah.txt
 FuzzyCLIPS> (remove yuck.txt)
 TRUE
 FuzzyCLIPS> (apropos) ;; CR0241
-[ARGACCES4] Function apropos expected exactly 1 argument(s)
+[ARGACCES1] Function 'apropos' expected exactly 1 argument.
 FuzzyCLIPS> (apropos 7)
-[ARGACCES5] Function apropos expected argument #1 to be of type symbol
+[ARGACCES2] Function 'apropos' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (apropos "dynamic" 7)
-[ARGACCES4] Function apropos expected exactly 1 argument(s)
+[ARGACCES1] Function 'apropos' expected exactly 1 argument.
 FuzzyCLIPS> (apropos "dynamic")
-[ARGACCES5] Function apropos expected argument #1 to be of type symbol
+[ARGACCES2] Function 'apropos' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (apropos dynamic)
 get-dynamic-constraint-checking
 dynamic-put
 set-dynamic-constraint-checking
 dynamic-get
 FuzzyCLIPS> (list-watch-items 7) ;; CR0263
-[ARGACCES5] Function list-watch-items expected argument #1 to be of type symbol
+[ARGACCES2] Function 'list-watch-items' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (list-watch-items)
 facts = off
@@ -168,11 +167,10 @@ FuzzyCLIPS> (clear) ;; CR0264
 FuzzyCLIPS> (assert (foo))
 <Fact-1>
 FuzzyCLIPS> (list-deftemplates)
-initial-fact
 foo
-For a total of 2 deftemplates.
+For a total of 1 deftemplate.
 FuzzyCLIPS> (undeftemplate foo)
-[PRNTUTIL4] Unable to delete deftemplate foo.
+[PRNTUTIL4] Unable to delete deftemplate 'foo'.
 FuzzyCLIPS> (retract 1)
 FuzzyCLIPS> (undeftemplate foo)
 FuzzyCLIPS> (clear) ;; CR0265
@@ -180,30 +178,28 @@ FuzzyCLIPS> (defglobal ?*x* = 3)
 FuzzyCLIPS> (str-assert "(foo ?*x* (+ 3 4))")
 <Fact-1>
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (foo 3 7) CF 1.00 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (str-assert "(foo ?*x* (+ 3 4))")
-FALSE
+<Fact-1>
 FuzzyCLIPS> (clear) ;; CR0269
 FuzzyCLIPS> (remove blah.txt)
 FALSE
 FuzzyCLIPS> (load-facts blah.txt)
-[ARGACCES2] Function load-facts was unable to open file blah.txt.
+[ARGACCES3] Function 'load-facts' was unable to open file 'blah.txt'.
 FALSE
 FuzzyCLIPS> (batch blah.txt)
-[ARGACCES2] Function batch was unable to open file blah.txt.
+[ARGACCES3] Function 'batch' was unable to open file 'blah.txt'.
 FALSE
 FuzzyCLIPS> (assert (foo))
 <Fact-1>
 FuzzyCLIPS> (list-deftemplates)
-initial-fact
 foo
-For a total of 2 deftemplates.
+For a total of 1 deftemplate.
 FuzzyCLIPS> (ppdeftemplate foo)
 FuzzyCLIPS> (trunc) ;; CR0271
 
-[EXPRNPSR3] Missing function declaration for trunc.
+[EXPRNPSR3] Missing function declaration for 'trunc'.
 FuzzyCLIPS> (clear) ;; CR0272
 FuzzyCLIPS> (defmodule A)
 FuzzyCLIPS> (defrule A::foo (not (b)) =>)
@@ -211,46 +207,46 @@ FuzzyCLIPS> (deftemplate A::bar)
 FuzzyCLIPS> (deffacts A::yak)
 FuzzyCLIPS> (defglobal A ?*woz* = 3)
 FuzzyCLIPS> (defrule-module)
-[ARGACCES4] Function defrule-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defrule-module' expected exactly 1 argument.
 FuzzyCLIPS> (defrule-module 7)
-[ARGACCES5] Function defrule-module expected argument #1 to be of type symbol
+[ARGACCES2] Function 'defrule-module' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (defrule-module foo 7)
-[ARGACCES4] Function defrule-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defrule-module' expected exactly 1 argument.
 FuzzyCLIPS> (defrule-module huh)
-[PRNTUTIL1] Unable to find defrule huh.
+[PRNTUTIL1] Unable to find defrule 'huh'.
 FALSE
 FuzzyCLIPS> (defrule-module foo)
 A
 FuzzyCLIPS> (deftemplate-module)
-[ARGACCES4] Function deftemplate-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'deftemplate-module' expected exactly 1 argument.
 FuzzyCLIPS> (deftemplate-module 7)
-[ARGACCES5] Function deftemplate-module expected argument #1 to be of type symbol
+[ARGACCES2] Function 'deftemplate-module' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (deftemplate-module bar 7)
-[ARGACCES4] Function deftemplate-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'deftemplate-module' expected exactly 1 argument.
 FuzzyCLIPS> (deftemplate-module huh)
-[PRNTUTIL1] Unable to find deftemplate huh.
+[PRNTUTIL1] Unable to find deftemplate 'huh'.
 FALSE
 FuzzyCLIPS> (deftemplate-module bar)
 A
 FuzzyCLIPS> (deffacts-module)
-[ARGACCES4] Function deffacts-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'deffacts-module' expected exactly 1 argument.
 FuzzyCLIPS> (deffacts-module 7)
-[ARGACCES5] Function deffacts-module expected argument #1 to be of type symbol
+[ARGACCES2] Function 'deffacts-module' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (deffacts-module yak 7)
-[ARGACCES4] Function deffacts-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'deffacts-module' expected exactly 1 argument.
 FuzzyCLIPS> (deffacts-module huh)
-[PRNTUTIL1] Unable to find deffacts huh.
+[PRNTUTIL1] Unable to find deffacts 'huh'.
 FALSE
 FuzzyCLIPS> (deffacts-module yak)
 A
 FuzzyCLIPS> (defglobal-module)
-[ARGACCES4] Function defglobal-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defglobal-module' expected exactly 1 argument.
 FuzzyCLIPS> (defglobal-module 7)
-[ARGACCES5] Function defglobal-module expected argument #1 to be of type symbol
+[ARGACCES2] Function 'defglobal-module' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (defglobal-module woz 7)
-[ARGACCES4] Function defglobal-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defglobal-module' expected exactly 1 argument.
 FuzzyCLIPS> (defglobal-module huh)
-[PRNTUTIL1] Unable to find defglobal huh.
+[PRNTUTIL1] Unable to find defglobal 'huh'.
 FALSE
 FuzzyCLIPS> (defglobal-module woz)
 A
@@ -262,7 +258,6 @@ FuzzyCLIPS> (assert-string "d e f")
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
 FALSE
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (a b c) CF 1.00 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (dribble-off)

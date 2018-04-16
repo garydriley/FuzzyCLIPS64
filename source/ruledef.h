@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  01/25/15            */
+   /*             CLIPS Version 6.40  08/06/16            */
    /*                                                     */
    /*                 DEFRULE HEADER FILE                 */
    /*******************************************************/
@@ -16,6 +16,10 @@
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Brian L. Dantes                                      */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -55,46 +59,34 @@
 /*            imported modules are search when locating a    */
 /*            named construct.                               */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_ruledef
+
+#pragma once
+
 #define _H_ruledef
 
-#define GetDisjunctIndex(r) ((struct constructHeader *) r)->bsaveID
+#define GetDisjunctIndex(r) (r->header.bsaveID)
 
-struct defrule;
+typedef struct defrule Defrule;
 struct defruleModule;
 
-#ifndef _H_conscomp
-#include "conscomp.h"
-#endif
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
-#ifndef _H_moduldef
-#include "moduldef.h"
-#endif
-#ifndef _H_constrnt
-#include "constrnt.h"
-#endif
-#ifndef _H_cstrccom
-#include "cstrccom.h"
-#endif
-#ifndef _H_agenda
-#include "agenda.h"
-#endif
-#ifndef _H_network
+#include "expressn.h"
 #include "network.h"
-#endif
+#include "symbol.h"
 
 #if FUZZY_DEFTEMPLATES 
 
@@ -111,16 +103,16 @@ struct fzSlotLocator
   {
     unsigned int patternNum;
     unsigned int slotNum : 13;
-    FUZZY_VALUE_HN *fvhnPtr;
+    CLIPSFuzzyValue *fvhnPtr;
   };
 
 #endif
 
 struct defrule
   {
-   struct constructHeader header;
+   ConstructHeader header;
    int salience;
-   int localVarCnt;
+   unsigned short localVarCnt;
    unsigned int complexity      : 11;
    unsigned int afterBreakpoint :  1;
    unsigned int watchActivation :  1;
@@ -131,7 +123,7 @@ struct defrule
    struct expr *actions;
    struct joinNode *logicalJoin;
    struct joinNode *lastJoin;
-   struct defrule *disjunct;
+   Defrule *disjunct;
 #if CERTAINTY_FACTORS     /* added 03-12-96 */
    double CF;
    struct expr *dynamicCF;
@@ -143,6 +135,13 @@ struct defrule
    struct fzSlotLocator *pattern_fv_arrayPtr;
 #endif
   };
+
+#include "agenda.h"
+#include "conscomp.h"
+#include "constrnt.h"
+#include "cstrccom.h"
+#include "evaluatn.h"
+#include "moduldef.h"
 
 struct defruleModule
   {
@@ -158,21 +157,21 @@ struct defruleModule
 #define DEFRULE_DATA 16
 
 struct defruleData
-  { 
-   struct construct *DefruleConstruct;
-   int DefruleModuleIndex;
-   long long CurrentEntityTimeTag;
+  {
+   Construct *DefruleConstruct;
+   unsigned DefruleModuleIndex;
+   unsigned long long CurrentEntityTimeTag;
    struct alphaMemoryHash **AlphaMemoryTable;
-   intBool BetaMemoryResizingFlag;
+   bool BetaMemoryResizingFlag;
    struct joinLink *RightPrimeJoins;
    struct joinLink *LeftPrimeJoins;
 
 #if DEBUGGING_FUNCTIONS
-    unsigned WatchRules;
+    bool WatchRules;
     int DeletedRuleDebugFlags;
 #endif
 #if DEVELOPER && (! RUN_TIME) && (! BLOAD_ONLY)
-    unsigned WatchRuleAnalysis;
+    bool WatchRuleAnalysis;
 #endif
 #if CONSTRUCT_COMPILER && (! RUN_TIME)
    struct CodeGeneratorItem *DefruleCodeItem;
@@ -190,45 +189,23 @@ struct defruleData
     NULL : \
     ((theJoin)->rightSideEntryStructure))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEDEF_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDefrules(void *);
-   LOCALE void                          *EnvFindDefrule(void *,const char *);
-   LOCALE void                          *EnvFindDefruleInModule(void *,const char *);
-   LOCALE void                          *EnvGetNextDefrule(void *,void *);
-   LOCALE struct defruleModule          *GetDefruleModuleItem(void *,struct defmodule *);
-   LOCALE intBool                        EnvIsDefruleDeletable(void *,void *);
+   void                           InitializeDefrules(Environment *);
+   Defrule                       *FindDefrule(Environment *,const char *);
+   Defrule                       *FindDefruleInModule(Environment *,const char *);
+   Defrule                       *GetNextDefrule(Environment *,Defrule *);
+   struct defruleModule          *GetDefruleModuleItem(Environment *,Defmodule *);
+   bool                           DefruleIsDeletable(Defrule *);
 #if RUN_TIME
-   LOCALE void                           DefruleRunTimeInitialize(void *,struct joinLink *,struct joinLink *);
+   void                           DefruleRunTimeInitialize(Environment *,struct joinLink *,struct joinLink *);
 #endif
 #if RUN_TIME || BLOAD_ONLY || BLOAD || BLOAD_AND_BSAVE
-   LOCALE void                           AddBetaMemoriesToJoin(void *,struct joinNode *);
+   void                           AddBetaMemoriesToJoin(Environment *,struct joinNode *);
 #endif
-   LOCALE long                           EnvGetDisjunctCount(void *,void *);
-   LOCALE void                          *EnvGetNthDisjunct(void *,void *,long);
-   LOCALE const char                    *EnvDefruleModule(void *,void *);
-   LOCALE const char                    *EnvGetDefruleName(void *,void *);
-   LOCALE const char                    *EnvGetDefrulePPForm(void *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE const char                    *DefruleModule(void *);
-   LOCALE void                          *FindDefrule(const char *);
-   LOCALE const char                    *GetDefruleName(void *);
-   LOCALE const char                    *GetDefrulePPForm(void *);
-   LOCALE void                          *GetNextDefrule(void *);
-   LOCALE intBool                        IsDefruleDeletable(void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
-
+   long                           GetDisjunctCount(Environment *,Defrule *);
+   Defrule                       *GetNthDisjunct(Environment *,Defrule *,long);
+   const char                    *DefruleModule(Defrule *);
+   const char                    *DefruleName(Defrule *);
+   const char                    *DefrulePPForm(Defrule *);
 
 #endif /* _H_ruledef */
 

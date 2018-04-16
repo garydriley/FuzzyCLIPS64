@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -32,28 +32,32 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_objrtfnx
+
+#pragma once
+
 #define _H_objrtfnx
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 
-#ifndef _H_conscomp
 #include "conscomp.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_object
-#include "object.h"
-#endif
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_objrtmch
+#include "object.h"
 #include "objrtmch.h"
-#endif
 
 struct ObjectMatchVar1
   {
@@ -174,29 +178,29 @@ struct ObjectCmpJoinSingleSlotVars3
 #define OBJECT_RETE_DATA 35
 
 struct objectReteData
-  { 
-   INSTANCE_TYPE *CurrentPatternObject;
-   INSTANCE_SLOT *CurrentPatternObjectSlot;
-   unsigned CurrentObjectSlotLength;
+  {
+   Instance *CurrentPatternObject;
+   InstanceSlot *CurrentPatternObjectSlot;
+   size_t CurrentObjectSlotLength;
    struct multifieldMarker *CurrentPatternObjectMarks;
-   struct entityRecord ObjectGVInfo1;  
+   struct entityRecord ObjectGVInfo1;
    struct entityRecord ObjectGVInfo2;
    struct entityRecord ObjectGVPNInfo1;
    struct entityRecord ObjectGVPNInfo2;
-   struct entityRecord ObjectCmpConstantInfo; 
-   struct entityRecord LengthTestInfo; 
-   struct entityRecord PNSimpleCompareInfo1; 
-   struct entityRecord PNSimpleCompareInfo2; 
-   struct entityRecord PNSimpleCompareInfo3; 
-   struct entityRecord JNSimpleCompareInfo1; 
-   struct entityRecord JNSimpleCompareInfo2; 
-   struct entityRecord JNSimpleCompareInfo3; 
+   struct entityRecord ObjectCmpConstantInfo;
+   struct entityRecord LengthTestInfo;
+   struct entityRecord PNSimpleCompareInfo1;
+   struct entityRecord PNSimpleCompareInfo2;
+   struct entityRecord PNSimpleCompareInfo3;
+   struct entityRecord JNSimpleCompareInfo1;
+   struct entityRecord JNSimpleCompareInfo2;
+   struct entityRecord JNSimpleCompareInfo3;
    OBJECT_MATCH_ACTION *ObjectMatchActionQueue;
    OBJECT_PATTERN_NODE *ObjectPatternNetworkPointer;
    OBJECT_ALPHA_NODE *ObjectPatternNetworkTerminalPointer;
-   intBool DelayObjectPatternMatching;
+   bool DelayObjectPatternMatching;
    unsigned long long CurrentObjectMatchTimeTag;
-   long long UseEntityTimeTag;
+   unsigned long long UseEntityTimeTag;
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM && CONSTRUCT_COMPILER && (! RUN_TIME)
    struct CodeGeneratorItem *ObjectPatternCodeItem;
 #endif
@@ -204,18 +208,8 @@ struct objectReteData
 
 #define ObjectReteData(theEnv) ((struct objectReteData *) GetEnvironmentData(theEnv,OBJECT_RETE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJRTFNX_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    InstallObjectPrimitives(void *);
-   LOCALE intBool                 ObjectCmpConstantFunction(void *,void *,DATA_OBJECT *);
+   void                    InstallObjectPrimitives(Environment *);
+   bool                    ObjectCmpConstantFunction(Environment *,void *,UDFValue *);
 
 #endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 

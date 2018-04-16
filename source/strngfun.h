@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  10/26/17            */
    /*                                                     */
-   /*             STRING FUNCTIONS HEADER FILE            */
+   /*          STRING_TYPE FUNCTIONS HEADER FILE          */
    /*******************************************************/
 
 /*************************************************************/
@@ -36,46 +36,59 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_strngfun
 
+#pragma once
+
 #define _H_strngfun
 
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
+#include "entities.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+typedef enum
+  {
+   EE_NO_ERROR = 0,
+   EE_PARSING_ERROR,
+   EE_PROCESSING_ERROR
+  } EvalError;
 
-#ifdef _STRNGFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+typedef enum
+  {
+   BE_NO_ERROR = 0,
+   BE_COULD_NOT_BUILD_ERROR,
+   BE_CONSTRUCT_NOT_FOUND_ERROR,
+   BE_PARSING_ERROR,
+  } BuildError;
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-   LOCALE int                            Build(const char *);
-   LOCALE int                            Eval(const char *,DATA_OBJECT_PTR);
-#endif
-
-   LOCALE int                            EnvBuild(void *,const char *);
-   LOCALE int                            EnvEval(void *,const char *,DATA_OBJECT_PTR);
-   LOCALE void                           StringFunctionDefinitions(void *);
-   LOCALE void                           StrCatFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           SymCatFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long                      StrLengthFunction(void *);
-   LOCALE void                           UpcaseFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           LowcaseFunction(void *,DATA_OBJECT_PTR);
-   LOCALE long long                      StrCompareFunction(void *);
-   LOCALE void                          *SubStringFunction(void *);
-   LOCALE void                           StrIndexFunction(void *,DATA_OBJECT_PTR);
-   LOCALE void                           EvalFunction(void *,DATA_OBJECT_PTR);
-   LOCALE int                            BuildFunction(void *);
-   LOCALE void                           StringToFieldFunction(void *,DATA_OBJECT *);
-   LOCALE void                           StringToField(void *,const char *,DATA_OBJECT *);
+   BuildError                     Build(Environment *,const char *);
+   EvalError                      Eval(Environment *,const char *,CLIPSValue *);
+   void                           StringFunctionDefinitions(Environment *);
+   void                           StrCatFunction(Environment *,UDFContext *,UDFValue *);
+   void                           SymCatFunction(Environment *,UDFContext *,UDFValue *);
+   void                           StrLengthFunction(Environment *,UDFContext *,UDFValue *);
+   void                           UpcaseFunction(Environment *,UDFContext *,UDFValue *);
+   void                           LowcaseFunction(Environment *,UDFContext *,UDFValue *);
+   void                           StrCompareFunction(Environment *,UDFContext *,UDFValue *);
+   void                           SubStringFunction(Environment *,UDFContext *,UDFValue *);
+   void                           StrIndexFunction(Environment *,UDFContext *,UDFValue *);
+   void                           EvalFunction(Environment *,UDFContext *,UDFValue *);
+   void                           BuildFunction(Environment *,UDFContext *,UDFValue *);
+   void                           StringToFieldFunction(Environment *,UDFContext *,UDFValue *);
+   void                           StringToField(Environment *,const char *,UDFValue *);
 
 #endif /* _H_strngfun */
 

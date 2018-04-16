@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*             TEXT PROCESSING HEADER FILE             */
    /*******************************************************/
@@ -32,7 +32,7 @@
 /*                                                           */
 /*            Used genstrcpy and genstrncpy instead of       */
 /*            strcpy and strncpy.                            */
-/*                                                           */             
+/*                                                           */
 /*            Support for long long integers.                */
 /*                                                           */
 /*            Changed integer type/precision.                */
@@ -43,30 +43,31 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_textpro
 
+#pragma once
+
 #define _H_textpro
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TEXTPRO_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
 #if TEXTPRO_FUNCTIONS
-   LOCALE void                           FetchCommand(void *,DATA_OBJECT *);
-   LOCALE int                            PrintRegionCommand(void *);
-   LOCALE void                          *GetRegionCommand(void *);
-   int                                   TossCommand(void *);
+   void                           FetchCommand(Environment *,UDFContext *,UDFValue *);
+   void                           PrintRegionCommand(Environment *,UDFContext *,UDFValue *);
+   void                           GetRegionCommand(Environment *,UDFContext *,UDFValue *);
+   void                           TossCommand(Environment *,UDFContext *,UDFValue *);
 #endif
 
-   LOCALE void                           HelpFunctionDefinitions(void *);
+   void                           HelpFunctionDefinitions(Environment *);
 
 #endif /* _H_textpro */
 

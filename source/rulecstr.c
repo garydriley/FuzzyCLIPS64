@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  08/25/16             */
    /*                                                     */
    /*              RULE CONSTRAINTS MODULE                */
    /*******************************************************/
@@ -21,16 +21,24 @@
 /*                                                           */
 /*      6.30: Support for long long integers.                */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Static constraint checking is always enabled.  */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
-
-#define _RULECSTR_SOURCE_
 
 #include "setup.h"
 
 #if (! RUN_TIME) && (! BLOAD_ONLY) && DEFRULE_CONSTRUCT
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "analysis.h"
 #include "cstrnchk.h"
@@ -39,6 +47,7 @@
 #include "envrnmnt.h"
 #include "extnfunc.h"
 #include "prcdrpsr.h"
+#include "prntutil.h"
 #include "reorder.h"
 #include "router.h"
 #include "rulepsr.h"
@@ -49,38 +58,36 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static intBool                 CheckForUnmatchableConstraints(void *,struct lhsParseNode *,int);
-   static intBool                 MultifieldCardinalityViolation(void *,struct lhsParseNode *);
-   static struct lhsParseNode    *UnionVariableConstraints(void *,struct lhsParseNode *,
-                                                     struct lhsParseNode *);
-   static struct lhsParseNode    *AddToVariableConstraints(void *,struct lhsParseNode *,
-                                                    struct lhsParseNode *);
-   static void                    ConstraintConflictMessage(void *,struct symbolHashNode *,
-                                                            int,int,struct symbolHashNode *);
-   static intBool                 CheckArgumentForConstraintError(void *,struct expr *,struct expr*,
-                                                                  int,struct FunctionDefinition *,
+   static bool                    CheckForUnmatchableConstraints(Environment *,struct lhsParseNode *,unsigned short);
+   static bool                    MultifieldCardinalityViolation(Environment *,struct lhsParseNode *);
+   static struct lhsParseNode    *UnionVariableConstraints(Environment *,struct lhsParseNode *,
+                                                           struct lhsParseNode *);
+   static struct lhsParseNode    *AddToVariableConstraints(Environment *,struct lhsParseNode *,
+                                                           struct lhsParseNode *);
+   static void                    ConstraintConflictMessage(Environment *,CLIPSLexeme *,
+                                                            unsigned short,unsigned short,CLIPSLexeme *);
+   static bool                    CheckArgumentForConstraintError(Environment *,struct expr *,struct expr*,
+                                                                  unsigned int,struct functionDefinition *,
                                                                   struct lhsParseNode *);
 
 /***********************************************************/
 /* CheckForUnmatchableConstraints: Determines if a LHS CE  */
-/*   node contains unmatchable constraints. Return TRUE if */
-/*   there are unmatchable constraints, otherwise FALSE.   */
+/*   node contains unmatchable constraints. Return true if */
+/*   there are unmatchable constraints, otherwise false.   */
 /***********************************************************/
-static intBool CheckForUnmatchableConstraints(
-  void *theEnv,
+static bool CheckForUnmatchableConstraints(
+  Environment *theEnv,
   struct lhsParseNode *theNode,
-  int whichCE)
+  unsigned short whichCE)
   {
-   if (EnvGetStaticConstraintChecking(theEnv) == FALSE) return(FALSE);
-
    if (UnmatchableConstraint(theNode->constraints))
      {
-      ConstraintConflictMessage(theEnv,(SYMBOL_HN *) theNode->value,whichCE,
+      ConstraintConflictMessage(theEnv,theNode->lexemeValue,whichCE,
                                 theNode->index,theNode->slot);
-      return(TRUE);
+      return true;
      }
 
-   return(FALSE);
+   return false;
   }
 
 /******************************************************/
@@ -89,17 +96,17 @@ static intBool CheckForUnmatchableConstraints(
 /*   value from matching the pattern constraint.      */
 /******************************************************/
 static void ConstraintConflictMessage(
-  void *theEnv,
-  struct symbolHashNode *variableName,
-  int thePattern,
-  int theField,
-  struct symbolHashNode *theSlot)
+  Environment *theEnv,
+  CLIPSLexeme *variableName,
+  unsigned short thePattern,
+  unsigned short theField,
+  CLIPSLexeme *theSlot)
   {
    /*=========================*/
    /* Print the error header. */
    /*=========================*/
 
-   PrintErrorID(theEnv,"RULECSTR",1,TRUE);
+   PrintErrorID(theEnv,"RULECSTR",1,true);
 
    /*======================================================*/
    /* Print the variable name (if available) and CE number */
@@ -108,15 +115,15 @@ static void ConstraintConflictMessage(
 
    if (variableName != NULL)
      {
-      EnvPrintRouter(theEnv,WERROR,"Variable ?");
-      EnvPrintRouter(theEnv,WERROR,ValueToString(variableName));
-      EnvPrintRouter(theEnv,WERROR," in CE #");
-      PrintLongInteger(theEnv,WERROR,(long int) thePattern);
+      WriteString(theEnv,STDERR,"Variable ?");
+      WriteString(theEnv,STDERR,variableName->contents);
+      WriteString(theEnv,STDERR," in CE #");
+      WriteInteger(theEnv,STDERR,thePattern);
      }
    else
      {
-      EnvPrintRouter(theEnv,WERROR,"Pattern #");
-      PrintLongInteger(theEnv,WERROR,(long int) thePattern);
+      WriteString(theEnv,STDERR,"Pattern #");
+      WriteInteger(theEnv,STDERR,thePattern);
      }
 
    /*=======================================*/
@@ -126,35 +133,36 @@ static void ConstraintConflictMessage(
 
    if (theSlot == NULL)
      {
-      EnvPrintRouter(theEnv,WERROR," field #");
-      PrintLongInteger(theEnv,WERROR,(long int) theField);
+      WriteString(theEnv,STDERR," field #");
+      WriteInteger(theEnv,STDERR,theField);
      }
    else
      {
-      EnvPrintRouter(theEnv,WERROR," slot ");
-      EnvPrintRouter(theEnv,WERROR,ValueToString(theSlot));
+      WriteString(theEnv,STDERR," slot '");
+      WriteString(theEnv,STDERR,theSlot->contents);
+      WriteString(theEnv,STDERR,"'");
      }
 
    /*======================================*/
    /* Print the rest of the error message. */
    /*======================================*/
 
-   EnvPrintRouter(theEnv,WERROR,"\nhas constraint conflicts which make the pattern unmatchable.\n");
+   WriteString(theEnv,STDERR," has constraint conflicts which make the pattern unmatchable.\n");
   }
 
 /***************************************************************/
 /* MultifieldCardinalityViolation: Determines if a cardinality */
 /*   violation has occurred for a LHS CE node.                 */
 /***************************************************************/
-static intBool MultifieldCardinalityViolation(
-  void *theEnv,
+static bool MultifieldCardinalityViolation(
+  Environment *theEnv,
   struct lhsParseNode *theNode)
   {
    struct lhsParseNode *tmpNode;
    struct expr *tmpMax;
-   long minFields = 0;
-   long maxFields = 0;
-   int posInfinity = FALSE;
+   long long minFields = 0;
+   long long maxFields = 0;
+   bool posInfinity = false;
    CONSTRAINT_RECORD *newConstraint, *tempConstraint;
 
    /*================================*/
@@ -162,7 +170,7 @@ static intBool MultifieldCardinalityViolation(
    /* a cardinality violation.       */
    /*================================*/
 
-   if (theNode->multifieldSlot == FALSE) return(FALSE);
+   if (theNode->multifieldSlot == false) return false;
 
    /*=============================================*/
    /* Determine the minimum and maximum number of */
@@ -179,8 +187,8 @@ static intBool MultifieldCardinalityViolation(
       /* and maximum number of fields by one.               */
       /*====================================================*/
 
-      if ((tmpNode->type == SF_VARIABLE) ||
-          (tmpNode->type == SF_WILDCARD))
+      if ((tmpNode->pnType == SF_VARIABLE_NODE) ||
+          (tmpNode->pnType == SF_WILDCARD_NODE))
         {
          minFields++;
          maxFields++;
@@ -201,7 +209,7 @@ static intBool MultifieldCardinalityViolation(
          /*=======================================*/
 
          if (tmpNode->constraints->minFields->value != SymbolData(theEnv)->NegativeInfinity)
-           { minFields += (long) ValueToLong(tmpNode->constraints->minFields->value); }
+           { minFields += tmpNode->constraints->minFields->integerValue->contents; }
 
          /*=========================================*/
          /* The greatest maximum of all the min/max */
@@ -211,9 +219,9 @@ static intBool MultifieldCardinalityViolation(
          tmpMax = tmpNode->constraints->maxFields;
          while (tmpMax->nextArg != NULL) tmpMax = tmpMax->nextArg;
          if (tmpMax->value == SymbolData(theEnv)->PositiveInfinity)
-           { posInfinity = TRUE; }
+           { posInfinity = true; }
          else
-           { maxFields += (long) ValueToLong(tmpMax->value); }
+           { maxFields += tmpMax->integerValue->contents; }
         }
 
       /*================================================*/
@@ -223,7 +231,7 @@ static intBool MultifieldCardinalityViolation(
       /*================================================*/
 
       else
-        { posInfinity = TRUE; }
+        { posInfinity = true; }
      }
 
    /*==================================================================*/
@@ -235,9 +243,9 @@ static intBool MultifieldCardinalityViolation(
    else tempConstraint = CopyConstraintRecord(theEnv,theNode->constraints);
    ReturnExpression(theEnv,tempConstraint->minFields);
    ReturnExpression(theEnv,tempConstraint->maxFields);
-   tempConstraint->minFields = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long long) minFields));
-   if (posInfinity) tempConstraint->maxFields = GenConstant(theEnv,SYMBOL,SymbolData(theEnv)->PositiveInfinity);
-   else tempConstraint->maxFields = GenConstant(theEnv,INTEGER,EnvAddLong(theEnv,(long long) maxFields));
+   tempConstraint->minFields = GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,minFields));
+   if (posInfinity) tempConstraint->maxFields = GenConstant(theEnv,SYMBOL_TYPE,SymbolData(theEnv)->PositiveInfinity);
+   else tempConstraint->maxFields = GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,maxFields));
 
    /*================================================================*/
    /* Determine the final cardinality for the multifield slot by     */
@@ -249,16 +257,15 @@ static intBool MultifieldCardinalityViolation(
    if (theNode->derivedConstraints) RemoveConstraint(theEnv,theNode->constraints);
    RemoveConstraint(theEnv,tempConstraint);
    theNode->constraints = newConstraint;
-   theNode->derivedConstraints = TRUE;
+   theNode->derivedConstraints = true;
 
    /*===================================================================*/
    /* Determine if the final cardinality for the slot can be satisfied. */
    /*===================================================================*/
 
-   if (EnvGetStaticConstraintChecking(theEnv) == FALSE) return(FALSE);
-   if (UnmatchableConstraint(newConstraint)) return(TRUE);
+   if (UnmatchableConstraint(newConstraint)) return true;
 
-   return(FALSE);
+   return false;
   }
 
 /***************************************************/
@@ -266,8 +273,8 @@ static intBool MultifieldCardinalityViolation(
 /*   connected constraint searching for constraint */
 /*   violations.                                   */
 /***************************************************/
-globle intBool ProcessConnectedConstraints(
-  void *theEnv,
+bool ProcessConnectedConstraints(
+  Environment *theEnv,
   struct lhsParseNode *theNode,
   struct lhsParseNode *multifieldHeader,
   struct lhsParseNode *patternHead)
@@ -293,9 +300,9 @@ globle intBool ProcessConnectedConstraints(
         {
          if (! andNode->negated)
            {
-            if (andNode->type == RETURN_VALUE_CONSTRAINT)
+            if (andNode->pnType == RETURN_VALUE_CONSTRAINT_NODE)
               {
-               if (andNode->expression->type == FCALL)
+               if (andNode->expression->pnType == FCALL_NODE)
                  {
                   rvConstraints = FunctionCallToConstraintRecord(theEnv,andNode->expression->value);
                   tmpConstraints = andConstraints;
@@ -304,9 +311,9 @@ globle intBool ProcessConnectedConstraints(
                   RemoveConstraint(theEnv,rvConstraints);
                  }
               }
-            else if (ConstantType(andNode->type))
+            else if (ConstantNode(andNode))
               {
-               tmpExpr = GenConstant(theEnv,andNode->type,andNode->value);
+               tmpExpr = GenConstant(theEnv,NodeTypeToType(andNode),andNode->value);
                rvConstraints = ExpressionToConstraintRecord(theEnv,tmpExpr);
                tmpConstraints = andConstraints;
                andConstraints = IntersectConstraints(theEnv,andConstraints,rvConstraints);
@@ -337,8 +344,8 @@ globle intBool ProcessConnectedConstraints(
 
       for (andNode = orNode; andNode != NULL; andNode = andNode->right)
         {
-         if ((andNode->negated) && ConstantType(andNode->type))
-             { RemoveConstantFromConstraint(theEnv,andNode->type,andNode->value,andConstraints); }
+         if ((andNode->negated) && ConstantNode(andNode))
+           { RemoveConstantFromConstraint(theEnv,NodeTypeToType(andNode),andNode->value,andConstraints); }
         }
 
       /*=======================================================*/
@@ -361,15 +368,15 @@ globle intBool ProcessConnectedConstraints(
      {
       if (theNode->derivedConstraints) RemoveConstraint(theEnv,theNode->constraints);
       theNode->constraints = orConstraints;
-      theNode->derivedConstraints = TRUE;
+      theNode->derivedConstraints = true;
      }
 
    /*==================================*/
    /* Check for constraint violations. */
    /*==================================*/
 
-   if (CheckForUnmatchableConstraints(theEnv,theNode,(int) patternHead->whichCE))
-     { return(TRUE); }
+   if (CheckForUnmatchableConstraints(theEnv,theNode,patternHead->whichCE))
+     { return true; }
 
    /*=========================================*/
    /* If the constraints are for a multifield */
@@ -381,22 +388,22 @@ globle intBool ProcessConnectedConstraints(
       if (MultifieldCardinalityViolation(theEnv,multifieldHeader))
         {
          ConstraintViolationErrorMessage(theEnv,"The group of restrictions",
-                                                  NULL,FALSE,
-                                                  (int) patternHead->whichCE,
+                                                  NULL,false,
+                                                  patternHead->whichCE,
                                                   multifieldHeader->slot,
                                                   multifieldHeader->index,
                                                   CARDINALITY_VIOLATION,
-                                                  multifieldHeader->constraints,TRUE);
-          return(TRUE);
+                                                  multifieldHeader->constraints,true);
+          return true;
          }
       }
 
    /*=======================================*/
-   /* Return FALSE indicating no constraint */
+   /* Return false indicating no constraint */
    /* violations were detected.             */
    /*=======================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /**************************************************/
@@ -404,44 +411,44 @@ globle intBool ProcessConnectedConstraints(
 /*   message for LHS constraint violation errors  */
 /*   that occur within an expression.             */
 /**************************************************/
-globle void ConstraintReferenceErrorMessage(
-  void *theEnv,
-  struct symbolHashNode *theVariable,
+void ConstraintReferenceErrorMessage(
+  Environment *theEnv,
+  CLIPSLexeme *theVariable,
   struct lhsParseNode *theExpression,
   int whichArgument,
   int whichCE,
-  struct symbolHashNode *slotName,
+  CLIPSLexeme *slotName,
   int theField)
   {
    struct expr *temprv;
 
-   PrintErrorID(theEnv,"RULECSTR",2,TRUE);
+   PrintErrorID(theEnv,"RULECSTR",2,true);
 
    /*==========================*/
    /* Print the variable name. */
    /*==========================*/
 
-   EnvPrintRouter(theEnv,WERROR,"Previous variable bindings of ?");
-   EnvPrintRouter(theEnv,WERROR,ValueToString(theVariable));
-   EnvPrintRouter(theEnv,WERROR," caused the type restrictions");
+   WriteString(theEnv,STDERR,"Previous variable bindings of ?");
+   WriteString(theEnv,STDERR,theVariable->contents);
+   WriteString(theEnv,STDERR," caused the type restrictions");
 
    /*============================*/
    /* Print the argument number. */
    /*============================*/
 
-   EnvPrintRouter(theEnv,WERROR,"\nfor argument #");
-   PrintLongInteger(theEnv,WERROR,(long int) whichArgument);
+   WriteString(theEnv,STDERR,"\nfor argument #");
+   WriteInteger(theEnv,STDERR,whichArgument);
 
    /*=======================*/
    /* Print the expression. */
    /*=======================*/
 
-   EnvPrintRouter(theEnv,WERROR," of the expression ");
+   WriteString(theEnv,STDERR," of the expression ");
    temprv = LHSParseNodesToExpression(theEnv,theExpression);
    ReturnExpression(theEnv,temprv->nextArg);
    temprv->nextArg = NULL;
-   PrintExpression(theEnv,WERROR,temprv);
-   EnvPrintRouter(theEnv,WERROR,"\n");
+   PrintExpression(theEnv,STDERR,temprv);
+   WriteString(theEnv,STDERR,"\n");
    ReturnExpression(theEnv,temprv);
 
    /*========================================*/
@@ -450,23 +457,24 @@ globle void ConstraintReferenceErrorMessage(
    /* index where the violation occured.     */
    /*========================================*/
 
-   EnvPrintRouter(theEnv,WERROR,"found in CE #");
-   PrintLongInteger(theEnv,WERROR,(long int) theExpression->whichCE);
+   WriteString(theEnv,STDERR,"found in CE #");
+   WriteInteger(theEnv,STDERR,theExpression->whichCE);
    if (slotName == NULL)
      {
       if (theField > 0)
         {
-         EnvPrintRouter(theEnv,WERROR," field #");
-         PrintLongInteger(theEnv,WERROR,(long int) theField);
+         WriteString(theEnv,STDERR," field #");
+         WriteInteger(theEnv,STDERR,theField);
         }
      }
    else
      {
-      EnvPrintRouter(theEnv,WERROR," slot ");
-      EnvPrintRouter(theEnv,WERROR,ValueToString(slotName));
+      WriteString(theEnv,STDERR," slot '");
+      WriteString(theEnv,STDERR,slotName->contents);
+      WriteString(theEnv,STDERR,"'");
      }
 
-   EnvPrintRouter(theEnv,WERROR," to be violated.\n");
+   WriteString(theEnv,STDERR," to be violated.\n");
   }
 
 /********************************************************/
@@ -476,7 +484,7 @@ globle void ConstraintReferenceErrorMessage(
 /*   variable are intersected with the new constraints. */
 /********************************************************/
 static struct lhsParseNode *AddToVariableConstraints(
-  void *theEnv,
+  Environment *theEnv,
   struct lhsParseNode *oldList,
   struct lhsParseNode *newItems)
   {
@@ -550,7 +558,7 @@ static struct lhsParseNode *AddToVariableConstraints(
 /*   thus not included in the unioned list.                */
 /***********************************************************/
 static struct lhsParseNode *UnionVariableConstraints(
-  void *theEnv,
+  Environment *theEnv,
   struct lhsParseNode *list1,
   struct lhsParseNode *list2)
   {
@@ -578,7 +586,7 @@ static struct lhsParseNode *UnionVariableConstraints(
          if (list1->value == trace->value)
            {
             temp = GetLHSParseNode(theEnv);
-            temp->derivedConstraints = TRUE;
+            temp->derivedConstraints = true;
             temp->value = list1->value;
             temp->constraints = UnionConstraints(theEnv,list1->constraints,trace->constraints);
             temp->right = list3;
@@ -619,8 +627,8 @@ static struct lhsParseNode *UnionVariableConstraints(
 /*   constraint for the variable ?x since the addition function  */
 /*   expects numeric arguments.                                  */
 /*****************************************************************/
-globle struct lhsParseNode *GetExpressionVarConstraints(
-  void *theEnv,
+struct lhsParseNode *GetExpressionVarConstraints(
+  Environment *theEnv,
   struct lhsParseNode *theExpression)
   {
    struct lhsParseNode *list1 = NULL, *list2;
@@ -633,15 +641,15 @@ globle struct lhsParseNode *GetExpressionVarConstraints(
          list1 = AddToVariableConstraints(theEnv,list2,list1);
         }
 
-      if (theExpression->type == SF_VARIABLE)
+      if (theExpression->pnType == SF_VARIABLE_NODE)
         {
          list2 = GetLHSParseNode(theEnv);
          if (theExpression->referringNode != NULL)
-           { list2->type = theExpression->referringNode->type; }
+           { list2->pnType = theExpression->referringNode->pnType; }
          else
-           { list2->type = SF_VARIABLE; }
+           { list2->pnType = SF_VARIABLE_NODE; }
          list2->value = theExpression->value;
-         list2->derivedConstraints = TRUE;
+         list2->derivedConstraints = true;
          list2->constraints = CopyConstraintRecord(theEnv,theExpression->constraints);
          list1 = AddToVariableConstraints(theEnv,list2,list1);
         }
@@ -655,13 +663,13 @@ globle struct lhsParseNode *GetExpressionVarConstraints(
 /*   of variable constraints associated with a */
 /*   single connected constraint.              */
 /***********************************************/
-globle struct lhsParseNode *DeriveVariableConstraints(
-  void *theEnv,
+struct lhsParseNode *DeriveVariableConstraints(
+  Environment *theEnv,
   struct lhsParseNode *theNode)
   {
    struct lhsParseNode *orNode, *andNode;
    struct lhsParseNode *list1, *list2, *list3 = NULL;
-   int first = TRUE;
+   bool first = true;
 
    /*===============================*/
    /* Process the constraints for a */
@@ -677,8 +685,8 @@ globle struct lhsParseNode *DeriveVariableConstraints(
       list2 = NULL;
       for (andNode = orNode; andNode != NULL; andNode = andNode->right)
         {
-         if ((andNode->type == RETURN_VALUE_CONSTRAINT) ||
-             (andNode->type == PREDICATE_CONSTRAINT))
+         if ((andNode->pnType == RETURN_VALUE_CONSTRAINT_NODE) ||
+             (andNode->pnType == PREDICATE_CONSTRAINT_NODE))
            {
             list1 = GetExpressionVarConstraints(theEnv,andNode->expression);
             list2 = AddToVariableConstraints(theEnv,list2,list1);
@@ -688,7 +696,7 @@ globle struct lhsParseNode *DeriveVariableConstraints(
       if (first)
         {
          list3 = list2;
-         first = FALSE;
+         first = false;
         }
       else
         { list3 = UnionVariableConstraints(theEnv,list3,list2); }
@@ -701,16 +709,16 @@ globle struct lhsParseNode *DeriveVariableConstraints(
 /* CheckRHSForConstraintErrors: Checks the */
 /*   RHS of a rule for constraint errors.  */
 /*******************************************/
-globle intBool CheckRHSForConstraintErrors(
-  void *theEnv,
+bool CheckRHSForConstraintErrors(
+  Environment *theEnv,
   struct expr *expressionList,
   struct lhsParseNode *theLHS)
   {
-   struct FunctionDefinition *theFunction;
-   int i;
+   struct functionDefinition *theFunction;
+   unsigned int i;
    struct expr *lastOne = NULL, *checkList, *tmpPtr;
 
-   if (expressionList == NULL) return(FALSE);
+   if (expressionList == NULL) return false;
 
    for (checkList = expressionList;
         checkList != NULL;
@@ -721,7 +729,7 @@ globle intBool CheckRHSForConstraintErrors(
        if (checkList->type == FCALL)
          {
           lastOne = checkList;
-          theFunction = (struct FunctionDefinition *) checkList->value;
+          theFunction = checkList->functionValue;
          }
        else
          { theFunction = NULL; }
@@ -730,7 +738,7 @@ globle intBool CheckRHSForConstraintErrors(
          {
           if (CheckArgumentForConstraintError(theEnv,expressionList,lastOne,i,
                                               theFunction,theLHS))
-            { return(TRUE); }
+            { return true; }
 
           i++;
           tmpPtr = expressionList->nextArg;
@@ -738,34 +746,34 @@ globle intBool CheckRHSForConstraintErrors(
           if (CheckRHSForConstraintErrors(theEnv,expressionList,theLHS))
             {
              expressionList->nextArg = tmpPtr;
-             return(TRUE);
+             return true;
             }
           expressionList->nextArg = tmpPtr;
           expressionList = expressionList->nextArg;
          }
       }
 
-   return(FALSE);
+   return false;
   }
 
 /*************************************************************/
 /* CheckArgumentForConstraintError: Checks a single argument */
 /*   found in the RHS of a rule for constraint errors.       */
-/*   Returns TRUE if an error is detected, otherwise FALSE.  */
+/*   Returns true if an error is detected, otherwise false.  */
 /*************************************************************/
-static intBool CheckArgumentForConstraintError(
-  void *theEnv,
+static bool CheckArgumentForConstraintError(
+  Environment *theEnv,
   struct expr *expressionList,
   struct expr *lastOne,
-  int i,
-  struct FunctionDefinition *theFunction,
+  unsigned int i,
+  struct functionDefinition *theFunction,
   struct lhsParseNode *theLHS)
   {
-   int theRestriction;
+   unsigned theRestriction2;
    CONSTRAINT_RECORD *constraint1, *constraint2, *constraint3, *constraint4;
    struct lhsParseNode *theVariable;
    struct expr *tmpPtr;
-   int rv = FALSE;
+   bool rv = false;
 
    /*=============================================================*/
    /* Skip anything that isn't a variable or isn't an argument to */
@@ -781,21 +789,21 @@ static intBool CheckArgumentForConstraintError(
    /* convert them to a constraint record.      */
    /*===========================================*/
 
-   theRestriction = GetNthRestriction(theFunction,i);
-   constraint1 = ArgumentTypeToConstraintRecord(theEnv,theRestriction);
+   theRestriction2 = GetNthRestriction(theEnv,theFunction,i);
+   constraint1 = ArgumentTypeToConstraintRecord(theEnv,theRestriction2);
 
    /*================================================*/
    /* Look for the constraint record associated with */
    /* binding the variable in the LHS of the rule.   */
    /*================================================*/
 
-   theVariable = FindVariable((SYMBOL_HN *) expressionList->value,theLHS);
+   theVariable = FindVariable(expressionList->lexemeValue,theLHS);
    if (theVariable != NULL)
      {
-      if (theVariable->type == MF_VARIABLE)
+      if (theVariable->pnType == MF_VARIABLE_NODE)
         {
          constraint2 = GetConstraintRecord(theEnv);
-         SetConstraintType(MULTIFIELD,constraint2);
+         SetConstraintType(MULTIFIELD_TYPE,constraint2);
         }
       else if (theVariable->constraints == NULL)
         { constraint2 = GetConstraintRecord(theEnv); }
@@ -810,7 +818,7 @@ static intBool CheckArgumentForConstraintError(
    /* binding the variable on the RHS of the rule.   */
    /*================================================*/
 
-   constraint3 = FindBindConstraints(theEnv,(SYMBOL_HN *) expressionList->value);
+   constraint3 = FindBindConstraints(theEnv,expressionList->lexemeValue);
 
    /*====================================================*/
    /* Union the LHS and RHS variable binding constraints */
@@ -831,22 +839,22 @@ static intBool CheckArgumentForConstraintError(
    /* Check for unmatchable constraints. */
    /*====================================*/
 
-   if (UnmatchableConstraint(constraint4) && EnvGetStaticConstraintChecking(theEnv))
+   if (UnmatchableConstraint(constraint4))
      {
-      PrintErrorID(theEnv,"RULECSTR",3,TRUE);
-      EnvPrintRouter(theEnv,WERROR,"Previous variable bindings of ?");
-      EnvPrintRouter(theEnv,WERROR,ValueToString((SYMBOL_HN *) expressionList->value));
-      EnvPrintRouter(theEnv,WERROR," caused the type restrictions");
-      EnvPrintRouter(theEnv,WERROR,"\nfor argument #");
-      PrintLongInteger(theEnv,WERROR,(long int) i);
-      EnvPrintRouter(theEnv,WERROR," of the expression ");
+      PrintErrorID(theEnv,"RULECSTR",3,true);
+      WriteString(theEnv,STDERR,"Previous variable bindings of ?");
+      WriteString(theEnv,STDERR,expressionList->lexemeValue->contents);
+      WriteString(theEnv,STDERR," caused the type restrictions");
+      WriteString(theEnv,STDERR,"\nfor argument #");
+      WriteInteger(theEnv,STDERR,i);
+      WriteString(theEnv,STDERR," of the expression ");
       tmpPtr = lastOne->nextArg;
       lastOne->nextArg = NULL;
-      PrintExpression(theEnv,WERROR,lastOne);
+      PrintExpression(theEnv,STDERR,lastOne);
       lastOne->nextArg = tmpPtr;
-      EnvPrintRouter(theEnv,WERROR,"\nfound in the rule's RHS to be violated.\n");
+      WriteString(theEnv,STDERR," found in the rule's RHS to be violated.\n");
 
-      rv = TRUE;
+      rv = true;
      }
 
    /*===========================================*/
@@ -859,8 +867,8 @@ static intBool CheckArgumentForConstraintError(
    RemoveConstraint(theEnv,constraint4);
 
    /*========================================*/
-   /* Return TRUE if unmatchable constraints */
-   /* were detected, otherwise FALSE.        */
+   /* Return true if unmatchable constraints */
+   /* were detected, otherwise false.        */
    /*========================================*/
 
    return(rv);

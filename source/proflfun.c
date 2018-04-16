@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  08/25/16             */
    /*                                                     */
    /*         CONSTRUCT PROFILING FUNCTIONS MODULE        */
    /*******************************************************/
@@ -38,9 +38,16 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
-
-#define _PROFLFUN_SOURCE_
 
 #include "setup.h"
 
@@ -72,46 +79,42 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static intBool                     OutputProfileInfo(void *,const char *,struct constructProfileInfo *,
+   static bool                        OutputProfileInfo(Environment *,const char *,struct constructProfileInfo *,
                                                         const char *,const char *,const char *,const char **);
-   static void                        OutputUserFunctionsInfo(void *);
-   static void                        OutputConstructsCodeInfo(void *);
+   static void                        OutputUserFunctionsInfo(Environment *);
+   static void                        OutputConstructsCodeInfo(Environment *);
 #if (! RUN_TIME)
-   static void                        ProfileClearFunction(void *);
+   static void                        ProfileClearFunction(Environment *,void *);
 #endif
 
 /******************************************************/
 /* ConstructProfilingFunctionDefinitions: Initializes */
 /*   the construct profiling functions.               */
 /******************************************************/
-globle void ConstructProfilingFunctionDefinitions(
-  void *theEnv)
+void ConstructProfilingFunctionDefinitions(
+  Environment *theEnv)
   {
    struct userDataRecord profileDataInfo = { 0, CreateProfileData, DeleteProfileData };
 
    AllocateEnvironmentData(theEnv,PROFLFUN_DATA,sizeof(struct profileFunctionData),NULL);
 
-   memcpy(&ProfileFunctionData(theEnv)->ProfileDataInfo,&profileDataInfo,sizeof(struct userDataRecord));   
-   
+   memcpy(&ProfileFunctionData(theEnv)->ProfileDataInfo,&profileDataInfo,sizeof(struct userDataRecord));
+
    ProfileFunctionData(theEnv)->LastProfileInfo = NO_PROFILE;
    ProfileFunctionData(theEnv)->PercentThreshold = 0.0;
    ProfileFunctionData(theEnv)->OutputString = OUTPUT_STRING;
 
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"profile",'v', PTIEF ProfileCommand,"ProfileCommand","11w");
-   EnvDefineFunction2(theEnv,"profile-info",'v', PTIEF ProfileInfoCommand,"ProfileInfoCommand","01w");
-   EnvDefineFunction2(theEnv,"profile-reset",'v', PTIEF ProfileResetCommand,"ProfileResetCommand","00");
+   AddUDF(theEnv,"profile","v",1,1,"y",ProfileCommand,"ProfileCommand",NULL);
+   AddUDF(theEnv,"profile-info","v",0,0,NULL, ProfileInfoCommand,"ProfileInfoCommand",NULL);
+   AddUDF(theEnv,"profile-reset","v",0,0,NULL,ProfileResetCommand,"ProfileResetCommand",NULL);
 
-   EnvDefineFunction2(theEnv,"set-profile-percent-threshold",'d',
-                   PTIEF SetProfilePercentThresholdCommand,
-                   "SetProfilePercentThresholdCommand","11n");
-   EnvDefineFunction2(theEnv,"get-profile-percent-threshold",'d',
-                   PTIEF GetProfilePercentThresholdCommand,
-                   "GetProfilePercentThresholdCommand","00");
-                   
+   AddUDF(theEnv,"set-profile-percent-threshold","d",1,1,"ld",SetProfilePercentThresholdCommand,"SetProfilePercentThresholdCommand",NULL);
+   AddUDF(theEnv,"get-profile-percent-threshold","d",0,0,NULL,GetProfilePercentThresholdCommand,"GetProfilePercentThresholdCommand",NULL);
+
    ProfileFunctionData(theEnv)->ProfileDataID = InstallUserDataRecord(theEnv,&ProfileFunctionData(theEnv)->ProfileDataInfo);
-   
-   EnvAddClearFunction(theEnv,"profile",ProfileClearFunction,0);
+
+   AddClearFunction(theEnv,"profile",ProfileClearFunction,0,NULL);
 #endif
   }
 
@@ -119,28 +122,28 @@ globle void ConstructProfilingFunctionDefinitions(
 /* CreateProfileData: Allocates a */
 /*   profile user data structure. */
 /**********************************/
-globle void *CreateProfileData(
-  void *theEnv)
+void *CreateProfileData(
+  Environment *theEnv)
   {
    struct constructProfileInfo *theInfo;
-   
+
    theInfo = (struct constructProfileInfo *)
              genalloc(theEnv,sizeof(struct constructProfileInfo));
 
    theInfo->numberOfEntries = 0;
-   theInfo->childCall = FALSE;
+   theInfo->childCall = false;
    theInfo->startTime = 0.0;
    theInfo->totalSelfTime = 0.0;
    theInfo->totalWithChildrenTime = 0.0;
-   
+
    return(theInfo);
   }
-  
+
 /**************************************/
 /* DeleteProfileData:          */
 /**************************************/
-globle void DeleteProfileData(
-  void *theEnv,
+void DeleteProfileData(
+  Environment *theEnv,
   void *theData)
   {
    genfree(theEnv,theData,sizeof(struct constructProfileInfo));
@@ -150,20 +153,20 @@ globle void DeleteProfileData(
 /* ProfileCommand: H/L access routine */
 /*   for the profile command.         */
 /**************************************/
-globle void ProfileCommand(
-  void *theEnv)
+void ProfileCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
    const char *argument;
-   DATA_OBJECT theValue;
+   UDFValue theValue;
 
-   if (EnvArgCountCheck(theEnv,"profile",EXACTLY,1) == -1) return;
-   if (EnvArgTypeCheck(theEnv,"profile",1,SYMBOL,&theValue) == FALSE) return;
-
-   argument = DOToString(theValue);
+   if (! UDFFirstArgument(context,SYMBOL_BIT,&theValue)) return;
+   argument = theValue.lexemeValue->contents;
 
    if (! Profile(theEnv,argument))
      {
-      ExpectedTypeError1(theEnv,"profile",1,"symbol with value constructs, user-functions, or off");
+      UDFInvalidArgumentMessage(context,"symbol with value constructs, user-functions, or off");
       return;
      }
 
@@ -174,8 +177,8 @@ globle void ProfileCommand(
 /* Profile: C access routine  */
 /*   for the profile command. */
 /******************************/
-globle intBool Profile(
-  void *theEnv,
+bool Profile(
+  Environment *theEnv,
   const char *argument)
   {
    /*======================================================*/
@@ -189,16 +192,16 @@ globle intBool Profile(
    if (strcmp(argument,"user-functions") == 0)
      {
       ProfileFunctionData(theEnv)->ProfileStartTime = gentime();
-      ProfileFunctionData(theEnv)->ProfileUserFunctions = TRUE;
-      ProfileFunctionData(theEnv)->ProfileConstructs = FALSE;
+      ProfileFunctionData(theEnv)->ProfileUserFunctions = true;
+      ProfileFunctionData(theEnv)->ProfileConstructs = false;
       ProfileFunctionData(theEnv)->LastProfileInfo = USER_FUNCTIONS;
      }
 
    else if (strcmp(argument,"constructs") == 0)
      {
       ProfileFunctionData(theEnv)->ProfileStartTime = gentime();
-      ProfileFunctionData(theEnv)->ProfileUserFunctions = FALSE;
-      ProfileFunctionData(theEnv)->ProfileConstructs = TRUE;
+      ProfileFunctionData(theEnv)->ProfileUserFunctions = false;
+      ProfileFunctionData(theEnv)->ProfileConstructs = true;
       ProfileFunctionData(theEnv)->LastProfileInfo = CONSTRUCTS_CODE;
      }
 
@@ -211,8 +214,8 @@ globle intBool Profile(
      {
       ProfileFunctionData(theEnv)->ProfileEndTime = gentime();
       ProfileFunctionData(theEnv)->ProfileTotalTime += (ProfileFunctionData(theEnv)->ProfileEndTime - ProfileFunctionData(theEnv)->ProfileStartTime);
-      ProfileFunctionData(theEnv)->ProfileUserFunctions = FALSE;
-      ProfileFunctionData(theEnv)->ProfileConstructs = FALSE;
+      ProfileFunctionData(theEnv)->ProfileUserFunctions = false;
+      ProfileFunctionData(theEnv)->ProfileConstructs = false;
      }
 
    /*=====================================================*/
@@ -221,38 +224,21 @@ globle intBool Profile(
    /*=====================================================*/
 
    else
-     { return(FALSE); }
+     { return false; }
 
-   return(TRUE);
+   return true;
   }
 
 /******************************************/
 /* ProfileInfoCommand: H/L access routine */
 /*   for the profile-info command.        */
 /******************************************/
-globle void ProfileInfoCommand(
-  void *theEnv)
+void ProfileInfoCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   int argCount;
-   DATA_OBJECT theValue;
    char buffer[512];
-   
-   /*===================================*/
-   /* The profile-info command expects  */
-   /* at most a single symbol argument. */
-   /*===================================*/
-
-   if ((argCount = EnvArgCountCheck(theEnv,"profile",NO_MORE_THAN,1)) == -1) return;
-
-   /*===========================================*/
-   /* The first profile-info argument indicates */
-   /* the field on which sorting is performed.  */
-   /*===========================================*/
-
-   if (argCount == 1)
-     {
-      if (EnvArgTypeCheck(theEnv,"profile",1,SYMBOL,&theValue) == FALSE) return;
-     }
 
    /*==================================*/
    /* If code is still being profiled, */
@@ -264,30 +250,30 @@ globle void ProfileInfoCommand(
       ProfileFunctionData(theEnv)->ProfileEndTime = gentime();
       ProfileFunctionData(theEnv)->ProfileTotalTime += (ProfileFunctionData(theEnv)->ProfileEndTime - ProfileFunctionData(theEnv)->ProfileStartTime);
      }
-      
+
    /*==================================*/
    /* Print the profiling information. */
    /*==================================*/
-      
+
    if (ProfileFunctionData(theEnv)->LastProfileInfo != NO_PROFILE)
      {
       gensprintf(buffer,"Profile elapsed time = %g seconds\n",
                       ProfileFunctionData(theEnv)->ProfileTotalTime);
-      EnvPrintRouter(theEnv,WDISPLAY,buffer);
+      WriteString(theEnv,STDOUT,buffer);
 
       if (ProfileFunctionData(theEnv)->LastProfileInfo == USER_FUNCTIONS)
-        { EnvPrintRouter(theEnv,WDISPLAY,"Function Name                            "); }
+        { WriteString(theEnv,STDOUT,"Function Name                            "); }
       else if (ProfileFunctionData(theEnv)->LastProfileInfo == CONSTRUCTS_CODE)
-        { EnvPrintRouter(theEnv,WDISPLAY,"Construct Name                           "); }            
-      
-      EnvPrintRouter(theEnv,WDISPLAY,"Entries         Time           %          Time+Kids     %+Kids\n");
+        { WriteString(theEnv,STDOUT,"Construct Name                           "); }
+
+      WriteString(theEnv,STDOUT,"Entries         Time           %          Time+Kids     %+Kids\n");
 
       if (ProfileFunctionData(theEnv)->LastProfileInfo == USER_FUNCTIONS)
-        { EnvPrintRouter(theEnv,WDISPLAY,"-------------                            "); }
+        { WriteString(theEnv,STDOUT,"-------------                            "); }
       else if (ProfileFunctionData(theEnv)->LastProfileInfo == CONSTRUCTS_CODE)
-        { EnvPrintRouter(theEnv,WDISPLAY,"--------------                           "); }
+        { WriteString(theEnv,STDOUT,"--------------                           "); }
 
-      EnvPrintRouter(theEnv,WDISPLAY,"-------        ------        -----        ---------     ------\n");
+      WriteString(theEnv,STDOUT,"-------        ------        -----        ---------     ------\n");
      }
 
    if (ProfileFunctionData(theEnv)->LastProfileInfo == USER_FUNCTIONS) OutputUserFunctionsInfo(theEnv);
@@ -298,25 +284,25 @@ globle void ProfileInfoCommand(
 /* StartProfile: Initiates bookkeeping needed */
 /*   to profile a construct or function.      */
 /**********************************************/
-globle void StartProfile(
-  void *theEnv,
+void StartProfile(
+  Environment *theEnv,
   struct profileFrameInfo *theFrame,
   struct userData **theList,
-  intBool checkFlag)
+  bool checkFlag)
   {
    double startTime, addTime;
    struct constructProfileInfo *profileInfo;
 
    if (! checkFlag)
      {
-      theFrame->profileOnExit = FALSE;
+      theFrame->profileOnExit = false;
       return;
      }
 
    profileInfo = (struct constructProfileInfo *) FetchUserData(theEnv,ProfileFunctionData(theEnv)->ProfileDataID,theList);
-                
-   theFrame->profileOnExit = TRUE;
-   theFrame->parentCall = FALSE;
+
+   theFrame->profileOnExit = true;
+   theFrame->parentCall = false;
 
    startTime = gentime();
    theFrame->oldProfileFrame = ProfileFunctionData(theEnv)->ActiveProfileFrame;
@@ -334,9 +320,9 @@ globle void StartProfile(
 
    if (! ProfileFunctionData(theEnv)->ActiveProfileFrame->childCall)
      {
-      theFrame->parentCall = TRUE;
+      theFrame->parentCall = true;
       theFrame->parentStartTime = startTime;
-      ProfileFunctionData(theEnv)->ActiveProfileFrame->childCall = TRUE;
+      ProfileFunctionData(theEnv)->ActiveProfileFrame->childCall = true;
      }
   }
 
@@ -344,8 +330,8 @@ globle void StartProfile(
 /* EndProfile: Finishes bookkeeping needed */
 /*   to profile a construct or function.   */
 /*******************************************/
-globle void EndProfile(
-  void *theEnv,
+void EndProfile(
+  Environment *theEnv,
   struct profileFrameInfo *theFrame)
   {
    double endTime, addTime;
@@ -358,7 +344,7 @@ globle void EndProfile(
      {
       addTime = endTime - theFrame->parentStartTime;
       ProfileFunctionData(theEnv)->ActiveProfileFrame->totalWithChildrenTime += addTime;
-      ProfileFunctionData(theEnv)->ActiveProfileFrame->childCall = FALSE;
+      ProfileFunctionData(theEnv)->ActiveProfileFrame->childCall = false;
      }
 
    ProfileFunctionData(theEnv)->ActiveProfileFrame->totalSelfTime += (endTime - ProfileFunctionData(theEnv)->ActiveProfileFrame->startTime);
@@ -373,8 +359,8 @@ globle void EndProfile(
 /* OutputProfileInfo: Prints out a single */
 /*   line of profile information.         */
 /******************************************/
-static intBool OutputProfileInfo(
-  void *theEnv,
+static bool OutputProfileInfo(
+  Environment *theEnv,
   const char *itemName,
   struct constructProfileInfo *profileInfo,
   const char *printPrefixBefore,
@@ -384,10 +370,10 @@ static intBool OutputProfileInfo(
   {
    double percent = 0.0, percentWithKids = 0.0;
    char buffer[512];
-   
-   if (profileInfo == NULL) return(FALSE);
-   
-   if (profileInfo->numberOfEntries == 0) return(FALSE);
+
+   if (profileInfo == NULL) return false;
+
+   if (profileInfo->numberOfEntries == 0) return false;
 
    if (ProfileFunctionData(theEnv)->ProfileTotalTime != 0.0)
      {
@@ -397,27 +383,27 @@ static intBool OutputProfileInfo(
       if (percentWithKids < 0.005) percentWithKids = 0.0;
      }
 
-   if (percent < ProfileFunctionData(theEnv)->PercentThreshold) return(FALSE);
+   if (percent < ProfileFunctionData(theEnv)->PercentThreshold) return false;
 
    if ((banner != NULL) && (*banner != NULL))
      {
-      EnvPrintRouter(theEnv,WDISPLAY,*banner);
+      WriteString(theEnv,STDOUT,*banner);
       *banner = NULL;
      }
 
    if (printPrefixBefore != NULL)
-     { EnvPrintRouter(theEnv,WDISPLAY,printPrefixBefore); }
-   
+     { WriteString(theEnv,STDOUT,printPrefixBefore); }
+
    if (printPrefix != NULL)
-     { EnvPrintRouter(theEnv,WDISPLAY,printPrefix); }
+     { WriteString(theEnv,STDOUT,printPrefix); }
 
    if (printPrefixAfter != NULL)
-     { EnvPrintRouter(theEnv,WDISPLAY,printPrefixAfter); }
+     { WriteString(theEnv,STDOUT,printPrefixAfter); }
 
    if (strlen(itemName) >= 40)
      {
-      EnvPrintRouter(theEnv,WDISPLAY,itemName);
-      EnvPrintRouter(theEnv,WDISPLAY,"\n");
+      WriteString(theEnv,STDOUT,itemName);
+      WriteString(theEnv,STDOUT,"\n");
       itemName = "";
      }
 
@@ -430,37 +416,39 @@ static intBool OutputProfileInfo(
 
                         (double) profileInfo->totalWithChildrenTime,
                         (double) percentWithKids);
-   EnvPrintRouter(theEnv,WDISPLAY,buffer);
+   WriteString(theEnv,STDOUT,buffer);
 
-   return(TRUE);
+   return true;
   }
 
 /*******************************************/
 /* ProfileResetCommand: H/L access routine */
 /*   for the profile-reset command.        */
 /*******************************************/
-globle void ProfileResetCommand(
-  void *theEnv)
+void ProfileResetCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   struct FunctionDefinition *theFunction;
+   struct functionDefinition *theFunction;
    int i;
 #if DEFFUNCTION_CONSTRUCT
-   DEFFUNCTION *theDeffunction;
+   Deffunction *theDeffunction;
 #endif
 #if DEFRULE_CONSTRUCT
-   struct defrule *theDefrule;
+   Defrule *theDefrule;
 #endif
 #if DEFGENERIC_CONSTRUCT
-   DEFGENERIC *theDefgeneric;
-   unsigned int methodIndex;
-   DEFMETHOD *theMethod;
+   Defgeneric *theDefgeneric;
+   unsigned short methodIndex;
+   Defmethod *theMethod;
 #endif
 #if OBJECT_SYSTEM
-   DEFCLASS *theDefclass;
-   HANDLER *theHandler;
+   Defclass *theDefclass;
+   DefmessageHandler *theHandler;
    unsigned handlerIndex;
 #endif
-   
+
    ProfileFunctionData(theEnv)->ProfileStartTime = 0.0;
    ProfileFunctionData(theEnv)->ProfileEndTime = 0.0;
    ProfileFunctionData(theEnv)->ProfileTotalTime = 0.0;
@@ -469,7 +457,7 @@ globle void ProfileResetCommand(
    for (theFunction = GetFunctionList(theEnv);
         theFunction != NULL;
         theFunction = theFunction->next)
-     { 
+     {
       ResetProfileInfo((struct constructProfileInfo *)
                        TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theFunction->usrData));
      }
@@ -477,65 +465,65 @@ globle void ProfileResetCommand(
    for (i = 0; i < MAXIMUM_PRIMITIVES; i++)
      {
       if (EvaluationData(theEnv)->PrimitivesArray[i] != NULL)
-        {  
+        {
          ResetProfileInfo((struct constructProfileInfo *)
                           TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,EvaluationData(theEnv)->PrimitivesArray[i]->usrData));
         }
      }
 
 #if DEFFUNCTION_CONSTRUCT
-   for (theDeffunction = (DEFFUNCTION *) EnvGetNextDeffunction(theEnv,NULL);
+   for (theDeffunction = GetNextDeffunction(theEnv,NULL);
         theDeffunction != NULL;
-        theDeffunction = (DEFFUNCTION *) EnvGetNextDeffunction(theEnv,theDeffunction))
-     { 
+        theDeffunction = GetNextDeffunction(theEnv,theDeffunction))
+     {
       ResetProfileInfo((struct constructProfileInfo *)
-                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDeffunction->header.usrData)); 
+                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDeffunction->header.usrData));
      }
 #endif
 
 #if DEFRULE_CONSTRUCT
-   for (theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,NULL);
+   for (theDefrule = GetNextDefrule(theEnv,NULL);
         theDefrule != NULL;
-        theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,theDefrule))
-     { 
+        theDefrule = GetNextDefrule(theEnv,theDefrule))
+     {
       ResetProfileInfo((struct constructProfileInfo *)
-                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDefrule->header.usrData)); 
+                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDefrule->header.usrData));
      }
 #endif
 
 #if DEFGENERIC_CONSTRUCT
-   for (theDefgeneric = (DEFGENERIC *) EnvGetNextDefgeneric(theEnv,NULL);
+   for (theDefgeneric = GetNextDefgeneric(theEnv,NULL);
         theDefgeneric != NULL;
-        theDefgeneric = (DEFGENERIC *) EnvGetNextDefgeneric(theEnv,theDefgeneric))
+        theDefgeneric = GetNextDefgeneric(theEnv,theDefgeneric))
      {
       ResetProfileInfo((struct constructProfileInfo *)
-                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDefgeneric->header.usrData)); 
-      
-      for (methodIndex = EnvGetNextDefmethod(theEnv,theDefgeneric,0);
+                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDefgeneric->header.usrData));
+
+      for (methodIndex = GetNextDefmethod(theDefgeneric,0);
            methodIndex != 0;
-           methodIndex = EnvGetNextDefmethod(theEnv,theDefgeneric,methodIndex))
+           methodIndex = GetNextDefmethod(theDefgeneric,methodIndex))
         {
          theMethod = GetDefmethodPointer(theDefgeneric,methodIndex);
          ResetProfileInfo((struct constructProfileInfo *)
-                          TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theMethod->usrData)); 
+                          TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theMethod->header.usrData));
         }
      }
 #endif
 
 #if OBJECT_SYSTEM
-   for (theDefclass = (DEFCLASS *) EnvGetNextDefclass(theEnv,NULL);
+   for (theDefclass = GetNextDefclass(theEnv,NULL);
         theDefclass != NULL;
-        theDefclass = (DEFCLASS *) EnvGetNextDefclass(theEnv,theDefclass))
+        theDefclass = GetNextDefclass(theEnv,theDefclass))
      {
       ResetProfileInfo((struct constructProfileInfo *)
-                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDefclass->header.usrData)); 
-      for (handlerIndex = EnvGetNextDefmessageHandler(theEnv,theDefclass,0);
+                       TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDefclass->header.usrData));
+      for (handlerIndex = GetNextDefmessageHandler(theDefclass,0);
            handlerIndex != 0;
-           handlerIndex = EnvGetNextDefmessageHandler(theEnv,theDefclass,handlerIndex))
+           handlerIndex = GetNextDefmessageHandler(theDefclass,handlerIndex))
         {
          theHandler = GetDefmessageHandlerPointer(theDefclass,handlerIndex);
          ResetProfileInfo((struct constructProfileInfo *)
-                          TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theHandler->usrData)); 
+                          TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theHandler->header.usrData));
         }
      }
 #endif
@@ -546,33 +534,33 @@ globle void ProfileResetCommand(
 /* ResetProfileInfo: Sets the initial values for */
 /*   a constructProfileInfo data structure.      */
 /*************************************************/
-globle void ResetProfileInfo(
+void ResetProfileInfo(
   struct constructProfileInfo *profileInfo)
   {
    if (profileInfo == NULL) return;
-   
+
    profileInfo->numberOfEntries = 0;
-   profileInfo->childCall = FALSE;
+   profileInfo->childCall = false;
    profileInfo->startTime = 0.0;
    profileInfo->totalSelfTime = 0.0;
    profileInfo->totalWithChildrenTime = 0.0;
   }
 
-/*************************************************/
-/* OutputUserFunctionsInfo:       */
-/*************************************************/
+/****************************/
+/* OutputUserFunctionsInfo: */
+/****************************/
 static void OutputUserFunctionsInfo(
-  void *theEnv)
+  Environment *theEnv)
   {
-   struct FunctionDefinition *theFunction;
+   struct functionDefinition *theFunction;
    int i;
 
    for (theFunction = GetFunctionList(theEnv);
         theFunction != NULL;
         theFunction = theFunction->next)
      {
-      OutputProfileInfo(theEnv,ValueToString(theFunction->callFunctionName),
-                        (struct constructProfileInfo *) 
+      OutputProfileInfo(theEnv,theFunction->callFunctionName->contents,
+                        (struct constructProfileInfo *)
                            TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,
                         theFunction->usrData),
                         NULL,NULL,NULL,NULL);
@@ -591,30 +579,30 @@ static void OutputUserFunctionsInfo(
      }
   }
 
-/*************************************************/
-/* OutputConstructsCodeInfo:       */
-/*************************************************/
+/*****************************/
+/* OutputConstructsCodeInfo: */
+/*****************************/
 static void OutputConstructsCodeInfo(
-  void *theEnv)
+  Environment *theEnv)
   {
 #if (! DEFFUNCTION_CONSTRUCT) && (! DEFGENERIC_CONSTRUCT) && (! OBJECT_SYSTEM) && (! DEFRULE_CONSTRUCT)
 #pragma unused(theEnv)
 #endif
 #if DEFFUNCTION_CONSTRUCT
-   DEFFUNCTION *theDeffunction;
+   Deffunction *theDeffunction;
 #endif
 #if DEFRULE_CONSTRUCT
-   struct defrule *theDefrule;
+   Defrule *theDefrule;
 #endif
 #if DEFGENERIC_CONSTRUCT
-   DEFGENERIC *theDefgeneric;
-   DEFMETHOD *theMethod;
-   unsigned methodIndex;
-   char methodBuffer[512];
+   Defgeneric *theDefgeneric;
+   Defmethod *theMethod;
+   unsigned short methodIndex;
+   StringBuilder *theSB;
 #endif
 #if OBJECT_SYSTEM
-   DEFCLASS *theDefclass;
-   HANDLER *theHandler;
+   Defclass *theDefclass;
+   DefmessageHandler *theHandler;
    unsigned handlerIndex;
 #endif
 #if DEFGENERIC_CONSTRUCT || OBJECT_SYSTEM
@@ -625,12 +613,12 @@ static void OutputConstructsCodeInfo(
    banner = "\n*** Deffunctions ***\n\n";
 
 #if DEFFUNCTION_CONSTRUCT
-   for (theDeffunction = (DEFFUNCTION *) EnvGetNextDeffunction(theEnv,NULL);
+   for (theDeffunction = GetNextDeffunction(theEnv,NULL);
         theDeffunction != NULL;
-        theDeffunction = (DEFFUNCTION *) EnvGetNextDeffunction(theEnv,theDeffunction))
+        theDeffunction = GetNextDeffunction(theEnv,theDeffunction))
      {
-      OutputProfileInfo(theEnv,EnvGetDeffunctionName(theEnv,theDeffunction),
-                        (struct constructProfileInfo *) 
+      OutputProfileInfo(theEnv,DeffunctionName(theDeffunction),
+                        (struct constructProfileInfo *)
                           TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDeffunction->header.usrData),
                         NULL,NULL,NULL,&banner);
      }
@@ -638,57 +626,59 @@ static void OutputConstructsCodeInfo(
 
    banner = "\n*** Defgenerics ***\n";
 #if DEFGENERIC_CONSTRUCT
-   for (theDefgeneric = (DEFGENERIC *) EnvGetNextDefgeneric(theEnv,NULL);
+   theSB = CreateStringBuilder(theEnv,512);
+   for (theDefgeneric = GetNextDefgeneric(theEnv,NULL);
         theDefgeneric != NULL;
-        theDefgeneric = (DEFGENERIC *) EnvGetNextDefgeneric(theEnv,theDefgeneric))
+        theDefgeneric = GetNextDefgeneric(theEnv,theDefgeneric))
      {
       prefixBefore = "\n";
-      prefix = EnvGetDefgenericName(theEnv,theDefgeneric);
+      prefix = DefgenericName(theDefgeneric);
       prefixAfter = "\n";
 
-      for (methodIndex = EnvGetNextDefmethod(theEnv,theDefgeneric,0);
+      for (methodIndex = GetNextDefmethod(theDefgeneric,0);
            methodIndex != 0;
-           methodIndex = EnvGetNextDefmethod(theEnv,theDefgeneric,methodIndex))
+           methodIndex = GetNextDefmethod(theDefgeneric,methodIndex))
         {
          theMethod = GetDefmethodPointer(theDefgeneric,methodIndex);
 
-         EnvGetDefmethodDescription(theEnv,methodBuffer,510,theDefgeneric,methodIndex);
-         if (OutputProfileInfo(theEnv,methodBuffer,
-                               (struct constructProfileInfo *) 
-                                  TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theMethod->usrData),
+         DefmethodDescription(theDefgeneric,methodIndex,theSB);
+         if (OutputProfileInfo(theEnv,theSB->contents,
+                               (struct constructProfileInfo *)
+                                  TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theMethod->header.usrData),
                                prefixBefore,prefix,prefixAfter,&banner))
            {
-            prefixBefore = NULL; 
-            prefix = NULL; 
+            prefixBefore = NULL;
+            prefix = NULL;
             prefixAfter = NULL;
            }
         }
      }
+   SBDispose(theSB);
 #endif
 
    banner = "\n*** Defclasses ***\n";
 #if OBJECT_SYSTEM
-   for (theDefclass = (DEFCLASS *) EnvGetNextDefclass(theEnv,NULL);
+   for (theDefclass = GetNextDefclass(theEnv,NULL);
         theDefclass != NULL;
-        theDefclass = (DEFCLASS *) EnvGetNextDefclass(theEnv,theDefclass))
+        theDefclass = GetNextDefclass(theEnv,theDefclass))
      {
       prefixAfter = "\n";
-      prefix = EnvGetDefclassName(theEnv,theDefclass);
+      prefix = DefclassName(theDefclass);
       prefixBefore = "\n";
-      
-      for (handlerIndex = EnvGetNextDefmessageHandler(theEnv,theDefclass,0);
+
+      for (handlerIndex = GetNextDefmessageHandler(theDefclass,0);
            handlerIndex != 0;
-           handlerIndex = EnvGetNextDefmessageHandler(theEnv,theDefclass,handlerIndex))
+           handlerIndex = GetNextDefmessageHandler(theDefclass,handlerIndex))
         {
          theHandler = GetDefmessageHandlerPointer(theDefclass,handlerIndex);
-         if (OutputProfileInfo(theEnv,EnvGetDefmessageHandlerName(theEnv,theDefclass,handlerIndex),
-                               (struct constructProfileInfo *) 
+         if (OutputProfileInfo(theEnv,DefmessageHandlerName(theDefclass,handlerIndex),
+                               (struct constructProfileInfo *)
                                   TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,
-                               theHandler->usrData),
+                               theHandler->header.usrData),
                                prefixBefore,prefix,prefixAfter,&banner))
            {
-            prefixBefore = NULL; 
-            prefix = NULL; 
+            prefixBefore = NULL;
+            prefix = NULL;
             prefixAfter = NULL;
            }
         }
@@ -699,12 +689,12 @@ static void OutputConstructsCodeInfo(
    banner = "\n*** Defrules ***\n\n";
 
 #if DEFRULE_CONSTRUCT
-   for (theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,NULL);
+   for (theDefrule = GetNextDefrule(theEnv,NULL);
         theDefrule != NULL;
-        theDefrule = (struct defrule *) EnvGetNextDefrule(theEnv,theDefrule))
+        theDefrule = GetNextDefrule(theEnv,theDefrule))
      {
-      OutputProfileInfo(theEnv,EnvGetDefruleName(theEnv,theDefrule),
-                        (struct constructProfileInfo *) 
+      OutputProfileInfo(theEnv,DefruleName(theDefrule),
+                        (struct constructProfileInfo *)
                           TestUserData(ProfileFunctionData(theEnv)->ProfileDataID,theDefrule->header.usrData),
                         NULL,NULL,NULL,&banner);
      }
@@ -716,46 +706,41 @@ static void OutputConstructsCodeInfo(
 /* SetProfilePercentThresholdCommand: H/L access routine */
 /*   for the set-profile-percent-threshold command.      */
 /*********************************************************/
-globle double SetProfilePercentThresholdCommand(
-  void *theEnv)
+void SetProfilePercentThresholdCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   DATA_OBJECT theValue;
+   UDFValue theValue;
    double newThreshold;
-   
-   if (EnvArgCountCheck(theEnv,"set-profile-percent-threshold",EXACTLY,1) == -1)
-     { return(ProfileFunctionData(theEnv)->PercentThreshold); }
 
-   if (EnvArgTypeCheck(theEnv,"set-profile-percent-threshold",1,INTEGER_OR_FLOAT,&theValue) == FALSE)
-      { return(ProfileFunctionData(theEnv)->PercentThreshold); }
+   if (! UDFFirstArgument(context,NUMBER_BITS,&theValue))
+     { return; }
 
-   if (GetType(theValue) == INTEGER)
-     { newThreshold = (double) DOToLong(theValue); }
-   else
-     { newThreshold = (double) DOToDouble(theValue); }
-     
+   newThreshold = CVCoerceToFloat(&theValue);
+
    if ((newThreshold < 0.0) || (newThreshold > 100.0))
-     { 
-      ExpectedTypeError1(theEnv,"set-profile-percent-threshold",1,
-                         "number in the range 0 to 100");
-      return(-1.0); 
+     {
+      UDFInvalidArgumentMessage(context,"number in the range 0 to 100");
+      returnValue->floatValue = CreateFloat(theEnv,-1.0);
      }
-
-   return(SetProfilePercentThreshold(theEnv,newThreshold));
+   else
+     { returnValue->floatValue = CreateFloat(theEnv,SetProfilePercentThreshold(theEnv,newThreshold)); }
   }
 
 /****************************************************/
 /* SetProfilePercentThreshold: C access routine for */
 /*   the set-profile-percent-threshold command.     */
 /****************************************************/
-globle double SetProfilePercentThreshold(
-  void *theEnv,
+double SetProfilePercentThreshold(
+  Environment *theEnv,
   double value)
   {
    double oldPercentThreshhold;
 
    if ((value < 0.0) || (value > 100.0))
      { return(-1.0); }
-     
+
    oldPercentThreshhold = ProfileFunctionData(theEnv)->PercentThreshold;
 
    ProfileFunctionData(theEnv)->PercentThreshold = value;
@@ -767,36 +752,36 @@ globle double SetProfilePercentThreshold(
 /* GetProfilePercentThresholdCommand: H/L access routine */
 /*   for the get-profile-percent-threshold command.      */
 /*********************************************************/
-globle double GetProfilePercentThresholdCommand(
-  void *theEnv)
-  {   
-   EnvArgCountCheck(theEnv,"get-profile-percent-threshold",EXACTLY,0);
-
-   return(ProfileFunctionData(theEnv)->PercentThreshold);
+void GetProfilePercentThresholdCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
+  {
+   returnValue->floatValue = CreateFloat(theEnv,ProfileFunctionData(theEnv)->PercentThreshold);
   }
 
 /****************************************************/
 /* GetProfilePercentThreshold: C access routine for */
 /*   the get-profile-percent-threshold command.     */
 /****************************************************/
-globle double GetProfilePercentThreshold(
-  void *theEnv)
+double GetProfilePercentThreshold(
+  Environment *theEnv)
   {
    return(ProfileFunctionData(theEnv)->PercentThreshold);
   }
-  
+
 /**********************************************************/
 /* SetProfileOutputString: Sets the output string global. */
 /**********************************************************/
-globle const char *SetProfileOutputString(
-  void *theEnv,
+const char *SetProfileOutputString(
+  Environment *theEnv,
   const char *value)
   {
    const char *oldOutputString;
 
    if (value == NULL)
      { return(ProfileFunctionData(theEnv)->OutputString); }
-     
+
    oldOutputString = ProfileFunctionData(theEnv)->OutputString;
 
    ProfileFunctionData(theEnv)->OutputString = value;
@@ -804,22 +789,23 @@ globle const char *SetProfileOutputString(
    return(oldOutputString);
   }
 
-#if (! RUN_TIME)  
+#if (! RUN_TIME)
 /******************************************************************/
 /* ProfileClearFunction: Profiling clear routine for use with the */
 /*   clear command. Removes user data attached to user functions. */
 /******************************************************************/
 static void ProfileClearFunction(
-  void *theEnv)
+  Environment *theEnv,
+  void *context)
   {
-   struct FunctionDefinition *theFunction;
+   struct functionDefinition *theFunction;
    int i;
 
    for (theFunction = GetFunctionList(theEnv);
         theFunction != NULL;
         theFunction = theFunction->next)
      {
-      theFunction->usrData = 
+      theFunction->usrData =
         DeleteUserData(theEnv,ProfileFunctionData(theEnv)->ProfileDataID,theFunction->usrData);
      }
 
@@ -827,7 +813,7 @@ static void ProfileClearFunction(
      {
       if (EvaluationData(theEnv)->PrimitivesArray[i] != NULL)
         {
-         EvaluationData(theEnv)->PrimitivesArray[i]->usrData = 
+         EvaluationData(theEnv)->PrimitivesArray[i]->usrData =
            DeleteUserData(theEnv,ProfileFunctionData(theEnv)->ProfileDataID,EvaluationData(theEnv)->PrimitivesArray[i]->usrData);
         }
      }

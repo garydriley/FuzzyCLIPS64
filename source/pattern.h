@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  11/01/16            */
    /*                                                     */
    /*                PATTERN HEADER FILE                  */
    /*******************************************************/
@@ -17,6 +17,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -29,46 +33,31 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Removed initial-fact and initial-object        */
+/*            support.                                       */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_pattern
 
+#pragma once
+
 #define _H_pattern
 
-#ifndef _STDIO_INCLUDED_
 #include <stdio.h>
-#define _STDIO_INCLUDED_
-#endif
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
+#include "entities.h"
 
-struct patternEntityRecord
-  {
-   struct entityRecord base;
-   void (*decrementBasisCount)(void *,void *);
-   void (*incrementBasisCount)(void *,void *);
-   void (*matchFunction)(void *,void *);
-   intBool (*synchronized)(void *,void *);
-   intBool (*isDeleted)(void *,void *);
-  };
-
-typedef struct patternEntityRecord PTRN_ENTITY_RECORD;
-typedef struct patternEntityRecord *PTRN_ENTITY_RECORD_PTR;
-
-struct patternEntity
-  {
-   struct patternEntityRecord *theInfo;
-   void *dependents;
-   unsigned busyCount;
-   unsigned long long timeTag;
-  };
-
-typedef struct patternEntity PATTERN_ENTITY;
-typedef struct patternEntity * PATTERN_ENTITY_PTR;
-
-struct patternParser;
 
 #ifndef _H_symbol
 #include "symbol.h"
@@ -95,26 +84,25 @@ struct patternParser
   {
    const char *name;
    struct patternEntityRecord *entityType;
-   int positionInArray;
-   int (*recognizeFunction)(SYMBOL_HN *);
-   struct lhsParseNode *(*parseFunction)(void *,const char *,struct token *);
-   int (*postAnalysisFunction)(void *,struct lhsParseNode *);
-   struct patternNodeHeader *(*addPatternFunction)(void *,struct lhsParseNode *);
-   void (*removePatternFunction)(void *,struct patternNodeHeader *);
+   unsigned short positionInArray;
+   bool (*recognizeFunction)(CLIPSLexeme *);
+   struct lhsParseNode *(*parseFunction)(Environment *,const char *,struct token *);
+   bool (*postAnalysisFunction)(Environment *,struct lhsParseNode *);
+   struct patternNodeHeader *(*addPatternFunction)(Environment *,struct lhsParseNode *);
+   void (*removePatternFunction)(Environment *,struct patternNodeHeader *);
    struct expr *(*genJNConstantFunction)(void *,struct lhsParseNode *,int);
-   void (*replaceGetJNValueFunction)(void *,struct expr *,struct lhsParseNode *,int);
-   struct expr *(*genGetJNValueFunction)(void *,struct lhsParseNode *,int);
-   struct expr *(*genCompareJNValuesFunction)(void *,struct lhsParseNode *,struct lhsParseNode *,int);
-   struct expr *(*genPNConstantFunction)(void *,struct lhsParseNode *);
-   void (*replaceGetPNValueFunction)(void *,struct expr *,struct lhsParseNode *);
-   struct expr *(*genGetPNValueFunction)(void *,struct lhsParseNode *);
-   struct expr *(*genComparePNValuesFunction)(void *,struct lhsParseNode *,struct lhsParseNode *);
-   void (*returnUserDataFunction)(void *,void *);
-   void *(*copyUserDataFunction)(void *,void *);
-   void (*markIRPatternFunction)(void *,struct patternNodeHeader *,int);
-   void (*incrementalResetFunction)(void *);
-   struct lhsParseNode *(*initialPatternFunction)(void *);
-   void (*codeReferenceFunction)(void *,void *,FILE *,int,int);
+   void (*replaceGetJNValueFunction)(Environment *,struct expr *,struct lhsParseNode *,int);
+   struct expr *(*genGetJNValueFunction)(Environment *,struct lhsParseNode *,int);
+   struct expr *(*genCompareJNValuesFunction)(Environment *,struct lhsParseNode *,struct lhsParseNode *,bool);
+   struct expr *(*genPNConstantFunction)(Environment *,struct lhsParseNode *);
+   void (*replaceGetPNValueFunction)(Environment *,struct expr *,struct lhsParseNode *);
+   struct expr *(*genGetPNValueFunction)(Environment *,struct lhsParseNode *);
+   struct expr *(*genComparePNValuesFunction)(Environment *,struct lhsParseNode *,struct lhsParseNode *);
+   void (*returnUserDataFunction)(Environment *,void *);
+   void *(*copyUserDataFunction)(Environment *,void *);
+   void (*markIRPatternFunction)(Environment *,struct patternNodeHeader *,bool);
+   void (*incrementalResetFunction)(Environment *);
+   void (*codeReferenceFunction)(Environment *,void *,FILE *,unsigned int,unsigned int);
    int priority;
    struct patternParser *next;
   };
@@ -131,14 +119,14 @@ struct reservedSymbol
 #define PATTERN_DATA 19
 
 struct patternData
-  { 
+  {
    struct patternParser *ListOfPatternParsers;
    struct patternParser *PatternParserArray[MAX_POSITIONS];
-   int NextPosition;
+   unsigned short NextPosition;
    struct reservedSymbol *ListOfReservedPatternSymbols;
-   int WithinNotCE;
-   int  GlobalSalience;
-   int GlobalAutoFocus;
+   bool WithinNotCE;
+   int GlobalSalience;
+   bool GlobalAutoFocus;
    struct expr *SalienceExpression;
    struct patternNodeHashEntry **PatternHashTable;
    unsigned long PatternHashTableSize;
@@ -150,35 +138,26 @@ struct patternData
 
 #define PatternData(theEnv) ((struct patternData *) GetEnvironmentData(theEnv,PATTERN_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _PATTERN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializePatterns(void *);
-   LOCALE int                            AddPatternParser(void *,struct patternParser *);
-   LOCALE struct patternParser          *FindPatternParser(void *,const char *);
-   LOCALE void                           DetachPattern(void *,int,struct patternNodeHeader *);
-   LOCALE void                           GetNextPatternEntity(void *,
-                                                              struct patternParser **,
-                                                              struct patternEntity **);
-   LOCALE struct patternParser          *GetPatternParser(void *,int);
-   LOCALE struct lhsParseNode           *RestrictionParse(void *,const char *,struct token *,int,
-                                                       struct symbolHashNode *,short,
-                                                       struct constraintRecord *,short);
-   LOCALE int                            PostPatternAnalysis(void *,struct lhsParseNode *);
-   LOCALE void                           PatternNodeHeaderToCode(void *,FILE *,struct patternNodeHeader *,int,int);
-   LOCALE void                           AddReservedPatternSymbol(void *,const char *,const char *);
-   LOCALE intBool                        ReservedPatternSymbol(void *,const char *,const char *);
-   LOCALE void                           ReservedPatternSymbolErrorMsg(void *,const char *,const char *);
-   LOCALE void                           AddHashedPatternNode(void *,void *,void *,unsigned short,void *);
-   LOCALE intBool                        RemoveHashedPatternNode(void *,void *,void *,unsigned short,void *);
-   LOCALE void                          *FindHashedPatternNode(void *,void *,unsigned short,void *);
+   void                           InitializePatterns(Environment *);
+   bool                           AddPatternParser(Environment *,struct patternParser *);
+   struct patternParser          *FindPatternParser(Environment *,const char *);
+   void                           DetachPattern(Environment *,unsigned short,struct patternNodeHeader *);
+   void                           GetNextPatternEntity(Environment *,
+                                                       struct patternParser **,
+                                                       struct patternEntity **);
+   struct patternParser          *GetPatternParser(Environment *,unsigned short);
+   struct lhsParseNode           *RestrictionParse(Environment *,const char *,struct token *,bool,
+                                                   CLIPSLexeme *,unsigned short,
+                                                   struct constraintRecord *,unsigned short);
+   bool                           PostPatternAnalysis(Environment *,struct lhsParseNode *);
+   void                           PatternNodeHeaderToCode(Environment *,FILE *,struct patternNodeHeader *,
+                                                          unsigned int,unsigned int);
+   void                           AddReservedPatternSymbol(Environment *,const char *,const char *);
+   bool                           ReservedPatternSymbol(Environment *,const char *,const char *);
+   void                           ReservedPatternSymbolErrorMsg(Environment *,const char *,const char *);
+   void                           AddHashedPatternNode(Environment *,void *,void *,unsigned short,void *);
+   bool                           RemoveHashedPatternNode(Environment *,void *,void *,unsigned short,void *);
+   void                          *FindHashedPatternNode(Environment *,void *,unsigned short,void *);
 
 #endif /* _H_pattern */
 

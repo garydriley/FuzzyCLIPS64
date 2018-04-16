@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*               RULE PARSING HEADER FILE              */
    /*******************************************************/
@@ -32,26 +32,28 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_rulepsr
+
+#pragma once
+
 #define _H_rulepsr
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE int                            ParseDefrule(void *,const char *);
-   LOCALE struct lhsParseNode           *FindVariable(struct symbolHashNode *,
-                                                      struct lhsParseNode *);
+   bool                           ParseDefrule(Environment *,const char *);
+   struct lhsParseNode           *FindVariable(CLIPSLexeme *,
+                                               struct lhsParseNode *);
 #if DEVELOPER && DEBUGGING_FUNCTIONS
-   LOCALE void                           DumpRuleAnalysis(void *,struct lhsParseNode *);
+   void                           DumpRuleAnalysis(Environment *,struct lhsParseNode *);
 #endif
 
 #endif /* _H_rulepsr */

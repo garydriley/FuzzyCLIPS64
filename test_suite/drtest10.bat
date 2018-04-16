@@ -390,6 +390,10 @@
     )
    =>)
 (assert (C (x 1)))
+(clear) ; Memory leak
+(deftemplate TAG (multislot attributes)))
+(assert (TAG))
+(modify 1 (attributes (create$)))
 (clear) ; Load Crash
 
 (defrule bug
@@ -537,4 +541,41 @@
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then 3)))))))))))))))))))))))))))))))))))))))))))
+(clear) ; Funcall module specifier #1
+
+(defmodule M
+  (export deffunction ?ALL))
+(deffunction foo (?x) (printout t ?x " in M" crlf))
+(defmodule MAIN)
+(deffunction foo (?x) (printout t ?x " in MAIN" crlf))
+(funcall foo bar)
+(funcall M::foo baz)
+(funcall MAIN::foo baz)
+(clear) ; Funcall module specifier #2
+
+(defmodule M
+  (export deffunction ?ALL))
+(deffunction foo (?x) (funcall ?x))
+(deffunction bar () (printout t "bar in M" crlf))
+(defmodule MAIN (export deffunction ?ALL))
+(deffunction bar () (printout t "bar in MAIN" crlf))
+(M::foo bar)
+(M::foo MAIN::bar)
+(M::foo M::bar)
+(clear) ; Funcall module specifier #3
+
+(defmodule M
+  (export deffunction ?ALL))
+(deffunction foo (?x) (funcall ?x))
+(deffunction bar () (printout t "bar in M" crlf))
+(defmodule MAIN)
+(deffunction bar () (printout t "bar in MAIN" crlf))
+(M::foo bar)
+(M::foo MAIN::bar)
+(M::foo M::bar)
+(clear) ; Foreach bug
+(foreach ?a (create$ a b c)
+            (foreach ?b (create$ x y) (printout t ?a " " ?b crlf)))
+(progn$ (?a (create$ a b c)) 
+            (progn$ (?b (create$ x y)) (printout t ?a " " ?b crlf)))
 (clear)

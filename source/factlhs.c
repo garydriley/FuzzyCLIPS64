@@ -1,18 +1,17 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  07/30/16             */
    /*                                                     */
-   /*            FACT LHS PATTERN PARSING MODULE          */
+   /*           FACT LHS PATTERN PARSING MODULE           */
    /*******************************************************/
 
 /*************************************************************/
 /* Purpose: Contains routines for integration of ordered and */
 /*   deftemplate fact patterns with the defrule LHS pattern  */
 /*   parser including routines for recognizing fact          */
-/*   patterns, parsing ordered fact patterns, initiating the */
-/*   parsing of deftemplate fact patterns, and creating the  */
-/*   default initial-fact fact pattern.                      */
+/*   patterns, parsing ordered fact patterns, and initiating */
+/*   the parsing of deftemplate fact patterns.               */
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Gary D. Riley                                        */
@@ -30,28 +29,36 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Removed initial-fact support.                  */
+/*                                                           */
 /*************************************************************/
-
-#define _FACTLHS_SOURCE_
 
 #include "setup.h"
 
 #if DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT && (! RUN_TIME) && (! BLOAD_ONLY)
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "cstrcpsr.h"
 #include "envrnmnt.h"
+#include "modulpsr.h"
+#include "modulutl.h"
 #include "pattern.h"
-#include "router.h"
+#include "pprint.h"
+#include "prntutil.h"
 #include "reorder.h"
-#include "tmpltpsr.h"
+#include "router.h"
 #include "tmpltdef.h"
 #include "tmpltlhs.h"
+#include "tmpltpsr.h"
 #include "tmpltutl.h"
-#include "modulutl.h"
-#include "modulpsr.h"
 
 #include "factlhs.h"
 
@@ -62,8 +69,8 @@
 /*   <ordered-fact-pattern-CE>                 */
 /*             ::= (<symbol> <constraint>+)    */
 /***********************************************/
-globle struct lhsParseNode *SequenceRestrictionParse(
-  void *theEnv,
+struct lhsParseNode *SequenceRestrictionParse(
+  Environment *theEnv,
   const char *readSource,
   struct token *theToken)
   {
@@ -75,16 +82,16 @@ globle struct lhsParseNode *SequenceRestrictionParse(
    /*================================================*/
 
    topNode = GetLHSParseNode(theEnv);
-   topNode->type = SF_WILDCARD;
-   topNode->negated = FALSE;
-   topNode->exists = FALSE;
-   topNode->index = -1;
+   topNode->pnType = SF_WILDCARD_NODE;
+   topNode->negated = false;
+   topNode->exists = false;
+   topNode->index = NO_INDEX;
    topNode->slotNumber = 1;
    topNode->bottom = GetLHSParseNode(theEnv);
-   topNode->bottom->type = SYMBOL;
-   topNode->bottom->negated = FALSE;
-   topNode->bottom->exists = FALSE;
-   topNode->bottom->value = (void *) theToken->value;
+   topNode->bottom->pnType = SYMBOL_NODE;
+   topNode->bottom->negated = false;
+   topNode->bottom->exists = false;
+   topNode->bottom->value = theToken->value;
 
    /*======================================================*/
    /* Connective constraints cannot be used in conjunction */
@@ -93,11 +100,12 @@ globle struct lhsParseNode *SequenceRestrictionParse(
 
    SavePPBuffer(theEnv," ");
    GetToken(theEnv,readSource,theToken);
-   if ((theToken->type == OR_CONSTRAINT) || (theToken->type == AND_CONSTRAINT))
+   if ((theToken->tknType == OR_CONSTRAINT_TOKEN) ||
+       (theToken->tknType == AND_CONSTRAINT_TOKEN))
      {
       ReturnLHSParseNodes(theEnv,topNode);
       SyntaxErrorMessage(theEnv,"the first field of a pattern");
-      return(NULL);
+      return NULL;
      }
 
    /*============================================================*/
@@ -105,11 +113,11 @@ globle struct lhsParseNode *SequenceRestrictionParse(
    /* as if they were contained in a multifield slot.            */
    /*============================================================*/
 
-   nextField = RestrictionParse(theEnv,readSource,theToken,TRUE,NULL,1,NULL,1);
+   nextField = RestrictionParse(theEnv,readSource,theToken,true,NULL,1,NULL,1);
    if (nextField == NULL)
      {
       ReturnLHSParseNodes(theEnv,topNode);
-      return(NULL);
+      return NULL;
      }
    topNode->right = nextField;
 
@@ -117,14 +125,14 @@ globle struct lhsParseNode *SequenceRestrictionParse(
    /* The pattern must end with a right parenthesis. */
    /*================================================*/
 
-   if (theToken->type != RPAREN)
+   if (theToken->tknType != RIGHT_PARENTHESIS_TOKEN)
      {
       PPBackup(theEnv);
       SavePPBuffer(theEnv," ");
       SavePPBuffer(theEnv,theToken->printForm);
       SyntaxErrorMessage(theEnv,"fact patterns");
       ReturnLHSParseNodes(theEnv,topNode);
-      return(NULL);
+      return NULL;
      }
 
    /*====================================*/
@@ -146,55 +154,6 @@ globle struct lhsParseNode *SequenceRestrictionParse(
    return(topNode);
   }
 
-/****************************************************************/
-/* CreateInitialFactPattern: Creates the pattern (initial-fact) */
-/*   for use in rules which have no LHS patterns.               */
-/****************************************************************/
-globle struct lhsParseNode *CreateInitialFactPattern(
-  void *theEnv)
-  {
-   struct lhsParseNode *topNode;
-   struct deftemplate *theDeftemplate;
-   int count;
-   
-   /*==================================*/
-   /* If the initial-fact deftemplate  */
-   /* doesn't exist, then create it.   */
-   /*==================================*/
-
-   theDeftemplate = (struct deftemplate *)
-                    FindImportedConstruct(theEnv,"deftemplate",NULL,"initial-fact",
-                                          &count,TRUE,NULL);
-   if (theDeftemplate == NULL)
-     {
-      PrintWarningID(theEnv,"FACTLHS",1,FALSE);
-      EnvPrintRouter(theEnv,WWARNING,"Creating implied initial-fact deftemplate in module ");
-      EnvPrintRouter(theEnv,WWARNING,EnvGetDefmoduleName(theEnv,EnvGetCurrentModule(theEnv)));
-      EnvPrintRouter(theEnv,WWARNING,".\n");
-      EnvPrintRouter(theEnv,WWARNING,"  You probably want to import this deftemplate from the MAIN module.\n");
-      CreateImpliedDeftemplate(theEnv,(SYMBOL_HN *) EnvAddSymbol(theEnv,"initial-fact"),FALSE);
-     }
-
-   /*====================================*/
-   /* Create the (initial-fact) pattern. */
-   /*====================================*/
-
-   topNode = GetLHSParseNode(theEnv);
-   topNode->type = SF_WILDCARD;
-   topNode->index = 0;
-   topNode->slotNumber = 1;
-
-   topNode->bottom = GetLHSParseNode(theEnv);
-   topNode->bottom->type = SYMBOL;
-   topNode->bottom->value = (void *) EnvAddSymbol(theEnv,"initial-fact");
-
-   /*=====================*/
-   /* Return the pattern. */
-   /*=====================*/
-
-   return(topNode);
-  }
-
 /**********************************************************************/
 /* FactPatternParserFind: This function is the pattern find function  */
 /*   for facts. It tells the pattern parsing code that the specified  */
@@ -203,50 +162,50 @@ globle struct lhsParseNode *CreateInitialFactPattern(
 /*   all patterns begin with a symbol, it follows that all patterns   */
 /*   can be parsed as a fact pattern.                                 */
 /**********************************************************************/
-globle int FactPatternParserFind(
-  SYMBOL_HN *theRelation)
+bool FactPatternParserFind(
+  CLIPSLexeme *theRelation)
   {
 #if MAC_XCD
 #pragma unused(theRelation)
 #endif
-   return(TRUE);
+   return true;
   }
 
 /******************************************************/
 /* FactPatternParse: This function is called to parse */
 /*  both deftemplate and ordered fact patterns.       */
 /******************************************************/
-globle struct lhsParseNode *FactPatternParse(
-  void *theEnv,
+struct lhsParseNode *FactPatternParse(
+  Environment *theEnv,
   const char *readSource,
   struct token *theToken)
   {
-   struct deftemplate *theDeftemplate;
-   int count;
+   Deftemplate *theDeftemplate;
+   unsigned int count;
 
    /*=========================================*/
    /* A module separator can not be included  */
    /* as part of the pattern's relation name. */
    /*=========================================*/
 
-   if (FindModuleSeparator(ValueToString(theToken->value)))
+   if (FindModuleSeparator(theToken->lexemeValue->contents))
      {
       IllegalModuleSpecifierMessage(theEnv);
-      return(NULL);
+      return NULL;
      }
 
    /*=========================================================*/
    /* Find the deftemplate associated with the relation name. */
    /*=========================================================*/
 
-   theDeftemplate = (struct deftemplate *)
-                    FindImportedConstruct(theEnv,"deftemplate",NULL,ValueToString(theToken->value),
-                                          &count,TRUE,NULL);
+   theDeftemplate = (Deftemplate *)
+                    FindImportedConstruct(theEnv,"deftemplate",NULL,theToken->lexemeValue->contents,
+                                          &count,true,NULL);
 
    if (count > 1)
      {
-      AmbiguousReferenceErrorMessage(theEnv,"deftemplate",ValueToString(theToken->value));
-      return(NULL);
+      AmbiguousReferenceErrorMessage(theEnv,"deftemplate",theToken->lexemeValue->contents);
+      return NULL;
      }
 
    /*======================================================*/
@@ -257,15 +216,15 @@ globle struct lhsParseNode *FactPatternParse(
    if (theDeftemplate == NULL)
      {
 #if DEFMODULE_CONSTRUCT
-      if (FindImportExportConflict(theEnv,"deftemplate",((struct defmodule *) EnvGetCurrentModule(theEnv)),ValueToString(theToken->value)))
+      if (FindImportExportConflict(theEnv,"deftemplate",GetCurrentModule(theEnv),theToken->lexemeValue->contents))
         {
-         ImportExportConflictMessage(theEnv,"implied deftemplate",ValueToString(theToken->value),NULL,NULL);
-         return(NULL);
+         ImportExportConflictMessage(theEnv,"implied deftemplate",theToken->lexemeValue->contents,NULL,NULL);
+         return NULL;
         }
 #endif /* DEFMODULE_CONSTRUCT */
 
       if (! ConstructData(theEnv)->CheckSyntaxMode)
-        { theDeftemplate = CreateImpliedDeftemplate(theEnv,(SYMBOL_HN *) theToken->value,TRUE); }
+        { theDeftemplate = CreateImpliedDeftemplate(theEnv,theToken->lexemeValue,true); }
       else
         { theDeftemplate = NULL; }
      }
@@ -275,7 +234,7 @@ globle struct lhsParseNode *FactPatternParse(
    /* the pattern as a deftemplate pattern.         */
    /*===============================================*/
 
-   if ((theDeftemplate != NULL) && (theDeftemplate->implied == FALSE))
+   if ((theDeftemplate != NULL) && (theDeftemplate->implied == false))
      { return(DeftemplateLHSParse(theEnv,readSource,theDeftemplate)); }
 
    /*================================*/

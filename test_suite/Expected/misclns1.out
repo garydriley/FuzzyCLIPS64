@@ -22,7 +22,7 @@ FuzzyCLIPS> (defrule foo
   (declare (salience ?*my-salience*)) =>)
 [GLOBLDEF1] Global variable ?*my-salience* is unbound.
 
-[PRNTUTIL8] This error occurred while evaluating the salience for defrule foo.
+[PRNTUTIL8] This error occurred while evaluating the salience for defrule 'foo'.
 
 ERROR:
 (defrule MAIN::foo
@@ -103,32 +103,27 @@ FuzzyCLIPS> (assert (yak (x a b c)))
 <Fact-1>
 FuzzyCLIPS> (assert (yak (x a b 1)))
 
-[CSTRNCHK1] A literal slot value found in the assert command
-does not match the allowed types for slot x.
+[CSTRNCHK1] A literal slot value found in the 'assert' command does not match the allowed types for slot 'x'.
 FuzzyCLIPS> (assert (yak (x 1 b 1)))
 
-[CSTRNCHK1] A literal slot value found in the assert command
-does not match the allowed types for slot x.
+[CSTRNCHK1] A literal slot value found in the 'assert' command does not match the allowed types for slot 'x'.
 FuzzyCLIPS> (assert (yak (x a b)))
 
-[CSTRNCHK1] Literal slot values found in the assert command
-does not satisfy the cardinality restrictions for slot x.
+[CSTRNCHK1] Literal slot values found in the 'assert' command does not satisfy the cardinality restrictions for slot 'x'.
 FuzzyCLIPS> (assert (yak (x a b c d e f)))
 
-[CSTRNCHK1] Literal slot values found in the assert command
-does not satisfy the cardinality restrictions for slot x.
+[CSTRNCHK1] Literal slot values found in the 'assert' command does not satisfy the cardinality restrictions for slot 'x'.
 FuzzyCLIPS> (assert (yak (x a b c d e f g 1)))
 
-[CSTRNCHK1] Literal slot values found in the assert command
-does not satisfy the cardinality restrictions for slot x.
+[CSTRNCHK1] Literal slot values found in the 'assert' command does not satisfy the cardinality restrictions for slot 'x'.
 FuzzyCLIPS> (clear) ; Test Begin
 FuzzyCLIPS> (defrule foo (x ? ? ? ? ?) =>)
 FuzzyCLIPS> (defrule bar (x ? ? ? ? ?x&:(> ?x 3)) =>)
 FuzzyCLIPS> (deffacts yak (x a a a a abc))
 FuzzyCLIPS> (reset)
-[ARGACCES5] Function > expected argument #1 to be of type integer or float
+[ARGACCES2] Function '>' expected argument #1 to be of type integer or float.
 
-[FACTMCH1] This error occurred in the fact pattern network
+[FACTMCH1] This error occurred in the fact pattern network.
    Currently active fact: (x a a a a abc) CF 1.00 
    Problem resides in field #5
       Of pattern #1 in rule bar
@@ -138,9 +133,9 @@ FuzzyCLIPS> (defrule foo (x ?) =>)
 FuzzyCLIPS> (defrule bar (x ?x&:(> ?x 3)) =>)
 FuzzyCLIPS> (deffacts yak (x abc))
 FuzzyCLIPS> (reset)
-[ARGACCES5] Function > expected argument #1 to be of type integer or float
+[ARGACCES2] Function '>' expected argument #1 to be of type integer or float.
 
-[FACTMCH1] This error occurred in the fact pattern network
+[FACTMCH1] This error occurred in the fact pattern network.
    Currently active fact: (x abc) CF 1.00 
    Problem resides in field #1
       Of pattern #1 in rule bar
@@ -151,9 +146,9 @@ FuzzyCLIPS> (defrule foo (x (t ?)) =>)
 FuzzyCLIPS> (defrule bar (x (t ?x&:(> ?x 3))) =>)
 FuzzyCLIPS> (deffacts yak (x (t abc)))
 FuzzyCLIPS> (reset)
-[ARGACCES5] Function > expected argument #1 to be of type integer or float
+[ARGACCES2] Function '>' expected argument #1 to be of type integer or float.
 
-[FACTMCH1] This error occurred in the fact pattern network
+[FACTMCH1] This error occurred in the fact pattern network.
    Currently active fact: (x (q nil) (r nil) (s nil) (t abc)) CF 1.00 
    Problem resides in slot t
       Of pattern #1 in rule bar
@@ -195,8 +190,7 @@ FuzzyCLIPS> (deftemplate bar
    (field z (type FLOAT)))
 FuzzyCLIPS> (defrule bad-1 (foo (x ?x) (y ?x)) =>)
 
-[RULECSTR1] Variable ?x in CE #1 slot y
-has constraint conflicts which make the pattern unmatchable.
+[RULECSTR1] Variable ?x in CE #1 slot 'y' has constraint conflicts which make the pattern unmatchable.
 
 ERROR:
 (defrule MAIN::bad-1
@@ -204,8 +198,7 @@ ERROR:
    =>)
 FuzzyCLIPS> (defrule bad-2 (foo (x ?x)) (bar (y ?x)) =>)
 
-[RULECSTR1] Variable ?x in CE #2 slot y
-has constraint conflicts which make the pattern unmatchable.
+[RULECSTR1] Variable ?x in CE #2 slot 'y' has constraint conflicts which make the pattern unmatchable.
 
 ERROR:
 (defrule MAIN::bad-2
@@ -214,8 +207,7 @@ ERROR:
    =>)
 FuzzyCLIPS> (defrule bad-3 (foo (x ?x) (y ?y)) (bar (z ?x | ?y)) =>)
 
-[RULECSTR1] Pattern #2 slot z
-has constraint conflicts which make the pattern unmatchable.
+[RULECSTR1] Pattern #2 slot 'z' has constraint conflicts which make the pattern unmatchable.
 
 ERROR:
 (defrule MAIN::bad-3
@@ -231,7 +223,7 @@ FuzzyCLIPS> (defrule fin
 FuzzyCLIPS> (clear) ; Test Begin
 FuzzyCLIPS> (deftemplate foo1 (field x (cardinality 3 4)))
 
-[CSTRNPSR5] The cardinality attribute can only be used with multifield slots.
+[CSTRNPSR5] The 'cardinality' attribute can only be used with multifield slots.
 
 ERROR:
 (deftemplate MAIN::foo1
@@ -245,8 +237,7 @@ ERROR:
    (multifield x (cardinality 3.0
 FuzzyCLIPS> (deftemplate foo3 (multifield x (cardinality 6 4)))
 
-[CSTRNPSR2] Minimum cardinality value must be less than
-or equal to the maximum cardinality value
+[CSTRNPSR2] Minimum 'cardinality' value must be less than or equal to the maximum 'cardinality' value.
 
 ERROR:
 (deftemplate MAIN::foo3

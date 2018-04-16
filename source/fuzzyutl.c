@@ -89,26 +89,23 @@
     Local Internal Function Declarations
  ******************************************************************/
  
-   static struct   fuzzy_value *horizontal_union(void *theEnv, struct fuzzy_value *fv,
+   static struct   fuzzy_value *horizontal_union(Environment *theEnv, struct fuzzy_value *fv,
                                            double yvalue );
-   static struct   fuzzy_value *horizontal_intersection(void *theEnv, struct fuzzy_value *fv,
+   static struct   fuzzy_value *horizontal_intersection(Environment *theEnv, struct fuzzy_value *fv,
                                            double yvalue );
-   static struct   fuzzy_value *max_prod_scale(void *theEnv, struct fuzzy_value *fv,
+   static struct   fuzzy_value *max_prod_scale(Environment *theEnv, struct fuzzy_value *fv,
                                            double yvalue );
-   static struct   fuzzy_value *horizontal_union_or_intersection(void *theEnv,struct fuzzy_value *fv,
+   static struct   fuzzy_value *horizontal_union_or_intersection(Environment *theEnv,struct fuzzy_value *fv,
                                  double yvalue, int unionFlg);
    static void     concatenate ( double *set1x, double *set1y, int length1,
                                  double *set2x, double *set2y, int length2,
                                  struct fuzzy_value *newValue );
-   static void     standardize ( double *oldsetx, double *oldsety, int oldlength, 
-                                 double *newValuex, double *newValuey, int *newlength, 
-                                 double min, double max);
    static int      line_segment_intersection( double xP, double yP, double xQ, double yQ,
                                  double xR, double yR, double xS, double yS,
                                  double *x, double *y );
-   static void     STORE_THE_POINT(void *theEnv, struct fuzzy_value *result,
+   static void     STORE_THE_POINT(Environment *theEnv, struct fuzzy_value *result,
                                     double xval, double yval );
-   static void     computeMinOfMaxmins(void *theEnv);
+   static void     computeMinOfMaxmins(Environment *theEnv);
 
 
 /******************************************************************
@@ -142,7 +139,7 @@
 /*   V u (x) = 1 - u (x)                                         */
 /*    x f           f                                            */
 /*****************************************************************/
-globle void fcompliment(
+void fcompliment(
   struct fuzzy_value *fv)
 {
     int i;
@@ -322,7 +319,7 @@ static int line_segment_intersection(
 *******************************************************************/
 
 
-globle int FZ_EQUAL(
+int FZ_EQUAL(
    double f1, 
    double f2)
 {
@@ -338,7 +335,7 @@ globle int FZ_EQUAL(
  *********************************************************************/
 
 static void STORE_THE_POINT(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *result,
   double xval, 
   double yval)
@@ -350,7 +347,7 @@ static void STORE_THE_POINT(
   if (i >= result->maxn)
     { /* exceeding space allocated for the array of points */
       SystemError(theEnv,"FUZZYUTL - STORE_THE_POINT routine", 903);
-      EnvExitRouter(theEnv,2);
+      ExitRouter(theEnv,2);
     }
     
   /* if yvalue is > 1.0 or < 0.0 could be a rounding problem -- set to 0 or 1 */
@@ -369,8 +366,8 @@ static void STORE_THE_POINT(
      {
        if ( (resultX[i-1] - xval) > FUZZY_TOLERANCE )
          {
-           EnvPrintRouter(theEnv,WERROR,"[FUZZYUTL] Attempt to insert point with smaller x value in 'STORE_THE_POINT'\n");
-           EnvPrintRouter(theEnv,WERROR,"           WARNING: Possible internal error\n");
+           WriteString(theEnv,STDERR,"[FUZZYUTL] Attempt to insert point with smaller x value in 'STORE_THE_POINT'\n");
+           WriteString(theEnv,STDERR,"           WARNING: Possible internal error\n");
            return;  /* do NOT insert */
          }
 
@@ -438,13 +435,13 @@ static void STORE_THE_POINT(
     returns the maximum y value of the intersection of two fuzzy sets
 
  *********************************************************************/
-globle double max_of_min(
-  void *theEnv,
+double max_of_min(
+  Environment *theEnv,
   struct fuzzy_value *f1,
   struct fuzzy_value *f2)
-{
-  return( maxmin_intersect(theEnv,f1, f2, FALSE, NULL) );
-}
+  {
+   return maxmin_intersect(theEnv,f1,f2,false,NULL);
+  }
 
 
 /*********************************************************************
@@ -453,17 +450,17 @@ globle double max_of_min(
     returns the intersection of two fuzzy sets
 
  *********************************************************************/
-globle struct fuzzy_value *fintersect(
-  void *theEnv,
+struct fuzzy_value *fintersect(
+  Environment *theEnv,
   struct fuzzy_value *f1,
   struct fuzzy_value *f2)
-{
-  struct fuzzy_value *intersectSet;
+  {
+   struct fuzzy_value *intersectSet;
 
-  maxmin_intersect(theEnv,f1, f2, TRUE, &intersectSet);
-  return( intersectSet );
-
-}
+   maxmin_intersect(theEnv,f1, f2, true, &intersectSet);
+   
+   return intersectSet;
+  }
 
 /********************************************************************
     findOverlapMaxYvalue(ay1, ay2, by1, by2)
@@ -529,8 +526,8 @@ static double findOverlapMaxYvalue(
     maxmin_intersect()
 
     returns the maximum y value and if the argument DoIntersect is 
-    TRUE then also returns the intersection set address via the 
-    argument intersectSet. If DoIntersect is FALSE then no intersection
+    true then also returns the intersection set address via the 
+    argument intersectSet. If DoIntersect is false then no intersection
     set is created.
 
     Assume that Alength and Blength are both >= 1
@@ -543,8 +540,8 @@ static double findOverlapMaxYvalue(
     in the "name" field of the resulting fuzzy value
 
  *********************************************************************/
-globle double maxmin_intersect(
-  void *theEnv,
+double maxmin_intersect(
+  Environment *theEnv,
   struct fuzzy_value *f1,
   struct fuzzy_value *f2,
   int DoIntersect,
@@ -561,8 +558,8 @@ globle double maxmin_intersect(
   int Aindex, Bindex;
   int intersectFlag;
   int i, size;
-  struct fuzzy_value *result;
-  
+  struct fuzzy_value *result = NULL;
+
   /* extract the sets from the Fuzzy values */
   Ax = f1->x;
   Ay = f1->y;
@@ -758,7 +755,7 @@ globle double maxmin_intersect(
        and therefore NO other pt after this on the intersection
        boundary can be above this -- so any current max will remain
        the max! NOTE: if we are finding the intersection set as well as
-       the max we cannot stop here (ie. when DoIntersect flag is TRUE)
+       the max we cannot stop here (ie. when DoIntersect flag is true)
 
   */
   
@@ -1289,14 +1286,12 @@ globle double maxmin_intersect(
     line and a fuzzy set.
  **************************************************************/
 static struct fuzzy_value *horizontal_union(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv,
   double yvalue)
-{
-  return( horizontal_union_or_intersection(theEnv,fv, yvalue, TRUE) );
-}
-
-
+  {
+   return( horizontal_union_or_intersection(theEnv,fv, yvalue, true) );
+  }
 
 /**************************************************************
     max_prod_scale 
@@ -1310,7 +1305,7 @@ static struct fuzzy_value *horizontal_union(
       
  **************************************************************/
 static struct fuzzy_value *max_prod_scale(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv,
   double yvalue)
 {
@@ -1346,8 +1341,6 @@ static struct fuzzy_value *max_prod_scale(
   
 }
 
-
-
 /**************************************************************
     horizontal_intersection ()
 
@@ -1355,14 +1348,12 @@ static struct fuzzy_value *max_prod_scale(
     line and a fuzzy set.
  **************************************************************/
 static struct fuzzy_value *horizontal_intersection(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv,
   double yvalue)
-{
-  return( horizontal_union_or_intersection(theEnv,fv, yvalue, FALSE) );
-}
-
-
+  {
+   return( horizontal_union_or_intersection(theEnv,fv, yvalue, false) );
+  }
 
 /*****************************************************************
     horizontal_union_or_intersection ()
@@ -1373,7 +1364,7 @@ static struct fuzzy_value *horizontal_intersection(
     If unionFlg is true return a union else return an intersection
  *****************************************************************/
 static struct fuzzy_value *horizontal_union_or_intersection(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv,
   double yvalue,
   int unionFlg)
@@ -1543,8 +1534,8 @@ static struct fuzzy_value *horizontal_union_or_intersection(
     in the "name" field of the resulting fuzzy value
 
  *********************************************************************/
-globle struct fuzzy_value *funion(
-  void *theEnv,
+struct fuzzy_value *funion(
+  Environment *theEnv,
   struct fuzzy_value *f1,
   struct fuzzy_value *f2)
 {
@@ -2088,13 +2079,13 @@ globle struct fuzzy_value *funion(
 /************************************************************************
     nonintersectiontest()
 
-    returns TRUE if the intersection set of A and B is NULL set, 
+    returns true if the intersection set of A and B is NULL set, 
     (i.e. no overlapping region), or if either set A or B have
     all y values equal to zero.
 
     NOTE: will return true if even 1 point in common
  ************************************************************************/
-globle int nonintersectiontest ( 
+int nonintersectiontest ( 
   double *Ax, 
   double *Ay, 
   double *Bx, 
@@ -2151,19 +2142,19 @@ globle int nonintersectiontest (
         lastBiszero  = (By[Bsize-1] == 0.0);
           
         if ((Bx[Bsize-1] < Ax[0]) && firstAiszero && lastBiszero)
-           return( TRUE );
+           return( true );
           
         if ((Bx[Bsize-1] == Ax[0]) && firstAiszero && lastBiszero)
            /* the beginning of A and end of B touch */
           {
-            firstAisnonzero = FALSE;
-            lastBisnonzero = FALSE;
+            firstAisnonzero = false;
+            lastBisnonzero = false;
             for (i=1; i<Asize; i++)
              {
               if (Ax[i] != Ax[0]) break;
               if (Ay[i] != 0.0)
                 {
-                  firstAisnonzero = TRUE;
+                  firstAisnonzero = true;
                   break;
                 }
              }
@@ -2172,31 +2163,31 @@ globle int nonintersectiontest (
               if (Bx[i] != Bx[Bsize-1]) break;
               if (By[i] != 0.0)
                 {
-                  lastBisnonzero = TRUE;
+                  lastBisnonzero = true;
                   break;
                 }
              }
             if (!firstAisnonzero || !lastBisnonzero)
-              return( TRUE );
+              return( true );
           }
 
         firstBiszero = (By[0] == 0.0);
         lastAiszero  = (Ay[Asize-1] == 0.0);
          
         if ((Ax[Asize-1] < Bx[0]) && firstBiszero && lastAiszero)
-           return( TRUE );
+           return( true );
           
         if ((Ax[Asize-1] == Bx[0]) && firstBiszero && lastAiszero)
            /* the beginning of B and end of A touch */
            {
-            firstBisnonzero = FALSE;
-            lastAisnonzero = FALSE;
+            firstBisnonzero = false;
+            lastAisnonzero = false;
             for (i=1; i<Bsize; i++)
              {
               if (Bx[i] != Bx[0]) break;
               if (By[i] != 0.0)
                 {
-                  firstBisnonzero = TRUE;
+                  firstBisnonzero = true;
                   break;
                 }
              }
@@ -2205,41 +2196,41 @@ globle int nonintersectiontest (
               if (Ax[i] != Ax[Asize-1]) break;
               if (Ay[i] != 0.0)
                 {
-                  lastAisnonzero = TRUE;
+                  lastAisnonzero = true;
                   break;
                 }
              }
             if (!firstBisnonzero || !lastAisnonzero)
-              return( TRUE );
+              return( true );
           }
       }
 
     /*******************************************************
     Sets may overlap unless either set contains all zero y
-    values -- then no intersection occurs, and return TRUE.
+    values -- then no intersection occurs, and return true.
     ********************************************************/
     count = 0;
-    allzeros_A = TRUE;
+    allzeros_A = true;
     while ( count < Asize )
       {
         if (Ay[count] > 0.0 )
           {
-            allzeros_A = FALSE;
+            allzeros_A = false;
             break;
           }
         count++;
       }
     if (allzeros_A)
-        return TRUE; /* set A all zeros -- no intersection */
+        return true; /* set A all zeros -- no intersection */
     
     count = 0;
     while ( count < Bsize )
       {
         if (By[count] > 0.0)
-            return FALSE; /* a non-zero -- sets overlap */
+            return false; /* a non-zero -- sets overlap */
         count++;
       }
-    return TRUE; /* set B all zeros -- no intersection */
+    return true; /* set B all zeros -- no intersection */
 }
 
 
@@ -2299,7 +2290,7 @@ static void concatenate (
 /*     -- and ONLY for FUZZY_FUZZY rules                           */
 /*******************************************************************/
 static void computeMinOfMaxmins(
-  void *theEnv)
+  Environment *theEnv)
   {
     struct genericMatch *antecedent_binds;
     double currenty, minimumy;
@@ -2358,11 +2349,9 @@ static void computeMinOfMaxmins(
                     /* this pattern has a fuzzy slot */
                     slotNum = patFvArrayPtrj->slotNum;
                     /* get FV for pattern and the matching FV in the fact */
-                    antecedent_fv = (struct fuzzy_value *) 
-                            ValueToFuzzyValue(patFvArrayPtrj->fvhnPtr); 
+                    antecedent_fv =  patFvArrayPtrj->fvhnPtr->contents;
                     
-                    fact_fv = (struct fuzzy_value *)
-                              ValueToFuzzyValue((tmpFact->theProposition.theFields[slotNum].value));
+                    fact_fv = tmpFact->theProposition.contents[slotNum].fuzzyValue->contents;
                    
                     currenty = max_of_min (theEnv,fact_fv,  antecedent_fv);
  
@@ -2391,13 +2380,13 @@ static void computeMinOfMaxmins(
 /*      deinstall it (or the fuzzy value in it)                    */
 /*   ALSO always make a copy of the fuzzy value to operate on      */
 /*******************************************************************/
-globle void computeFuzzyConsequence(
-  void *theEnv,
+void computeFuzzyConsequence(
+  Environment *theEnv,
   struct fact *new_fact)
   {
     struct fuzzy_value *consequence, *conclusion;
-    struct field  *elem;
-    int i, length;
+    CLIPSValue *elem;
+    size_t i, length;
    
     /**********************************************************
      check if the fuzzy rhs pattern is being processed rather 
@@ -2433,18 +2422,17 @@ globle void computeFuzzyConsequence(
         if ( EngineData(theEnv)->ExecutingRule->min_of_maxmins != 1.0 ) /* no change necessary if min is 1.0 */
           {
             /* get pointers to the fields of the facts */
-            length = (&new_fact->theProposition)->multifieldLength;
-            elem   = (&new_fact->theProposition)->theFields;
+            length = new_fact->theProposition.length;
+            elem = new_fact->theProposition.contents;
    
             /* for each slot see if a fuzzy slot and if so compute Fuzzy Consequence  */
  
             for (i=0; i<length; i++)
               {
-                if (elem[i].type != FUZZY_VALUE)
+                if (elem[i].header->type != FUZZY_VALUE_TYPE)
                 continue; 
        
-                consequence = (struct fuzzy_value *) 
-                              ValueToFuzzyValue(elem[i].value);
+                consequence = elem[i].fuzzyValue->contents;
                 if (FuzzyData(theEnv)->FuzzyInferenceType == MAXMIN)
                     conclusion = horizontal_intersection(theEnv,consequence, EngineData(theEnv)->ExecutingRule->min_of_maxmins );
                 else
@@ -2454,8 +2442,8 @@ globle void computeFuzzyConsequence(
                     rm(theEnv,conclusion->name, strlen(conclusion->name)+1);
                 conclusion->name = (char *) gm2(theEnv,4);
                 strcpy(conclusion->name, "???");
-                elem[i].value = (void *)AddFuzzyValue(theEnv,conclusion);
-                /* AddFuzzyValue copies the fuzzy variable so we need to remove 
+                elem[i].fuzzyValue = CreateFuzzyValue(theEnv,conclusion);
+                /* CreateFuzzyValue copies the fuzzy variable so we need to remove
                    conclusion fuzzy value since it will no longer be pointed to
                 */
                 rtnFuzzyValue(theEnv,conclusion);
@@ -2496,41 +2484,41 @@ globle void computeFuzzyConsequence(
 /*  modify each fuzzy slot in fact2                         */
 /*                                                          */
 /************************************************************/
-globle void changeValueOfFuzzySlots(
-  void *theEnv,
-  struct fact *fact1, 
-  struct fact *fact2)
+void changeValueOfFuzzySlots(
+  Environment *theEnv,
+  Fact *fact1,
+  Fact *fact2)
   {
-   struct field *elem1, *elem2;
-   int i, length;
-   FUZZY_VALUE_HN *fv1_hn, *fv2_hn; 
+   CLIPSValue *elem1, *elem2;
+   size_t i, length;
+   CLIPSFuzzyValue *fv1_hn, *fv2_hn;
    struct fuzzy_value *fv1_ptr, *fv2_ptr, *theUnion;
 
    /* combine two facts with fuzzy slots -- fact2 is the existing fact in hash tbl */
 
    /* get pointers to the fields of the facts */
-   length = (&fact1->theProposition)->multifieldLength;
-   elem1 = (&fact1->theProposition)->theFields;
-   elem2 = (&fact2->theProposition)->theFields;
+   length = fact1->theProposition.length;
+   elem1 = fact1->theProposition.contents;
+   elem2 = fact2->theProposition.contents;
    
    /* for each slot see if a fuzzy slot and if so perform global contribution */
 
    for (i=0; i<length; i++)
      {
-       if (elem1[i].type != FUZZY_VALUE)
+       if (elem1[i].header->type != FUZZY_VALUE_TYPE)
          continue; 
        
        /* If the  fuzzy values point to the same hashnode, then no need to do
           a union since they are the same sets
        */
-       fv1_hn = (FUZZY_VALUE_HN *)(elem1[i].value);
-       fv2_hn = (FUZZY_VALUE_HN *)(elem2[i].value);
+       fv1_hn = (CLIPSFuzzyValue *)(elem1[i].value);
+       fv2_hn = (CLIPSFuzzyValue *)(elem2[i].value);
        
        if (fv1_hn == fv2_hn)
           continue;
           
-       fv1_ptr = (struct fuzzy_value *)ValueToFuzzyValue(fv1_hn);
-       fv2_ptr = (struct fuzzy_value *)ValueToFuzzyValue(fv2_hn);
+       fv1_ptr = fv1_hn->contents;
+       fv2_ptr = fv2_hn->contents;
        
        /* if we need to perform the union (global contribution) then we are changing
           the existing fuzzy value associated with fact ... therefore we must 
@@ -2551,8 +2539,8 @@ globle void changeValueOfFuzzySlots(
            char *str, *strPtr;
            char *fv1n = fv1_ptr->name;
            char *fv2n = fv2_ptr->name;
-           int   fv1nLen = strlen(fv1n);
-           int   fv2nLen = strlen(fv2n);
+           size_t fv1nLen = strlen(fv1n);
+           size_t fv2nLen = strlen(fv2n);
 
            /* get space for [ name1 ] OR [ name2 ]   */
            str = (char *) gm2(theEnv,sizeof(char) * (fv1nLen + fv2nLen + 13));
@@ -2570,10 +2558,10 @@ globle void changeValueOfFuzzySlots(
            theUnion->name = str;
          }
               
-       fv2_hn = (FUZZY_VALUE_HN *)AddFuzzyValue(theEnv,theUnion);
-       elem2[i].value = (void *)fv2_hn;
+       fv2_hn = CreateFuzzyValue(theEnv,theUnion);
+       elem2[i].fuzzyValue = fv2_hn;
 
-       /* AddFuzzyValue copies the fuzzy variable so we need to remove 
+       /* CreateFuzzyValue copies the fuzzy variable so we need to remove 
           theUnion fuzzy value since it will no longer be pointed to
        */
        rtnFuzzyValue(theEnv,theUnion);
@@ -2617,8 +2605,8 @@ globle void changeValueOfFuzzySlots(
  *******************************************************************/
  
  
-globle    void PrintFuzzyTemplateFact( 
- void *theEnv,
+   void PrintFuzzyTemplateFact( 
+ Environment *theEnv,
  const char *logName,
 #if CERTAINTY_FACTORS  
  struct fuzzy_value *fv,
@@ -2628,34 +2616,34 @@ globle    void PrintFuzzyTemplateFact(
 #endif
  {
    char *fvname;
-   int nameUnknown = FALSE;;
+   int nameUnknown = false;;
 
    /* has already printed the Template name at this point */
-   EnvPrintRouter(theEnv,logName," ");
+   WriteString(theEnv,logName," ");
    
    fvname = fv->name;
    
    /* ??? signifies a fv with no linguistic expression (eg. very cold) */
    if (strcmp(fvname, "???") == 0)  
-      nameUnknown = TRUE;
+      nameUnknown = true;
       
    /* different format for save-facts command */
    if (!(FuzzyData(theEnv)->saveFactsInProgress && nameUnknown)) 
      {
-       EnvPrintRouter(theEnv,logName,fvname);
-       EnvPrintRouter(theEnv,logName,")");
+       WriteString(theEnv,logName,fvname);
+       WriteString(theEnv,logName,")");
 #if CERTAINTY_FACTORS  
        printCF(theEnv,logName,CF);   
 #endif
      }
      
    if (!FuzzyData(theEnv)->saveFactsInProgress)
-       EnvPrintRouter(theEnv,logName,"\n\t( ");
+       WriteString(theEnv,logName,"\n\t( ");
    
    if (!FuzzyData(theEnv)->saveFactsInProgress || nameUnknown)
       {
         PrintFuzzySet(theEnv,logName, fv);     
-        EnvPrintRouter(theEnv,logName," )\n");
+        WriteString(theEnv,logName," )\n");
       }
           
 #if CERTAINTY_FACTORS  
@@ -2697,20 +2685,19 @@ static void PrintFloatFuzzy(
      {
       if ((x == '.') || (x == 'e'))
         {
-         EnvPrintRouter(theEnv,logName, floatString);
+         WriteString(theEnv,logName, floatString);
          return;
         }
      }
 
    strcat(floatString,".0");
 
-   EnvPrintRouter(theEnv,logName, floatString);
+   WriteString(theEnv,logName, floatString);
   }
 
  
- 
-globle    void PrintFuzzySet(
- void *theEnv,
+void PrintFuzzySet(
+ Environment *theEnv,
  const char *logName,
  struct fuzzy_value *fv)
  {
@@ -2720,19 +2707,16 @@ globle    void PrintFuzzySet(
       {
         if (j==5)
           {
-            EnvPrintRouter(theEnv,logName, "\n\t  ");
+            WriteString(theEnv,logName, "\n\t  ");
             j = 0;
           }
-        EnvPrintRouter(theEnv,logName, "(");
+        WriteString(theEnv,logName, "(");
         PrintFloatFuzzy(theEnv,logName, fv->x[i]);
-        EnvPrintRouter(theEnv,logName, " ");
+        WriteString(theEnv,logName, " ");
         PrintFloatFuzzy(theEnv,logName, fv->y[i]);
-        EnvPrintRouter(theEnv,logName, ") ");
+        WriteString(theEnv,logName, ") ");
         j++;
       }
  }
-  
- 
- 
 
 #endif  /* FUZZY_DEFTEMPLATES */

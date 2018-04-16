@@ -23,8 +23,6 @@ FuzzyCLIPS>
    =>
    (assert (doo)))
 FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (assert (a 1) (b 1) (a 2) (b 2) (c 1))
 ==> f-1     (a 1) CF 1.00 
 ==> f-2     (b 1) CF 1.00 
@@ -94,9 +92,7 @@ FuzzyCLIPS> (watch activations)
 FuzzyCLIPS> (watch facts)
 FuzzyCLIPS> (reset)
 <== Activation 0      all-trained: *
-<== f-0     (initial-fact) CF 1.00 
 ==> Activation 0      all-trained: *
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (agenda)
 0      all-trained: *
 For a total of 1 activation.
@@ -139,7 +135,6 @@ FuzzyCLIPS> (retract 5)
 ==> Activation 0      all-trained: *
 FuzzyCLIPS> (reset)
 <== Activation 0      all-trained: *
-<== f-0     (initial-fact) CF 1.00 
 <== f-1     (player Gary) CF 1.00 
 <== f-2     (pitched Gary) CF 1.00 
 <== f-3     (batted Gary) CF 1.00 
@@ -148,7 +143,6 @@ FuzzyCLIPS> (reset)
 <== f-7     (pitched Brian) CF 1.00 
 <== f-9     (batted Brian) CF 1.00 
 ==> Activation 0      all-trained: *
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (agenda)
 0      all-trained: *
 For a total of 1 activation.
@@ -182,13 +176,11 @@ FuzzyCLIPS> (retract 4)
 ==> Activation 0      all-trained: *
 FuzzyCLIPS> (reset)
 <== Activation 0      all-trained: *
-<== f-0     (initial-fact) CF 1.00 
 <== f-1     (player Gary) CF 1.00 
 <== f-2     (pitched Gary) CF 1.00 
 <== f-3     (batted Gary) CF 1.00 
 <== f-5     (pitched Tom) CF 1.00 
 ==> Activation 0      all-trained: *
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (agenda)
 0      all-trained: *
 For a total of 1 activation.
@@ -210,7 +202,6 @@ FuzzyCLIPS> (retract 1)
 <== f-1     (player Gary) CF 1.00 
 ==> Activation 0      all-trained: *
 FuzzyCLIPS> (clear)
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> 
 (defrule rule-1

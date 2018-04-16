@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  09/22/17          */
+   /*            CLIPS Version 6.40  09/22/17             */
    /*                                                     */
    /*            FACT-SET QUERIES PARSER MODULE           */
    /*******************************************************/
@@ -38,6 +38,15 @@
 /*                                                           */
 /*      6.31: Error check for non-symbolic slot names.       */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Eval support for run time and bload only.      */
+/*                                                           */
 /*************************************************************/
 
 /* =========================================
@@ -47,7 +56,7 @@
    ***************************************** */
 #include "setup.h"
 
-#if FACT_SET_QUERIES && (! RUN_TIME)
+#if FACT_SET_QUERIES
 
 #include <string.h>
 
@@ -57,12 +66,12 @@
 #include "factqury.h"
 #include "modulutl.h"
 #include "prcdrpsr.h"
+#include "pprint.h"
 #include "prntutil.h"
 #include "router.h"
 #include "scanner.h"
 #include "strngrtr.h"
 
-#define _FACTQPSR_SOURCE_
 #include "factqpsr.h"
 
 /* =========================================
@@ -77,19 +86,19 @@
       INTERNALLY VISIBLE FUNCTION HEADERS
    =========================================
    ***************************************** */
-   
+
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static EXPRESSION             *ParseQueryRestrictions(void *,EXPRESSION *,const char *,struct token *);
-   static intBool                 ReplaceTemplateNameWithReference(void *,EXPRESSION *);
-   static int                     ParseQueryTestExpression(void *,EXPRESSION *,const char *);
-   static int                     ParseQueryActionExpression(void *,EXPRESSION *,const char *,EXPRESSION *,struct token *);
-   static intBool                 ReplaceFactVariables(void *,EXPRESSION *,EXPRESSION *,int,int);
-   static intBool                 ReplaceSlotReference(void *,EXPRESSION *,EXPRESSION *,
-                                                       struct FunctionDefinition *,int);
-   static int                     IsQueryFunction(EXPRESSION *);
+   static Expression             *ParseQueryRestrictions(Environment *,Expression *,const char *,struct token *);
+   static bool                    ReplaceTemplateNameWithReference(Environment *,Expression *);
+   static bool                    ParseQueryTestExpression(Environment *,Expression *,const char *);
+   static bool                    ParseQueryActionExpression(Environment *,Expression *,const char *,Expression *,struct token *);
+   static bool                    ReplaceFactVariables(Environment *,Expression *,Expression *,bool,int);
+   static bool                    ReplaceSlotReference(Environment *,Expression *,Expression *,
+                                                       struct functionDefinition *,int);
+   static bool                    IsQueryFunction(Expression *);
 
 /* =========================================
    *****************************************
@@ -126,32 +135,32 @@
 
                  <template-2a> -> <template-2b> -> (QDS) -> ...
  ***********************************************************************/
-globle EXPRESSION *FactParseQueryNoAction(
-  void *theEnv,
-  EXPRESSION *top,
+Expression *FactParseQueryNoAction(
+  Environment *theEnv,
+  Expression *top,
   const char *readSource)
   {
-   EXPRESSION *factQuerySetVars;
+   Expression *factQuerySetVars;
    struct token queryInputToken;
 
    factQuerySetVars = ParseQueryRestrictions(theEnv,top,readSource,&queryInputToken);
    if (factQuerySetVars == NULL)
-     { return(NULL); }
-     
+     { return NULL; }
+
    IncrementIndentDepth(theEnv,3);
    PPCRAndIndent(theEnv);
-   
-   if (ParseQueryTestExpression(theEnv,top,readSource) == FALSE)
+
+   if (ParseQueryTestExpression(theEnv,top,readSource) == false)
      {
       DecrementIndentDepth(theEnv,3);
       ReturnExpression(theEnv,factQuerySetVars);
-      return(NULL);
+      return NULL;
      }
-     
+
    DecrementIndentDepth(theEnv,3);
-   
-   GetToken(theEnv,readSource,&queryInputToken);   
-   if (GetType(queryInputToken) != RPAREN)
+
+   GetToken(theEnv,readSource,&queryInputToken);
+   if (queryInputToken.tknType != RIGHT_PARENTHESIS_TOKEN)
      {
       SyntaxErrorMessage(theEnv,"fact-set query function");
       ReturnExpression(theEnv,top);
@@ -159,7 +168,7 @@ globle EXPRESSION *FactParseQueryNoAction(
       return NULL;
      }
 
-   if (ReplaceFactVariables(theEnv,factQuerySetVars,top->argList,TRUE,0))
+   if (ReplaceFactVariables(theEnv,factQuerySetVars,top->argList,true,0))
      {
       ReturnExpression(theEnv,top);
       ReturnExpression(theEnv,factQuerySetVars);
@@ -200,40 +209,40 @@ globle EXPRESSION *FactParseQueryNoAction(
 
                  <template-2a> -> <template-2b> -> (QDS) -> ...
  ***********************************************************************/
-globle EXPRESSION *FactParseQueryAction(
-  void *theEnv,
-  EXPRESSION *top,
+Expression *FactParseQueryAction(
+  Environment *theEnv,
+  Expression *top,
   const char *readSource)
   {
-   EXPRESSION *factQuerySetVars;
+   Expression *factQuerySetVars;
    struct token queryInputToken;
 
    factQuerySetVars = ParseQueryRestrictions(theEnv,top,readSource,&queryInputToken);
    if (factQuerySetVars == NULL)
-     { return(NULL); }
-     
+     { return NULL; }
+
    IncrementIndentDepth(theEnv,3);
    PPCRAndIndent(theEnv);
-   
-   if (ParseQueryTestExpression(theEnv,top,readSource) == FALSE)
+
+   if (ParseQueryTestExpression(theEnv,top,readSource) == false)
      {
       DecrementIndentDepth(theEnv,3);
       ReturnExpression(theEnv,factQuerySetVars);
-      return(NULL);
+      return NULL;
      }
-     
+
    PPCRAndIndent(theEnv);
-   
-   if (ParseQueryActionExpression(theEnv,top,readSource,factQuerySetVars,&queryInputToken) == FALSE)
+
+   if (ParseQueryActionExpression(theEnv,top,readSource,factQuerySetVars,&queryInputToken) == false)
      {
       DecrementIndentDepth(theEnv,3);
       ReturnExpression(theEnv,factQuerySetVars);
-      return(NULL);
+      return NULL;
      }
-     
+
    DecrementIndentDepth(theEnv,3);
-   
-   if (GetType(queryInputToken) != RPAREN)
+
+   if (queryInputToken.tknType != RIGHT_PARENTHESIS_TOKEN)
      {
       SyntaxErrorMessage(theEnv,"fact-set query function");
       ReturnExpression(theEnv,top);
@@ -241,14 +250,14 @@ globle EXPRESSION *FactParseQueryAction(
       return NULL;
      }
 
-   if (ReplaceFactVariables(theEnv,factQuerySetVars,top->argList,TRUE,0))
+   if (ReplaceFactVariables(theEnv,factQuerySetVars,top->argList,true,0))
      {
       ReturnExpression(theEnv,top);
       ReturnExpression(theEnv,factQuerySetVars);
       return NULL;
      }
 
-   if (ReplaceFactVariables(theEnv,factQuerySetVars,top->argList->nextArg,FALSE,0))
+   if (ReplaceFactVariables(theEnv,factQuerySetVars,top->argList->nextArg,false,0))
      {
       ReturnExpression(theEnv,top);
       ReturnExpression(theEnv,factQuerySetVars);
@@ -280,106 +289,106 @@ globle EXPRESSION *FactParseQueryAction(
                    as arguments
   NOTES        : Expects top != NULL
  ***************************************************************/
-static EXPRESSION *ParseQueryRestrictions(
-  void *theEnv,
-  EXPRESSION *top,
+static Expression *ParseQueryRestrictions(
+  Environment *theEnv,
+  Expression *top,
   const char *readSource,
   struct token *queryInputToken)
   {
-   EXPRESSION *factQuerySetVars = NULL,*lastFactQuerySetVars = NULL,
+   Expression *factQuerySetVars = NULL,*lastFactQuerySetVars = NULL,
               *templateExp = NULL,*lastTemplateExp,
               *tmp,*lastOne = NULL;
-   int error = FALSE;
+   bool error = false;
 
    SavePPBuffer(theEnv," ");
-   
+
    GetToken(theEnv,readSource,queryInputToken);
-   if (queryInputToken->type != LPAREN)
+   if (queryInputToken->tknType != LEFT_PARENTHESIS_TOKEN)
      { goto ParseQueryRestrictionsError1; }
-     
+
    GetToken(theEnv,readSource,queryInputToken);
-   if (queryInputToken->type != LPAREN)
+   if (queryInputToken->tknType != LEFT_PARENTHESIS_TOKEN)
      { goto ParseQueryRestrictionsError1; }
-     
-   while (queryInputToken->type == LPAREN)
+
+   while (queryInputToken->tknType == LEFT_PARENTHESIS_TOKEN)
      {
       GetToken(theEnv,readSource,queryInputToken);
-      if (queryInputToken->type != SF_VARIABLE)
+      if (queryInputToken->tknType != SF_VARIABLE_TOKEN)
         { goto ParseQueryRestrictionsError1; }
-        
+
       tmp = factQuerySetVars;
       while (tmp != NULL)
         {
          if (tmp->value == queryInputToken->value)
            {
-            PrintErrorID(theEnv,"FACTQPSR",1,FALSE);
-            EnvPrintRouter(theEnv,WERROR,"Duplicate fact member variable name in function ");
-            EnvPrintRouter(theEnv,WERROR,ValueToString(ExpressionFunctionCallName(top)));
-            EnvPrintRouter(theEnv,WERROR,".\n");
+            PrintErrorID(theEnv,"FACTQPSR",1,false);
+            WriteString(theEnv,STDERR,"Duplicate fact member variable name in function ");
+            WriteString(theEnv,STDERR,ExpressionFunctionCallName(top)->contents);
+            WriteString(theEnv,STDERR,".\n");
             goto ParseQueryRestrictionsError2;
            }
-           
+
          tmp = tmp->nextArg;
         }
-        
+
       tmp = GenConstant(theEnv,SF_VARIABLE,queryInputToken->value);
       if (factQuerySetVars == NULL)
         { factQuerySetVars = tmp; }
       else
         { lastFactQuerySetVars->nextArg = tmp; }
-      
+
       lastFactQuerySetVars = tmp;
       SavePPBuffer(theEnv," ");
-      
+
       templateExp = ArgumentParse(theEnv,readSource,&error);
-      
+
       if (error)
         { goto ParseQueryRestrictionsError2; }
-      
+
       if (templateExp == NULL)
         { goto ParseQueryRestrictionsError1; }
-      
-      if (ReplaceTemplateNameWithReference(theEnv,templateExp) == FALSE)
+
+      if (ReplaceTemplateNameWithReference(theEnv,templateExp) == false)
         { goto ParseQueryRestrictionsError2; }
-      
+
       lastTemplateExp = templateExp;
       SavePPBuffer(theEnv," ");
-      
+
       while ((tmp = ArgumentParse(theEnv,readSource,&error)) != NULL)
         {
-         if (ReplaceTemplateNameWithReference(theEnv,tmp) == FALSE)
+         if (ReplaceTemplateNameWithReference(theEnv,tmp) == false)
            goto ParseQueryRestrictionsError2;
          lastTemplateExp->nextArg = tmp;
          lastTemplateExp = tmp;
          SavePPBuffer(theEnv," ");
         }
-        
+
       if (error)
         { goto ParseQueryRestrictionsError2; }
-        
+
       PPBackup(theEnv);
       PPBackup(theEnv);
       SavePPBuffer(theEnv,")");
-      
-      tmp = GenConstant(theEnv,SYMBOL,(void *) FactQueryData(theEnv)->QUERY_DELIMETER_SYMBOL);
-      
+
+      tmp = GenConstant(theEnv,SYMBOL_TYPE,FactQueryData(theEnv)->QUERY_DELIMITER_SYMBOL);
+
       lastTemplateExp->nextArg = tmp;
       lastTemplateExp = tmp;
-      
+
       if (top->argList == NULL)
         { top->argList = templateExp; }
       else
         { lastOne->nextArg = templateExp; }
-      
+
       lastOne = lastTemplateExp;
       templateExp = NULL;
       SavePPBuffer(theEnv," ");
       GetToken(theEnv,readSource,queryInputToken);
      }
-     
-   if (queryInputToken->type != RPAREN)
+
+   if (queryInputToken->tknType != RIGHT_PARENTHESIS_TOKEN)
      { goto ParseQueryRestrictionsError1; }
-     
+
    PPBackup(theEnv);
    PPBackup(theEnv);
    SavePPBuffer(theEnv,")");
@@ -392,7 +401,7 @@ ParseQueryRestrictionsError2:
    ReturnExpression(theEnv,templateExp);
    ReturnExpression(theEnv,top);
    ReturnExpression(theEnv,factQuerySetVars);
-   return(NULL);
+   return NULL;
   }
 
 /***************************************************
@@ -402,51 +411,51 @@ ParseQueryRestrictionsError2:
                  template name with an actual pointer
                  to the template
   INPUTS       : The expression
-  RETURNS      : TRUE if all OK, FALSE
+  RETURNS      : True if all OK, otherwise false
                  if template cannot be found
   SIDE EFFECTS : The expression type and value are
                  modified if template is found
   NOTES        : Searches current and imported
                  modules for reference
  ***************************************************/
-static intBool ReplaceTemplateNameWithReference(
-  void *theEnv,
-  EXPRESSION *theExp)
+static bool ReplaceTemplateNameWithReference(
+  Environment *theEnv,
+  Expression *theExp)
   {
    const char *theTemplateName;
    void *theDeftemplate;
-   int count;
+   unsigned int count;
 
-   if (theExp->type == SYMBOL)
+   if (theExp->type == SYMBOL_TYPE)
      {
-      theTemplateName = ValueToString(theExp->value);
-      
-      theDeftemplate = (struct deftemplate *)
+      theTemplateName = theExp->lexemeValue->contents;
+
+      theDeftemplate = (Deftemplate *)
                        FindImportedConstruct(theEnv,"deftemplate",NULL,theTemplateName,
-                                             &count,TRUE,NULL);
+                                             &count,true,NULL);
 
       if (theDeftemplate == NULL)
         {
-         CantFindItemErrorMessage(theEnv,"deftemplate",theTemplateName);
-         return(FALSE);
+         CantFindItemErrorMessage(theEnv,"deftemplate",theTemplateName,true);
+         return false;
         }
-        
+
       if (count > 1)
         {
          AmbiguousReferenceErrorMessage(theEnv,"deftemplate",theTemplateName);
-         return(FALSE);
+         return false;
         }
 
       theExp->type = DEFTEMPLATE_PTR;
       theExp->value = theDeftemplate;
-      
+
 #if (! RUN_TIME) && (! BLOAD_ONLY)
       if (! ConstructData(theEnv)->ParsingConstruct)
         { ConstructData(theEnv)->DanglingConstructs++; }
 #endif
      }
 
-   return(TRUE);
+   return true;
   }
 
 /*************************************************************
@@ -454,63 +463,63 @@ static intBool ReplaceTemplateNameWithReference(
   DESCRIPTION  : Parses the test-expression for a query
   INPUTS       : 1) The top node of the query expression
                  2) The logical name of the input
-  RETURNS      : TRUE if all OK, FALSE otherwise
+  RETURNS      : True if all OK, false otherwise
   SIDE EFFECTS : Entire query-expression deleted on errors
                  Nodes allocated for new expression
                  Test shoved in front of class-restrictions on
                     query argument list
   NOTES        : Expects top != NULL
  *************************************************************/
-static int ParseQueryTestExpression(
-  void *theEnv,
-  EXPRESSION *top,
+static bool ParseQueryTestExpression(
+  Environment *theEnv,
+  Expression *top,
   const char *readSource)
   {
-   EXPRESSION *qtest;
-   int error;
+   Expression *qtest;
+   bool error;
    struct BindInfo *oldBindList;
 
-   error = FALSE;
+   error = false;
    oldBindList = GetParsedBindNames(theEnv);
    SetParsedBindNames(theEnv,NULL);
-   
+
    qtest = ArgumentParse(theEnv,readSource,&error);
-   
-   if (error == TRUE)
+
+   if (error == true)
      {
       ClearParsedBindNames(theEnv);
       SetParsedBindNames(theEnv,oldBindList);
       ReturnExpression(theEnv,top);
-      return(FALSE);
+      return false;
      }
-   
+
    if (qtest == NULL)
      {
       ClearParsedBindNames(theEnv);
       SetParsedBindNames(theEnv,oldBindList);
       SyntaxErrorMessage(theEnv,"fact-set query function");
       ReturnExpression(theEnv,top);
-      return(FALSE);
+      return false;
      }
-   
+
    qtest->nextArg = top->argList;
    top->argList = qtest;
-   
-   if (ParsedBindNamesEmpty(theEnv) == FALSE)
+
+   if (ParsedBindNamesEmpty(theEnv) == false)
      {
       ClearParsedBindNames(theEnv);
       SetParsedBindNames(theEnv,oldBindList);
-      PrintErrorID(theEnv,"FACTQPSR",2,FALSE);
-      EnvPrintRouter(theEnv,WERROR,"Binds are not allowed in fact-set query in function ");
-      EnvPrintRouter(theEnv,WERROR,ValueToString(ExpressionFunctionCallName(top)));
-      EnvPrintRouter(theEnv,WERROR,".\n");
+      PrintErrorID(theEnv,"FACTQPSR",2,false);
+      WriteString(theEnv,STDERR,"Binds are not allowed in fact-set query in function ");
+      WriteString(theEnv,STDERR,ExpressionFunctionCallName(top)->contents);
+      WriteString(theEnv,STDERR,".\n");
       ReturnExpression(theEnv,top);
-      return(FALSE);
+      return false;
      }
-     
+
    SetParsedBindNames(theEnv,oldBindList);
-   
-   return(TRUE);
+
+   return true;
   }
 
 /*************************************************************
@@ -519,7 +528,7 @@ static int ParseQueryTestExpression(
   INPUTS       : 1) The top node of the query expression
                  2) The logical name of the input
                  3) List of query parameters
-  RETURNS      : TRUE if all OK, FALSE otherwise
+  RETURNS      : True if all OK, false otherwise
   SIDE EFFECTS : Entire query-expression deleted on errors
                  Nodes allocated for new expression
                  Action shoved in front of template-restrictions
@@ -527,42 +536,42 @@ static int ParseQueryTestExpression(
                     argument list
   NOTES        : Expects top != NULL && top->argList != NULL
  *************************************************************/
-static int ParseQueryActionExpression(
-  void *theEnv,
-  EXPRESSION *top,
+static bool ParseQueryActionExpression(
+  Environment *theEnv,
+  Expression *top,
   const char *readSource,
-  EXPRESSION *factQuerySetVars,
+  Expression *factQuerySetVars,
   struct token *queryInputToken)
   {
-   EXPRESSION *qaction,*tmpFactSetVars;
+   Expression *qaction,*tmpFactSetVars;
    struct BindInfo *oldBindList,*newBindList,*prev;
 
    oldBindList = GetParsedBindNames(theEnv);
    SetParsedBindNames(theEnv,NULL);
-   
-   ExpressionData(theEnv)->BreakContext = TRUE;
+
+   ExpressionData(theEnv)->BreakContext = true;
    ExpressionData(theEnv)->ReturnContext = ExpressionData(theEnv)->svContexts->rtn;
 
-   qaction = GroupActions(theEnv,readSource,queryInputToken,TRUE,NULL,FALSE);
-   
+   qaction = GroupActions(theEnv,readSource,queryInputToken,true,NULL,false);
+
    PPBackup(theEnv);
    PPBackup(theEnv);
    SavePPBuffer(theEnv,queryInputToken->printForm);
 
-   ExpressionData(theEnv)->BreakContext = FALSE;
-   
+   ExpressionData(theEnv)->BreakContext = false;
+
    if (qaction == NULL)
      {
       ClearParsedBindNames(theEnv);
       SetParsedBindNames(theEnv,oldBindList);
       SyntaxErrorMessage(theEnv,"fact-set query function");
       ReturnExpression(theEnv,top);
-      return(FALSE);
+      return false;
      }
-     
+
    qaction->nextArg = top->argList->nextArg;
    top->argList->nextArg = qaction;
-   
+
    newBindList = GetParsedBindNames(theEnv);
    prev = NULL;
    while (newBindList != NULL)
@@ -574,27 +583,27 @@ static int ParseQueryActionExpression(
            {
             ClearParsedBindNames(theEnv);
             SetParsedBindNames(theEnv,oldBindList);
-            PrintErrorID(theEnv,"FACTQPSR",3,FALSE);
-            EnvPrintRouter(theEnv,WERROR,"Cannot rebind fact-set member variable ");
-            EnvPrintRouter(theEnv,WERROR,ValueToString(tmpFactSetVars->value));
-            EnvPrintRouter(theEnv,WERROR," in function ");
-            EnvPrintRouter(theEnv,WERROR,ValueToString(ExpressionFunctionCallName(top)));
-            EnvPrintRouter(theEnv,WERROR,".\n");
+            PrintErrorID(theEnv,"FACTQPSR",3,false);
+            WriteString(theEnv,STDERR,"Cannot rebind fact-set member variable ");
+            WriteString(theEnv,STDERR,tmpFactSetVars->lexemeValue->contents);
+            WriteString(theEnv,STDERR," in function ");
+            WriteString(theEnv,STDERR,ExpressionFunctionCallName(top)->contents);
+            WriteString(theEnv,STDERR,".\n");
             ReturnExpression(theEnv,top);
-            return(FALSE);
+            return false;
            }
          tmpFactSetVars = tmpFactSetVars->nextArg;
         }
       prev = newBindList;
       newBindList = newBindList->next;
      }
-     
+
    if (prev == NULL)
      { SetParsedBindNames(theEnv,oldBindList); }
    else
      { prev->next = oldBindList; }
-   
-   return(TRUE);
+
+   return true;
   }
 
 /***********************************************************************************
@@ -616,15 +625,15 @@ static int ParseQueryActionExpression(
                    defrule, and defmessage-handler variables within a query-function
                    where they do not conflict with fact-variable names.
  ***********************************************************************************/
-static intBool ReplaceFactVariables(
-  void *theEnv,
-  EXPRESSION *vlist,
-  EXPRESSION *bexp,
-  int sdirect,
+static bool ReplaceFactVariables(
+  Environment *theEnv,
+  Expression *vlist,
+  Expression *bexp,
+  bool sdirect,
   int ndepth)
   {
-   EXPRESSION *eptr;
-   struct FunctionDefinition *rindx_func,*rslot_func;
+   Expression *eptr;
+   struct functionDefinition *rindx_func, *rslot_func;
    int posn;
 
    rindx_func = FindFunction(theEnv,"(query-fact)");
@@ -635,7 +644,7 @@ static intBool ReplaceFactVariables(
         {
          eptr = vlist;
          posn = 0;
-         while ((eptr != NULL) ? (eptr->value != bexp->value) : FALSE)
+         while ((eptr != NULL) ? (eptr->value != bexp->value) : false)
            {
             eptr = eptr->nextArg;
             posn++;
@@ -643,34 +652,34 @@ static intBool ReplaceFactVariables(
          if (eptr != NULL)
            {
             bexp->type = FCALL;
-            bexp->value = (void *) rindx_func;
-            eptr = GenConstant(theEnv,INTEGER,(void *) EnvAddLong(theEnv,(long long) ndepth));
-            eptr->nextArg = GenConstant(theEnv,INTEGER,(void *) EnvAddLong(theEnv,(long long) posn));
+            bexp->value = rindx_func;
+            eptr = GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,ndepth));
+            eptr->nextArg = GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,posn));
             bexp->argList = eptr;
            }
-         else if (sdirect == TRUE)
-           { 
+         else if (sdirect == true)
+           {
             if (ReplaceSlotReference(theEnv,vlist,bexp,rslot_func,ndepth))
-              { return TRUE; }
+              { return true; }
            }
         }
       if (bexp->argList != NULL)
         {
          if (IsQueryFunction(bexp))
-           { 
+           {
             if (ReplaceFactVariables(theEnv,vlist,bexp->argList,sdirect,ndepth+1))
-              { return TRUE; } 
+              { return true; }
            }
          else
            {
             if (ReplaceFactVariables(theEnv,vlist,bexp->argList,sdirect,ndepth))
-              { return TRUE; }
+              { return true; }
            }
         }
       bexp = bexp->nextArg;
      }
      
-   return FALSE;
+   return false;
   }
 
 /*************************************************************************
@@ -688,34 +697,34 @@ static intBool ReplaceFactVariables(
                    with the appropriate function-call.
   NOTES        : None
  *************************************************************************/
-static intBool ReplaceSlotReference(
-  void *theEnv,
-  EXPRESSION *vlist,
-  EXPRESSION *theExp,
-  struct FunctionDefinition *func,
+static bool ReplaceSlotReference(
+  Environment *theEnv,
+  Expression *vlist,
+  Expression *theExp,
+  struct functionDefinition *func,
   int ndepth)
   {
    size_t len;
    int posn;
-   intBool oldpp;
+   bool oldpp;
    size_t i;
    const char *str;
-   EXPRESSION *eptr;
+   Expression *eptr;
    struct token itkn;
 
-   str = ValueToString(theExp->value);
+   str = theExp->lexemeValue->contents;
    len =  strlen(str);
    if (len < 3)
-     { return FALSE; }
-
+     { return false; }
+     
    for (i = len-2 ; i >= 1 ; i--)
      {
-      if ((str[i] == FACT_SLOT_REF) ? (i >= 1) : FALSE)
+      if ((str[i] == FACT_SLOT_REF) ? (i >= 1) : false)
         {
          eptr = vlist;
          posn = 0;
-         while (eptr && ((i != strlen(ValueToString(eptr->value))) ||
-                         strncmp(ValueToString(eptr->value),str,
+         while (eptr && ((i != strlen(eptr->lexemeValue->contents)) ||
+                         strncmp(eptr->lexemeValue->contents,str,
                                  (STD_SIZE) i)))
            {
             eptr = eptr->nextArg;
@@ -725,63 +734,63 @@ static intBool ReplaceSlotReference(
            {
             OpenStringSource(theEnv,"query-var",str+i+1,0);
             oldpp = GetPPBufferStatus(theEnv);
-            SetPPBufferStatus(theEnv,OFF);
+            SetPPBufferStatus(theEnv,false);
             GetToken(theEnv,"query-var",&itkn);
             SetPPBufferStatus(theEnv,oldpp);
             CloseStringSource(theEnv,"query-var");
             
-            if (itkn.type != SYMBOL)
+            if (itkn.tknType != SYMBOL_TOKEN)
               {
                InvalidVarSlotErrorMessage(theEnv,str);
-               SetEvaluationError(theEnv,TRUE);
-               return TRUE;
+               SetEvaluationError(theEnv,true);
+               return true;
               }
               
             theExp->type = FCALL;
-            theExp->value = (void *) func;
-            theExp->argList = GenConstant(theEnv,INTEGER,(void *) EnvAddLong(theEnv,(long long) ndepth));
-            theExp->argList->nextArg = GenConstant(theEnv,INTEGER,(void *) EnvAddLong(theEnv,(long long) posn));
-            theExp->argList->nextArg->nextArg = GenConstant(theEnv,itkn.type,itkn.value);
-            theExp->argList->nextArg->nextArg->nextArg = GenConstant(theEnv,SYMBOL,EnvAddSymbol(theEnv,str));
-            return FALSE;
+            theExp->value = func;
+            theExp->argList = GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,ndepth));
+            theExp->argList->nextArg = GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,posn));
+            theExp->argList->nextArg->nextArg = GenConstant(theEnv,TokenTypeToType(itkn.tknType),itkn.value);
+            theExp->argList->nextArg->nextArg->nextArg = GenConstant(theEnv,SYMBOL_TYPE,CreateSymbol(theEnv,str));
+            return false;
            }
         }
      }
      
-   return FALSE;
+   return false;
   }
 
 /********************************************************************
   NAME         : IsQueryFunction
   DESCRIPTION  : Determines if an expression is a query function call
   INPUTS       : The expression
-  RETURNS      : TRUE if query function call, FALSE otherwise
+  RETURNS      : True if query function call, false otherwise
   SIDE EFFECTS : None
   NOTES        : None
  ********************************************************************/
-static int IsQueryFunction(
-  EXPRESSION *theExp)
+static bool IsQueryFunction(
+  Expression *theExp)
   {
    int (*fptr)(void);
 
    if (theExp->type != FCALL)
-     return(FALSE);
+     return false;
    fptr = (int (*)(void)) ExpressionFunctionPointer(theExp);
 
    if (fptr == (int (*)(void)) AnyFacts)
-     return(TRUE);
+     return true;
    if (fptr == (int (*)(void)) QueryFindFact)
-     return(TRUE);
+     return true;
    if (fptr == (int (*)(void)) QueryFindAllFacts)
-     return(TRUE);
+     return true;
    if (fptr == (int (*)(void)) QueryDoForFact)
-     return(TRUE);
+     return true;
    if (fptr == (int (*)(void)) QueryDoForAllFacts)
-     return(TRUE);
+     return true;
    if (fptr == (int (*)(void)) DelayedQueryDoForAllFacts)
-     return(TRUE);
+     return true;
 
-   return(FALSE);
+   return false;
   }
 
 #endif

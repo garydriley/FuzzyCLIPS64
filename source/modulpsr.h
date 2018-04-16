@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  10/01/16            */
    /*                                                     */
    /*             DEFMODULE PARSER HEADER FILE            */
    /*******************************************************/
@@ -26,45 +26,43 @@
 /*            Fixed linkage issue when DEFMODULE_CONSTRUCT   */
 /*            compiler flag is set to 0.                     */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_modulpsr
+
+#pragma once
+
 #define _H_modulpsr
+
+struct portConstructItem;
+
+#include "evaluatn.h"
+#include "moduldef.h"
+#include "symbol.h"
+#include "scanner.h"
 
 struct portConstructItem
   {
    const char *constructName;
-   int typeExpected;
+   TokenType typeExpected;
    struct portConstructItem *next;
   };
 
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_moduldef
-#include "moduldef.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE long                           GetNumberOfDefmodules(void *);
-   LOCALE void                           SetNumberOfDefmodules(void *,long);
-   LOCALE void                           AddAfterModuleDefinedFunction(void *,const char *,void (*)(void *),int);
-   LOCALE int                            ParseDefmodule(void *,const char *);
-   LOCALE void                           AddPortConstructItem(void *,const char *,int);
-   LOCALE struct portConstructItem      *ValidPortConstructItem(void *,const char *);
-   LOCALE int                            FindImportExportConflict(void *,const char *,struct defmodule *,const char *);
+   void                           SetNumberOfDefmodules(Environment *,unsigned short);
+   void                           AddAfterModuleDefinedFunction(Environment *,const char *,VoidCallFunction *,int,void *);
+   bool                           ParseDefmodule(Environment *,const char *);
+   void                           AddPortConstructItem(Environment *,const char *,TokenType);
+   struct portConstructItem      *ValidPortConstructItem(Environment *,const char *);
+   bool                           FindImportExportConflict(Environment *,const char *,Defmodule *,const char *);
 
 #endif /* _H_modulpsr */
 

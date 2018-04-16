@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  01/25/15            */
+   /*             CLIPS Version 6.40  08/06/16            */
    /*                                                     */
    /*                DEFFACTS HEADER FILE                 */
    /*******************************************************/
@@ -32,47 +32,49 @@
 /*            imported modules are search when locating a    */
 /*            named construct.                               */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dffctdef
+
+#pragma once
+
 #define _H_dffctdef
 
-#ifndef _H_conscomp
-#include "conscomp.h"
-#endif
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrct
+typedef struct deffacts Deffacts;
+
 #include "constrct.h"
-#endif
-#ifndef _H_moduldef
-#include "moduldef.h"
-#endif
-#ifndef _H_cstrccom
+#include "conscomp.h"
 #include "cstrccom.h"
-#endif
+#include "evaluatn.h"
+#include "expressn.h"
+#include "moduldef.h"
+#include "symbol.h"
 
 #define DEFFACTS_DATA 0
 
 struct deffactsData
-  { 
-   struct construct *DeffactsConstruct;
-   int DeffactsModuleIndex;  
+  {
+   Construct *DeffactsConstruct;
+   unsigned DeffactsModuleIndex;
 #if CONSTRUCT_COMPILER && (! RUN_TIME)
    struct CodeGeneratorItem *DeffactsCodeItem;
 #endif
   };
-  
+
 struct deffacts
   {
-   struct constructHeader header;
+   ConstructHeader header;
    struct expr *assertList;
   };
 
@@ -83,37 +85,19 @@ struct deffactsModule
 
 #define DeffactsData(theEnv) ((struct deffactsData *) GetEnvironmentData(theEnv,DEFFACTS_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
+   void                           InitializeDeffacts(Environment *);
+   Deffacts                      *FindDeffacts(Environment *,const char *);
+   Deffacts                      *FindDeffactsInModule(Environment *,const char *);
+   Deffacts                      *GetNextDeffacts(Environment *,Deffacts *);
+   void                           CreateInitialFactDeffacts(void);
+   bool                           DeffactsIsDeletable(Deffacts *);
+   struct deffactsModule         *GetDeffactsModuleItem(Environment *,Defmodule *);
+   const char                    *DeffactsModule(Deffacts *);
+   const char                    *DeffactsName(Deffacts *);
+   const char                    *DeffactsPPForm(Deffacts *);
+#if RUN_TIME
+   void                           DeffactsRunTimeInitialize(Environment *);
 #endif
-
-#ifdef _DFFCTDEF_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDeffacts(void *);
-   LOCALE void                          *EnvFindDeffacts(void *,const char *);
-   LOCALE void                          *EnvFindDeffactsInModule(void *,const char *);
-   LOCALE void                          *EnvGetNextDeffacts(void *,void *);
-   LOCALE void                           CreateInitialFactDeffacts(void);
-   LOCALE intBool                        EnvIsDeffactsDeletable(void *,void *);
-   LOCALE struct deffactsModule         *GetDeffactsModuleItem(void *,struct defmodule *);
-   LOCALE const char                    *EnvDeffactsModule(void *,void *);
-   LOCALE const char                    *EnvGetDeffactsName(void *,void *);
-   LOCALE const char                    *EnvGetDeffactsPPForm(void *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                          *FindDeffacts(const char *);
-   LOCALE void                          *GetNextDeffacts(void *);
-   LOCALE intBool                        IsDeffactsDeletable(void *);
-   LOCALE const char                    *DeffactsModule(void *);
-   LOCALE const char                    *GetDeffactsName(void *);
-   LOCALE const char                    *GetDeffactsPPForm(void *);
-   
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* _H_dffctdef */
 

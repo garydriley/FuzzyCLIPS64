@@ -11,9 +11,10 @@
 (assert (b))
 (unwatch all)
 (clear) ; Test Thing #3
+(deffacts initial (factoid))
 (reset)
-(defrule foo (initial-fact) (not (a)) =>)
-(defrule bar (initial-fact) =>)
+(defrule foo (factoid) (not (a)) =>)
+(defrule bar (factoid) =>)
 (agenda)
 (unwatch all)
 (clear) ; Test Thing #4
@@ -553,6 +554,25 @@
 (agenda)
 (reset)
 (agenda)
+(clear) ; Fact duplication bug
+
+(deftemplate pay
+   (slot code)
+   (slot processed))
+
+(deffacts initial-data
+   (pay (code A) (processed 1))
+   (pay (code A) (processed 2)))
+   
+(defrule Secondary ""
+   ?p <- (pay (processed ~TRUE))
+   =>
+   (modify ?p (processed TRUE))) 
+(reset)
+(watch facts)
+(watch rules)
+(run)
+(unwatch all)
 (clear) ; Class to alpha link removal
 (watch activations)
 (defclass A (is-a USER))

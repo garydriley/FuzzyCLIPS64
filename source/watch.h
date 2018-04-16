@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*                  WATCH HEADER FILE                  */
    /*******************************************************/
@@ -34,68 +34,89 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_watch
+
+#pragma once
+
 #define _H_watch
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
 
 #define WATCH_DATA 54
 
-struct watchItem
+typedef struct watchItemRecord WatchItemRecord;
+
+typedef enum
+  {
+   ALL,
+   FACTS,
+   INSTANCES,
+   SLOTS,
+   RULES,
+   ACTIVATIONS,
+   MESSAGES,
+   MESSAGE_HANDLERS,
+   GENERIC_FUNCTIONS,
+   METHODS,
+   DEFFUNCTIONS,
+   COMPILATIONS,
+   STATISTICS,
+   GLOBALS,
+   FOCUS
+  } WatchItem;
+
+struct watchItemRecord
   {
    const char *name;
-   unsigned *flag;
+   bool *flag;
    int code,priority;
-   unsigned (*accessFunc)(void *,int,unsigned,struct expr *);
-   unsigned (*printFunc)(void *,const char *,int,struct expr *);
-   struct watchItem *next;
+   bool (*accessFunc)(Environment *,int,bool,struct expr *);
+   bool (*printFunc)(Environment *,const char *,int,struct expr *);
+   WatchItemRecord *next;
   };
 
 struct watchData
-  { 
-   struct watchItem *ListOfWatchItems;
+  {
+   WatchItemRecord *ListOfWatchItems;
   };
 
 #define WatchData(theEnv) ((struct watchData *) GetEnvironmentData(theEnv,WATCH_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           Watch(Environment *,WatchItem);
+   void                           Unwatch(Environment *,WatchItem);
 
-#ifdef _WATCH_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool                        EnvWatch(void *,const char *);
-   LOCALE intBool                        EnvUnwatch(void *,const char *);
-   LOCALE void                           InitializeWatchData(void *);   
-   LOCALE int                            EnvSetWatchItem(void *,const char *,unsigned,struct expr *);
-   LOCALE int                            EnvGetWatchItem(void *,const char *);
-   LOCALE intBool                        AddWatchItem(void *,const char *,int,unsigned *,int,
-                                                      unsigned (*)(void *,int,unsigned,struct expr *),
-                                                      unsigned (*)(void *,const char *,int,struct expr *));
-   LOCALE const char                    *GetNthWatchName(void *,int);
-   LOCALE int                            GetNthWatchValue(void *,int);
-   LOCALE void                           WatchCommand(void *);
-   LOCALE void                           UnwatchCommand(void *);
-   LOCALE void                           ListWatchItemsCommand(void *);
-   LOCALE void                           WatchFunctionDefinitions(void *);
-   LOCALE int                            GetWatchItemCommand(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        Watch(const char *);
-   LOCALE intBool                        Unwatch(const char *);
-   LOCALE int                            GetWatchItem(const char *);
-   LOCALE int                            SetWatchItem(const char *,unsigned,struct expr *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   bool                           WatchString(Environment *,const char *);
+   bool                           UnwatchString(Environment *,const char *);
+   void                           InitializeWatchData(Environment *);
+   bool                           SetWatchItem(Environment *,const char *,bool,struct expr *);
+   int                            GetWatchItem(Environment *,const char *);
+   bool                           AddWatchItem(Environment *,const char *,int,bool *,int,
+                                                      bool (*)(Environment *,int,bool,struct expr *),
+                                                      bool (*)(Environment *,const char *,int,struct expr *));
+   const char                    *GetNthWatchName(Environment *,int);
+   int                            GetNthWatchValue(Environment *,int);
+   void                           WatchCommand(Environment *,UDFContext *,UDFValue *);
+   void                           UnwatchCommand(Environment *,UDFContext *,UDFValue *);
+   void                           ListWatchItemsCommand(Environment *,UDFContext *,UDFValue *);
+   void                           WatchFunctionDefinitions(Environment *);
+   void                           GetWatchItemCommand(Environment *,UDFContext *,UDFValue *);
+   bool                           GetWatchState(Environment *,WatchItem);
+   void                           SetWatchState(Environment *,WatchItem,bool);
 
 #endif /* _H_watch */
 

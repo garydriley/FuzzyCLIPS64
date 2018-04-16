@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*           DEFMODULE BSAVE/BLOAD HEADER FILE         */
    /*******************************************************/
@@ -19,62 +19,64 @@
 /*                                                           */
 /*      6.30: Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_modulbin
 
+#pragma once
+
 #define _H_modulbin
 
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
+#include "modulbin.h"
+#include "cstrcbin.h"
+
+#if (! RUN_TIME)
 
 struct bsaveDefmodule
   {
-   unsigned long name;
-   long importList;
-   long exportList;
-   long next;
-   long bsaveID;
+   struct bsaveConstructHeader header;
+   unsigned long importList;
+   unsigned long exportList;
+   unsigned long bsaveID;
   };
 
 struct bsaveDefmoduleItemHeader
   {
-   long theModule;
-   long firstItem;
-   long lastItem;
+   unsigned long theModule;
+   unsigned long firstItem;
+   unsigned long lastItem;
   };
 
 struct bsavePortItem
   {
-   long moduleName;
-   long constructType;
-   long constructName;
-   long next;
+   unsigned long moduleName;
+   unsigned long constructType;
+   unsigned long constructName;
+   unsigned long next;
   };
 
-#define ModulePointer(i) ((struct defmodule *) (&DefmoduleData(theEnv)->DefmoduleArray[i]))
+#define ModulePointer(i) ((Defmodule *) (&DefmoduleData(theEnv)->DefmoduleArray[i]))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefmoduleBinarySetup(void *);
-   LOCALE void                           UpdateDefmoduleItemHeader
-                                                 (void *,struct bsaveDefmoduleItemHeader *,
-                                                  struct defmoduleItemHeader *,int,void *);
+   void                           DefmoduleBinarySetup(Environment *);
+   void                           UpdateDefmoduleItemHeader
+                                                 (Environment *,struct bsaveDefmoduleItemHeader *,
+                                                  struct defmoduleItemHeader *,size_t,void *);
 
 #if BLOAD_AND_BSAVE
-   LOCALE void                           AssignBsaveDefmdlItemHdrVals
+   void                           AssignBsaveDefmdlItemHdrVals
                                                  (struct bsaveDefmoduleItemHeader *,
                                                   struct defmoduleItemHeader *);
 #endif
+
+#endif /* RUN_TIME */
 
 #endif /* _H_modulbin */
 

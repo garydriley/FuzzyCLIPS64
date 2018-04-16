@@ -18,7 +18,8 @@ FuzzyCLIPS>
 (defmessage-handler A delete before ()
   (if (instance-existp ?self:container) then
      (unmake-instance ?self:container)))
-FuzzyCLIPS>      
+FuzzyCLIPS> (defclass INITIAL-OBJECT (is-a USER))
+FuzzyCLIPS> 
 (defrule A-rule
   (logical ?obj <- (object (is-a A) (match yes)))
 =>
@@ -46,9 +47,9 @@ FuzzyCLIPS>
 (defmessage-handler A delete after ()
   (printout t ?self:foo crlf))
 FuzzyCLIPS> (unmake-instance (make-instance of A))
-[INSFUN4] Invalid instance-address in function for slot get.
-[PRCCODE4] Execution halted during the actions of message-handler delete after in class A
-TRUE
+[INSFUN4] Invalid instance-address in ?self slot reference.
+[PRCCODE4] Execution halted during the actions of message-handler 'delete' after in class 'A'
+FALSE
 FuzzyCLIPS> (clear)                   ; DR0803
 FuzzyCLIPS> 
 (defclass A
@@ -122,6 +123,7 @@ Activations
 FuzzyCLIPS> (clear)                   ; DR0806
 FuzzyCLIPS> (setgen 1)
 1
+FuzzyCLIPS> (defclass INITIAL-OBJECT (is-a USER))     
 FuzzyCLIPS> 
 (defclass A (is-a INITIAL-OBJECT)
    (multislot foo))
@@ -155,12 +157,14 @@ FuzzyCLIPS> (defclass A (is-a USER) (role concrete))
 FuzzyCLIPS> (make-instance a of A)
 [a]
 FuzzyCLIPS> (send [a] pins)
-[MSGFUN4] ppinstance may only be called from within message-handlers.
-[PRCCODE4] Execution halted during the actions of deffunction pins.
-[PRCCODE4] Execution halted during the actions of message-handler pins primary in class USER
+[MSGFUN4] The function 'ppinstance' may only be called from within message-handlers.
+[PRCCODE4] Execution halted during the actions of deffunction 'pins'.
+[PRCCODE4] Execution halted during the actions of message-handler 'pins' primary in class 'USER'
 FALSE
 FuzzyCLIPS> (clear)                   ; DR0810
-FuzzyCLIPS> (deffunction MAIN::foo
+FuzzyCLIPS> (defclass INITIAL-OBJECT (is-a USER))     
+FuzzyCLIPS> 
+(deffunction MAIN::foo
    (?garbage)
    (setgen 1)
    (loop-for-count ?garbage
@@ -175,6 +179,7 @@ gen101
 FuzzyCLIPS> (foo 500)
 gen501
 FuzzyCLIPS> (clear)                   ; DR0813
+FuzzyCLIPS> (defclass INITIAL-OBJECT (is-a USER))     
 FuzzyCLIPS> 
 (defclass A (is-a INITIAL-OBJECT)
    (multislot foo (create-accessor read-write)))
@@ -308,11 +313,12 @@ FuzzyCLIPS> (defmodule B (import A ?ALL))
 FuzzyCLIPS> (defclass B (is-a USER))
 FuzzyCLIPS> (defmethod B::foo ((?arg B)))
 
-[CSTRCPSR3] Cannot define defgeneric foo because of an import/export conflict.
+[CSTRCPSR3] Cannot define defgeneric 'foo' because of an import/export conflict.
 
 ERROR:
 (defmethod B::foo
 FuzzyCLIPS> (clear)                   ; DR0819
+FuzzyCLIPS> (defclass INITIAL-OBJECT (is-a USER))     
 FuzzyCLIPS> 
 (defclass A 
    (is-a INITIAL-OBJECT)
@@ -348,7 +354,6 @@ FuzzyCLIPS>
    (printout t "2nd output line: iii = " (send [a] get-iii) crlf))
 FuzzyCLIPS> 
 (defrule test
-   (initial-fact)
    =>
    (make-instance [a] of A)
    (make-instance [b] of B))
@@ -374,10 +379,10 @@ FuzzyCLIPS>
      (create-accessor read-write)
      (default-dynamic (send [a] put-foo blah))))
 FuzzyCLIPS> (make-instance of B)
-[MSGFUN3] foo slot in [a] of A: write access denied.
-[PRCCODE4] Execution halted during the actions of message-handler put-foo primary in class A
-[PRCCODE4] Execution halted during the actions of message-handler init primary in class USER
-[INSMNGR8] An error occurred during the initialization of instance gen504.
+[MSGFUN3] Write access denied for slot 'foo' in instance [a] of class 'A'.
+[PRCCODE4] Execution halted during the actions of message-handler 'put-foo' primary in class 'A'
+[PRCCODE4] Execution halted during the actions of message-handler 'init' primary in class 'USER'
+[INSMNGR8] An error occurred during the initialization of instance [gen504].
 FALSE
 FuzzyCLIPS> (unwatch slots)
 FuzzyCLIPS> (clear)                   ; DR0821
@@ -417,7 +422,7 @@ FuzzyCLIPS>
 FuzzyCLIPS> (restore-instances bug825.ins)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for make-instance.
-[INSFILE1] Function restore-instances could not completely process file bug825.ins.
+[INSFILE1] Function 'restore-instances' could not completely process file 'bug825.ins'.
 1
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (progn (release-mem) TRUE)
@@ -470,11 +475,11 @@ FuzzyCLIPS> (assert-string ")(dsf")
 FALSE
 FuzzyCLIPS> (clear)                   ; DR0839
 FuzzyCLIPS> (ppdefclass asd)
-[PRNTUTIL1] Unable to find defclass asd.
+[PRNTUTIL1] Unable to find defclass 'asd'.
 FuzzyCLIPS> (ppdefclass MAIN::dip)
-[PRNTUTIL1] Unable to find defclass MAIN::dip.
+[PRNTUTIL1] Unable to find defclass 'MAIN::dip'.
 FuzzyCLIPS> (ppdefclass uiui::gop)
-[PRNTUTIL1] Unable to find defclass uiui::gop.
+[PRNTUTIL1] Unable to find defclass 'uiui::gop'.
 FuzzyCLIPS> (clear)                   ; DR0840
 FuzzyCLIPS> 
 (defmodule A
@@ -625,20 +630,20 @@ FuzzyCLIPS>
 (deffunction foobar (?a ?b ?c)
    (printout t ?a " " ?b " " ?c crlf))
 FuzzyCLIPS> (funcall foobar 1)
-[ARGACCES4] Function foobar expected exactly 3 argument(s)
-[MISCFUN4] Function funcall called with the wrong number of arguments for deffunction foobar
+[ARGACCES1] Function 'foobar' expected exactly 3 arguments.
+[MISCFUN4] Function 'funcall' called with the wrong number of arguments for deffunction 'foobar'.
 FALSE
 FuzzyCLIPS> (clear)                   ; DR0855
 FuzzyCLIPS> (fetch
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 )
-[TEXTPRO1] Could not open file "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".
+[TEXTPRO1] Could not open file 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'.
 FALSE
 FuzzyCLIPS> (clear)                   ; DR0856
 FuzzyCLIPS> (constructs-to-c
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 1)
-[CONSCOMP1] Aborting because the base file name may cause the fopen maximum of 1024 to be violated when file names are generated.
+[CONSCOMP2] Aborting because the base file name may cause the fopen maximum of 1024 to be violated when file names are generated.
 FuzzyCLIPS> (clear)                   ; DR0857
 FuzzyCLIPS> 
 (defclass
@@ -680,7 +685,7 @@ FuzzyCLIPS> (slot-default-value A x)
 FuzzyCLIPS> (clear)                   ; DR0872
 FuzzyCLIPS> (load dr0872-1.clp)
 !
-[PRNTUTIL2] Syntax Error:  Check appropriate syntax for deffunction.
+[PRNTUTIL2] dr0872-1.clp, Line 4: Syntax Error:  Check appropriate syntax for deffunction.
 
 ERROR:
 (deffunction MAIN::testUnmatched
@@ -691,7 +696,7 @@ ERROR:
 FALSE
 FuzzyCLIPS> (load dr0872-2.clp)
 &
-[PRNTUTIL2] Syntax Error:  Check appropriate syntax for defmethod.
+[PRNTUTIL2] dr0872-2.clp, Line 2: Syntax Error:  Check appropriate syntax for defmethod.
 
 ERROR:
 (defmethod MAIN::foo
@@ -731,7 +736,7 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (clear)                   ; DR0874
 FuzzyCLIPS> (undefrule MAIN::)
-[PRNTUTIL1] Unable to find defrule MAIN::.
+[PRNTUTIL1] Unable to find defrule 'MAIN::'.
 FuzzyCLIPS> (clear)                   ; DR0877
 FuzzyCLIPS> 
 (deftemplate foo (multislot bar) (multislot yak))
@@ -754,13 +759,13 @@ FuzzyCLIPS> (reset)
 FuzzyCLIPS> (run)
 FuzzyCLIPS> (clear)                   ; DR0878
 FuzzyCLIPS> (funcall assert foo a b c)
-[ARGACCES5] Function funcall expected argument #1 to be of type function without specialized parser
+[ARGACCES2] Function 'funcall' expected argument #1 to be of type function without specialized parser.
 FALSE
 FuzzyCLIPS> (clear)                   ; DR0879
 FuzzyCLIPS> (assert (a) (b) (c))
 <Fact-3>
 FuzzyCLIPS> (implode$ (get-fact-list))
-"<Fact-0> <Fact-1> <Fact-2> <Fact-3>"
+"<Fact-1> <Fact-2> <Fact-3>"
 FuzzyCLIPS> (clear)                   ; DR0880
 FuzzyCLIPS> (deftemplate matrix (slot ID) (slot JD))
 FuzzyCLIPS> (deffacts blah (matrix (ID 5) (JD 5)))
@@ -791,16 +796,14 @@ FuzzyCLIPS>
    (as_score (segment_id 12)(score 9))) 
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (as_score (segment_id 11) (score 5)) CF 1.00 
 f-2     (as_score (segment_id 12) (score 9)) CF 1.00 
-For a total of 3 facts.
+For a total of 2 facts.
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (as_score (segment_id 11) (score 5)) CF 1.00 
 f-2     (as_score (segment_id 12) (score 9)) CF 1.00 
-For a total of 3 facts.
+For a total of 2 facts.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (clear)                   ; SourceForge 1881324: CLIPS 6.3 Beta Release 3
 FuzzyCLIPS> 
@@ -860,8 +863,8 @@ FuzzyCLIPS> (make-instance of BEO)
 FuzzyCLIPS> (make-instance of BEO)
 [gen507]
 FuzzyCLIPS> (bsave-instances "Temp//d.bins")
-3
+2
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (bload-instances "Temp//d.bins")
-3
+2
 FuzzyCLIPS> (dribble-off)

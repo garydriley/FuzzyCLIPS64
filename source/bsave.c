@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  09/29/16          */
+   /*            CLIPS Version 6.40  10/04/17             */
    /*                                                     */
    /*                     BSAVE MODULE                    */
    /*******************************************************/
@@ -42,9 +42,18 @@
 /*      6.31: Data sizes written to binary files for         */
 /*            validation when loaded.                        */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
-
-#define _BSAVE_SOURCE_
 
 #include "setup.h"
 
@@ -55,6 +64,7 @@
 #include "exprnpsr.h"
 #include "memalloc.h"
 #include "moduldef.h"
+#include "prntutil.h"
 #include "router.h"
 #include "symblbin.h"
 
@@ -65,34 +75,35 @@
 /***************************************/
 
 #if BLOAD_AND_BSAVE
-   static void                        FindNeededItems(void *);
-   static void                        InitializeFunctionNeededFlags(void *);
-   static void                        WriteNeededFunctions(void *,FILE *);
-   static size_t                      FunctionBinarySize(void *);
-   static void                        WriteBinaryHeader(void *,FILE *);
-   static void                        WriteBinaryFooter(void *,FILE *);
+   static void                        FindNeededItems(Environment *);
+   static void                        InitializeFunctionNeededFlags(Environment *);
+   static void                        WriteNeededFunctions(Environment *,FILE *);
+   static size_t                      FunctionBinarySize(Environment *);
+   static void                        WriteBinaryHeader(Environment *,FILE *);
+   static void                        WriteBinaryFooter(Environment *,FILE *);
+   static void                        SaveFooterCounts(Environment *theEnv,FILE *);
 #endif
-   static void                        DeallocateBsaveData(void *);
+   static void                        DeallocateBsaveData(Environment *);
 
 /**********************************************/
 /* InitializeBsaveData: Allocates environment */
 /*    data for the bsave command.             */
 /**********************************************/
-globle void InitializeBsaveData(
-  void *theEnv)
+void InitializeBsaveData(
+  Environment *theEnv)
   {
    AllocateEnvironmentData(theEnv,BSAVE_DATA,sizeof(struct bsaveData),DeallocateBsaveData);
   }
-  
+
 /************************************************/
 /* DeallocateBsaveData: Deallocates environment */
 /*    data for the bsave command.               */
 /************************************************/
 static void DeallocateBsaveData(
-  void *theEnv)
+  Environment *theEnv)
   {
    struct BinaryItem *tmpPtr, *nextPtr;
-   
+
    tmpPtr = BsaveData(theEnv)->ListOfBinaryItems;
    while (tmpPtr != NULL)
      {
@@ -106,38 +117,52 @@ static void DeallocateBsaveData(
 /* BsaveCommand: H/L access routine   */
 /*   for the bsave command.           */
 /**************************************/
-globle int BsaveCommand(
-  void *theEnv)
+void BsaveCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
 #if (! RUN_TIME) && BLOAD_AND_BSAVE
    const char *fileName;
 
-   if (EnvArgCountCheck(theEnv,"bsave",EXACTLY,1) == -1) return(FALSE);
-   fileName = GetFileName(theEnv,"bsave",1);
+   fileName = GetFileName(context);
    if (fileName != NULL)
-     { if (EnvBsave(theEnv,fileName)) return(TRUE); }
+     {
+      if (Bsave(theEnv,fileName))
+        {
+         returnValue->lexemeValue = TrueSymbol(theEnv);
+         return;
+        }
+     }
 #else
 #if MAC_XCD
-#pragma unused(theEnv)
+#pragma unused(theEnv,context)
 #endif
 #endif
-   return(FALSE);
+   returnValue->lexemeValue = FalseSymbol(theEnv);
   }
 
 #if BLOAD_AND_BSAVE
 
-/******************************/
-/* EnvBsave: C access routine */
-/*   for the bsave command.   */
-/******************************/
-globle intBool EnvBsave(
-  void *theEnv,
+/****************************/
+/* Bsave: C access routine  */
+/*   for the bsave command. */
+/****************************/
+bool Bsave(
+  Environment *theEnv,
   const char *fileName)
   {
    FILE *fp;
    struct BinaryItem *biPtr;
    char constructBuffer[CONSTRUCT_HEADER_SIZE];
-   long saveExpressionCount;
+   unsigned long saveExpressionCount;
+   
+   /*=====================================*/
+   /* If embedded, clear the error flags. */
+   /*=====================================*/
+   
+   if (EvaluationData(theEnv)->CurrentExpression == NULL)
+     { ResetErrorFlags(theEnv); }
 
    /*===================================*/
    /* A bsave can't occur when a binary */
@@ -146,10 +171,10 @@ globle intBool EnvBsave(
 
    if (Bloaded(theEnv))
      {
-      PrintErrorID(theEnv,"BSAVE",1,FALSE);
-      EnvPrintRouter(theEnv,WERROR,
+      PrintErrorID(theEnv,"BSAVE",1,false);
+      WriteString(theEnv,STDERR,
           "Cannot perform a binary save while a binary load is in effect.\n");
-      return(0);
+      return false;
      }
 
    /*================*/
@@ -159,7 +184,7 @@ globle intBool EnvBsave(
    if ((fp = GenOpen(theEnv,fileName,"wb")) == NULL)
      {
       OpenErrorMessage(theEnv,"bsave",fileName);
-      return(0);
+      return false;
      }
 
    /*==============================*/
@@ -185,28 +210,11 @@ globle intBool EnvBsave(
    InitAtomicValueNeededFlags(theEnv);
    FindHashedExpressions(theEnv);
    FindNeededItems(theEnv);
-   SetAtomicValueIndices(theEnv,FALSE);
+   SetAtomicValueIndices(theEnv,false);
    
 #if FUZZY_DEFTEMPLATES
    /* NOTE: changed order for fuzzy CLIPS!!! */
-
-   /*============================================================*/
-   /* Save the numbers indicating the amount of memory necessary */
-   /* to store the constructs.                                   */
-   /*============================================================*/
-
-   biPtr = BsaveData(theEnv)->ListOfBinaryItems;
-   while (biPtr != NULL)
-     {
-      if (biPtr->bsaveStorageFunction != NULL)
-        {
-         strncpy(constructBuffer,biPtr->name,CONSTRUCT_HEADER_SIZE);
-         GenWrite(constructBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
-         (*biPtr->bsaveStorageFunction)(theEnv,fp);
-        }
-      biPtr = biPtr->next;
-     }
-   WriteBinaryFooter(theEnv,fp);
+   SaveFooterCounts(theEnv,fp);
 #endif
 
    /*===============================*/
@@ -221,32 +229,11 @@ globle intBool EnvBsave(
    /* structures in the binary image.         */
    /*=========================================*/
 
-   GenWrite((void *) &ExpressionData(theEnv)->ExpressionCount,(unsigned long) sizeof(unsigned long),fp);
+   GenWrite(&ExpressionData(theEnv)->ExpressionCount,sizeof(unsigned long),fp);
 
-#if !FUZZY_DEFTEMPLATES
-
-   /*===========================================*/
-   /* Save the numbers indicating the amount of */
-   /* memory needed to bload the constructs.    */
-   /*===========================================*/
-
-   for (biPtr = BsaveData(theEnv)->ListOfBinaryItems;
-        biPtr != NULL;
-        biPtr = biPtr->next)
-     {
-      if (biPtr->bsaveStorageFunction != NULL)
-        {
-         genstrncpy(constructBuffer,biPtr->name,CONSTRUCT_HEADER_SIZE);
-         GenWrite(constructBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
-         (*biPtr->bsaveStorageFunction)(theEnv,fp);
-        }
-     }
-
-   /*====================================*/
-   /* Write a binary footer to the file. */
-   /*====================================*/
-
-   WriteBinaryFooter(theEnv,fp);
+#if ! FUZZY_DEFTEMPLATES
+   /* NOTE: changed order for fuzzy CLIPS!!! */
+   SaveFooterCounts(theEnv,fp);
 #endif
 
    /*===================*/
@@ -276,7 +263,7 @@ globle intBool EnvBsave(
       if (biPtr->bsaveFunction != NULL)
         {
          genstrncpy(constructBuffer,biPtr->name,CONSTRUCT_HEADER_SIZE);
-         GenWrite(constructBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
+         GenWrite(constructBuffer,CONSTRUCT_HEADER_SIZE,fp);
          (*biPtr->bsaveFunction)(theEnv,fp);
         }
      }
@@ -305,11 +292,45 @@ globle intBool EnvBsave(
 
    RestoreCurrentModule(theEnv);
 
-   /*========================================*/
-   /* Return TRUE to indicate success. */
-   /*========================================*/
+   /*==================================*/
+   /* Return true to indicate success. */
+   /*==================================*/
 
-   return(TRUE);
+   return true;
+  }
+
+/********************/
+/* SaveFooterCounts */
+/********************/
+static void SaveFooterCounts(
+  Environment *theEnv,
+  FILE *fp)
+  {
+   struct BinaryItem *biPtr;
+   char constructBuffer[CONSTRUCT_HEADER_SIZE];
+
+   /*===========================================*/
+   /* Save the numbers indicating the amount of */
+   /* memory needed to bload the constructs.    */
+   /*===========================================*/
+
+   for (biPtr = BsaveData(theEnv)->ListOfBinaryItems;
+        biPtr != NULL;
+        biPtr = biPtr->next)
+     {
+      if (biPtr->bsaveStorageFunction != NULL)
+        {
+         genstrncpy(constructBuffer,biPtr->name,CONSTRUCT_HEADER_SIZE);
+         GenWrite(constructBuffer,CONSTRUCT_HEADER_SIZE,fp);
+         (*biPtr->bsaveStorageFunction)(theEnv,fp);
+        }
+     }
+
+   /*====================================*/
+   /* Write a binary footer to the file. */
+   /*====================================*/
+
+   WriteBinaryFooter(theEnv,fp);
   }
 
 /*********************************************/
@@ -318,14 +339,14 @@ globle intBool EnvBsave(
 /*   being unneeded by this binary image.    */
 /*********************************************/
 static void InitializeFunctionNeededFlags(
-  void *theEnv)
+  Environment *theEnv)
   {
-   struct FunctionDefinition *functionList;
+   struct functionDefinition *functionList;
 
    for (functionList = GetFunctionList(theEnv);
         functionList != NULL;
         functionList = functionList->next)
-     { functionList->bsaveIndex = 0; }
+     { functionList->neededFunction = false; }
   }
 
 /**********************************************************/
@@ -335,7 +356,7 @@ static void InitializeFunctionNeededFlags(
 /*   number of expressions in use (through a global).     */
 /**********************************************************/
 static void FindNeededItems(
-  void *theEnv)
+  Environment *theEnv)
   {
    struct BinaryItem *biPtr;
 
@@ -350,12 +371,12 @@ static void FindNeededItems(
 /*   functions to the binary save file.             */
 /****************************************************/
 static void WriteNeededFunctions(
-  void *theEnv,
+  Environment *theEnv,
   FILE *fp)
   {
-   unsigned long int count = 0;
+   unsigned long count = 0;
    size_t space, length;
-   struct FunctionDefinition *functionList;
+   struct functionDefinition *functionList;
 
    /*================================================*/
    /* Assign each function an index if it is needed. */
@@ -365,20 +386,20 @@ static void WriteNeededFunctions(
         functionList != NULL;
         functionList = functionList->next)
      {
-      if (functionList->bsaveIndex)
-        { functionList->bsaveIndex = (short int) count++; }
+      if (functionList->neededFunction)
+        { functionList->bsaveIndex = count++; }
       else
-        { functionList->bsaveIndex = -1; }
+        { functionList->bsaveIndex = ULONG_MAX; }
      }
 
    /*===================================================*/
    /* Write the number of function names to be written. */
    /*===================================================*/
 
-   GenWrite(&count,(unsigned long) sizeof(unsigned long int),fp);
+   GenWrite(&count,sizeof(unsigned long),fp);
    if (count == 0)
      {
-      GenWrite(&count,(unsigned long) sizeof(unsigned long int),fp);
+      GenWrite(&count,sizeof(unsigned long),fp);
       return;
      }
 
@@ -388,7 +409,7 @@ static void WriteNeededFunctions(
    /*================================*/
 
    space = FunctionBinarySize(theEnv);
-   GenWrite(&space,(unsigned long) sizeof(unsigned long int),fp);
+   GenWrite(&space,sizeof(unsigned long),fp);
 
    /*===============================*/
    /* Write out the function names. */
@@ -398,10 +419,10 @@ static void WriteNeededFunctions(
         functionList != NULL;
         functionList = functionList->next)
      {
-      if (functionList->bsaveIndex >= 0)
+      if (functionList->neededFunction)
         {
-         length = strlen(ValueToString(functionList->callFunctionName)) + 1;
-         GenWrite((void *) ValueToString(functionList->callFunctionName),(unsigned long) length,fp);
+         length = strlen(functionList->callFunctionName->contents) + 1;
+         GenWrite((void *) functionList->callFunctionName->contents,length,fp);
         }
      }
   }
@@ -412,17 +433,17 @@ static void WriteNeededFunctions(
 /*   function names in the binary save file. */
 /*********************************************/
 static size_t FunctionBinarySize(
-  void *theEnv)
+  Environment *theEnv)
   {
    size_t size = 0;
-   struct FunctionDefinition *functionList;
+   struct functionDefinition *functionList;
 
    for (functionList = GetFunctionList(theEnv);
         functionList != NULL;
         functionList = functionList->next)
      {
-      if (functionList->bsaveIndex >= 0)
-        { size += strlen(ValueToString(functionList->callFunctionName)) + 1; }
+      if (functionList->neededFunction)
+        { size += strlen(functionList->callFunctionName->contents) + 1; }
      }
 
    return(size);
@@ -433,9 +454,9 @@ static size_t FunctionBinarySize(
 /*   count values when a binary save command is    */
 /*   issued when a binary image is loaded.         */
 /***************************************************/
-globle void SaveBloadCount(
-  void *theEnv,
-  long cnt)
+void SaveBloadCount(
+  Environment *theEnv,
+  unsigned long cnt)
   {
    BLOADCNTSV *tmp, *prv;
 
@@ -459,9 +480,9 @@ globle void SaveBloadCount(
 /*   count values after a binary save command is  */
 /*   completed when a binary image is loaded.     */
 /**************************************************/
-globle void RestoreBloadCount(
-  void *theEnv,
-  long *cnt)
+void RestoreBloadCount(
+  Environment *theEnv,
+  unsigned long *cnt)
   {
    BLOADCNTSV *tmp;
 
@@ -476,48 +497,47 @@ globle void RestoreBloadCount(
 /*   determine which items are needed to save */
 /*   an expression as part of a binary image. */
 /**********************************************/
-globle void MarkNeededItems(
-  void *theEnv,
+void MarkNeededItems(
+  Environment *theEnv,
   struct expr *testPtr)
   {
    while (testPtr != NULL)
      {
       switch (testPtr->type)
         {
-         case SYMBOL:
-         case STRING:
+         case SYMBOL_TYPE:
+         case STRING_TYPE:
          case GBL_VARIABLE:
-         case INSTANCE_NAME:
-            ((SYMBOL_HN *) testPtr->value)->neededSymbol = TRUE;
+         case INSTANCE_NAME_TYPE:
+            testPtr->lexemeValue->neededSymbol = true;
             break;
 
-         case FLOAT:
-            ((FLOAT_HN *) testPtr->value)->neededFloat = TRUE;
+         case FLOAT_TYPE:
+            testPtr->floatValue->neededFloat = true;
             break;
 
-         case INTEGER:
-            ((INTEGER_HN *) testPtr->value)->neededInteger = TRUE;
+         case INTEGER_TYPE:
+            testPtr->integerValue->neededInteger = true;
             break;
             
 #if FUZZY_DEFTEMPLATES
-         case FUZZY_VALUE:
-            { /* fuzzy value is needed */
-             ((FUZZY_VALUE_HN *) testPtr->value)->neededFuzzyValue = TRUE;
-            }
+         case FUZZY_VALUE_TYPE:
+            /* fuzzy value is needed */
+            testPtr->fuzzyValue->neededFuzzyValue = true;
             break;
 #endif
 
          case FCALL:
-            ((struct FunctionDefinition *) testPtr->value)->bsaveIndex = TRUE;
+            testPtr->functionValue->neededFunction = true;
             break;
 
-         case RVOID:
+         case VOID_TYPE:
            break;
 
          default:
            if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type] == NULL) break;
            if (EvaluationData(theEnv)->PrimitivesArray[testPtr->type]->bitMap)
-             { ((BITMAP_HN *) testPtr->value)->neededBitMap = TRUE; }
+             { ((CLIPSBitMap *) testPtr->value)->neededBitMap = true; }
            break;
 
         }
@@ -534,12 +554,12 @@ globle void MarkNeededItems(
 /*   verification when a binary image is loaded.      */
 /******************************************************/
 static void WriteBinaryHeader(
-  void *theEnv,
+  Environment *theEnv,
   FILE *fp)
   {
-   GenWrite((void *) BloadData(theEnv)->BinaryPrefixID,(unsigned long) strlen(BloadData(theEnv)->BinaryPrefixID) + 1,fp);
-   GenWrite((void *) BloadData(theEnv)->BinaryVersionID,(unsigned long) strlen(BloadData(theEnv)->BinaryVersionID) + 1,fp);
-   GenWrite((void *) BloadData(theEnv)->BinarySizes,(unsigned long) strlen(BloadData(theEnv)->BinarySizes) + 1,fp);
+   GenWrite((void *) BloadData(theEnv)->BinaryPrefixID,strlen(BloadData(theEnv)->BinaryPrefixID) + 1,fp);
+   GenWrite((void *) BloadData(theEnv)->BinaryVersionID,strlen(BloadData(theEnv)->BinaryVersionID) + 1,fp);
+   GenWrite((void *) BloadData(theEnv)->BinarySizes,strlen(BloadData(theEnv)->BinarySizes) + 1,fp);
   }
 
 /******************************************************/
@@ -547,13 +567,13 @@ static void WriteBinaryHeader(
 /*   verification when a binary image is loaded.      */
 /******************************************************/
 static void WriteBinaryFooter(
-  void *theEnv,
+  Environment *theEnv,
   FILE *fp)
   {
    char footerBuffer[CONSTRUCT_HEADER_SIZE];
 
    genstrncpy(footerBuffer,BloadData(theEnv)->BinaryPrefixID,CONSTRUCT_HEADER_SIZE);
-   GenWrite(footerBuffer,(unsigned long) CONSTRUCT_HEADER_SIZE,fp);
+   GenWrite(footerBuffer,CONSTRUCT_HEADER_SIZE,fp);
   }
 
 #endif /* BLOAD_AND_BSAVE */
@@ -566,17 +586,17 @@ static void WriteBinaryFooter(
 /*   data structures of a construct or other "item" to a  */
 /*   binary file.                                         */
 /**********************************************************/
-globle intBool AddBinaryItem(
-  void *theEnv,
+bool AddBinaryItem(
+  Environment *theEnv,
   const char *name,
   int priority,
-  void (*findFunction)(void *),
-  void (*expressionFunction)(void *,FILE *),
-  void (*bsaveStorageFunction)(void *,FILE *),
-  void (*bsaveFunction)(void *,FILE *),
-  void (*bloadStorageFunction)(void *),
-  void (*bloadFunction)(void *),
-  void (*clearFunction)(void *))
+  void (*findFunction)(Environment *),
+  void (*expressionFunction)(Environment *,FILE *),
+  void (*bsaveStorageFunction)(Environment *,FILE *),
+  void (*bsaveFunction)(Environment *,FILE *),
+  void (*bloadStorageFunction)(Environment *),
+  void (*bloadFunction)(Environment *),
+  void (*clearFunction)(Environment *))
   {
    struct BinaryItem *newPtr, *currentPtr, *lastPtr = NULL;
 
@@ -605,7 +625,7 @@ globle intBool AddBinaryItem(
      {
       newPtr->next = NULL;
       BsaveData(theEnv)->ListOfBinaryItems = newPtr;
-      return(TRUE);
+      return true;
      }
 
    /*=========================================*/
@@ -615,7 +635,7 @@ globle intBool AddBinaryItem(
    /*=========================================*/
 
    currentPtr = BsaveData(theEnv)->ListOfBinaryItems;
-   while ((currentPtr != NULL) ? (priority < currentPtr->priority) : FALSE)
+   while ((currentPtr != NULL) ? (priority < currentPtr->priority) : false)
      {
       lastPtr = currentPtr;
       currentPtr = currentPtr->next;
@@ -633,33 +653,14 @@ globle intBool AddBinaryItem(
      }
 
    /*==================================*/
-   /* Return TRUE to indicate the item */
+   /* Return true to indicate the item */
    /* was successfully added.          */
    /*==================================*/
 
-   return(TRUE);
+   return true;
   }
 
 #endif /* BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if BLOAD_AND_BSAVE
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool Bsave(
-  const char *fileName)
-  {
-   return EnvBsave(GetCurrentEnvironment(),fileName);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
-
-#endif /* BLOAD_AND_BSAVE */
-
 
 
 

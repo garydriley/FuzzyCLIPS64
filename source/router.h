@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  01/15/18            */
+   /*             CLIPS Version 6.40  01/15/18            */
    /*                                                     */
    /*                 ROUTER HEADER FILE                  */
    /*******************************************************/
@@ -22,13 +22,13 @@
 /*                                                           */
 /*            Renamed BOOLEAN macro type to intBool.         */
 /*                                                           */
-/*            Added support for passing context information  */ 
+/*            Added support for passing context information  */
 /*            to the router functions.                       */
 /*                                                           */
 /*      6.30: Fixed issues with passing context to routers.  */
 /*                                                           */
 /*            Added AwaitingInput flag.                      */
-/*                                                           */             
+/*                                                           */
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
@@ -37,50 +37,73 @@
 /*            Added STDOUT and STDIN logical name            */
 /*            definitions.                                   */
 /*                                                           */
+/*      6.40: Added InputBufferCount function.               */
+/*                                                           */
+/*            Added check for reuse of existing router name. */
+/*                                                           */
+/*            Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Changed return values for router functions.    */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            Callbacks must be environment aware.           */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Removed WPROMPT, WDISPLAY, WTRACE, and WDIALOG */
+/*            logical names.                                 */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_router
+
+#pragma once
+
 #define _H_router
 
-#ifndef _H_prntutil
-#include "prntutil.h"
-#endif
-
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#define WWARNING "wwarning"
-#define WERROR "werror"
-#define WTRACE "wtrace"
-#define WDIALOG "wdialog"
-#define WPROMPT  WPROMPT_STRING
-#define WDISPLAY "wdisplay"
-#define STDOUT "stdout"
-#define STDIN "stdin"
+typedef struct router Router;
+typedef bool RouterQueryFunction(Environment *,const char *,void *);
+typedef void RouterWriteFunction(Environment *,const char *,const char *,void *);
+typedef void RouterExitFunction(Environment *,int,void *);
+typedef int RouterReadFunction(Environment *,const char *,void *);
+typedef int RouterUnreadFunction(Environment *,const char *,int,void *);
+
+extern const char *STDOUT;
+extern const char *STDIN;
+extern const char *STDERR;
+extern const char *STDWRN;
 
 #define ROUTER_DATA 46
 
 struct router
   {
    const char *name;
-   int active;
+   bool active;
    int priority;
-   short int environmentAware;
    void *context;
-   int (*query)(void *,const char *);
-   int (*printer)(void *,const char *,const char *);
-   int (*exiter)(void *,int);
-   int (*charget)(void *,const char *);
-   int (*charunget)(void *,int,const char *);
-   struct router *next;
+   RouterQueryFunction *queryCallback;
+   RouterWriteFunction *writeCallback;
+   RouterExitFunction *exitCallback;
+   RouterReadFunction *readCallback;
+   RouterUnreadFunction *unreadCallback;
+   Router *next;
   };
 
 struct routerData
-  { 
+  {
    size_t CommandBufferInputCount;
-   int AwaitingInput;
+   size_t InputUngets;
+   bool AwaitingInput;
    const char *LineCountRouter;
    const char *FastCharGetRouter;
    const char *FastCharGetString;
@@ -88,72 +111,35 @@ struct routerData
    struct router *ListOfRouters;
    FILE *FastLoadFilePtr;
    FILE *FastSaveFilePtr;
-   int Abort;
+   bool Abort;
   };
 
 #define RouterData(theEnv) ((struct routerData *) GetEnvironmentData(theEnv,ROUTER_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _ROUTER_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDefaultRouters(void *);
-   LOCALE int                            EnvPrintRouter(void *,const char *,const char *);
-   LOCALE int                            EnvGetcRouter(void *,const char *);
-   LOCALE int                            EnvUngetcRouter(void *,int,const char *);
-   LOCALE void                           EnvExitRouter(void *,int);
-   LOCALE void                           AbortExit(void *);
-   LOCALE intBool                        EnvAddRouterWithContext(void *,
-                                                   const char *,int,
-                                                   int (*)(void *,const char *),
-                                                   int (*)(void *,const char *,const char *),
-                                                   int (*)(void *,const char *),
-                                                   int (*)(void *,int,const char *),
-                                                   int (*)(void *,int),
-                                                   void *);
-   LOCALE intBool                        EnvAddRouter(void *,
-                                                   const char *,int,
-                                                   int (*)(void *,const char *),
-                                                   int (*)(void *,const char *,const char *),
-                                                   int (*)(void *,const char *),
-                                                   int (*)(void *,int,const char *),
-                                                   int (*)(void *,int));
-   LOCALE int                            EnvDeleteRouter(void *,const char *);
-   LOCALE int                            QueryRouters(void *,const char *);
-   LOCALE int                            EnvDeactivateRouter(void *,const char *);
-   LOCALE int                            EnvActivateRouter(void *,const char *);
-   LOCALE void                           SetFastLoad(void *,FILE *);
-   LOCALE void                           SetFastSave(void *,FILE *);
-   LOCALE FILE                          *GetFastLoad(void *);
-   LOCALE FILE                          *GetFastSave(void *);
-   LOCALE void                           UnrecognizedRouterMessage(void *,const char *);
-   LOCALE void                           ExitCommand(void *);
-   LOCALE int                            PrintNRouter(void *,const char *,const char *,unsigned long);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE int                            ActivateRouter(const char *);
-   LOCALE intBool                        AddRouter(const char *,int,
-                                                   int (*)(const char *),
-                                                   int (*)(const char *,const char *),
-                                                   int (*)(const char *),
-                                                   int (*)(int,const char *),
-                                                   int (*)(int));
-   LOCALE int                            DeactivateRouter(const char *);
-   LOCALE int                            DeleteRouter(const char *);
-   LOCALE void                           ExitRouter(int);
-   LOCALE int                            GetcRouter(const char *);
-   LOCALE int                            PrintRouter(const char *,const char *);
-   LOCALE int                            UngetcRouter(int,const char *);
-   
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           InitializeDefaultRouters(Environment *);
+   void                           WriteString(Environment *,const char *,const char *);
+   void                           Write(Environment *,const char *);
+   void                           Writeln(Environment *,const char *);
+   int                            ReadRouter(Environment *,const char *);
+   int                            UnreadRouter(Environment *,const char *,int);
+   void                           ExitRouter(Environment *,int);
+   void                           AbortExit(Environment *);
+   bool                           AddRouter(Environment *,const char *,int,
+                                            RouterQueryFunction *,RouterWriteFunction *,
+                                            RouterReadFunction *,RouterUnreadFunction *,
+                                            RouterExitFunction *,void *);
+   bool                           DeleteRouter(Environment *,const char *);
+   bool                           QueryRouters(Environment *,const char *);
+   bool                           DeactivateRouter(Environment *,const char *);
+   bool                           ActivateRouter(Environment *,const char *);
+   void                           SetFastLoad(Environment *,FILE *);
+   void                           SetFastSave(Environment *,FILE *);
+   FILE                          *GetFastLoad(Environment *);
+   FILE                          *GetFastSave(Environment *);
+   void                           UnrecognizedRouterMessage(Environment *,const char *);
+   void                           PrintNRouter(Environment *,const char *,const char *,unsigned long);
+   size_t                         InputBufferCount(Environment *);
+   Router                        *FindRouter(Environment *,const char *);
+   bool                           PrintRouterExists(Environment *,const char *);
 
 #endif /* _H_router */
-
-

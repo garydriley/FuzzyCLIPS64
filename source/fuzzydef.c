@@ -75,7 +75,7 @@
 /******************************************************************
     Local Internal Function Declarations
  ******************************************************************/
- static void DeallocateFuzzyData(void *theEnv);
+ static void DeallocateFuzzyData(Environment *theEnv);
 
 
 /******************************************************************
@@ -100,14 +100,14 @@
 ******************************************************************/
 
 
-globle void InitializeFuzzy(
+void InitializeFuzzy(
   void *theEnv)
 {
   AllocateEnvironmentData(theEnv,FUZZY_DATA,sizeof(struct fuzzyData),DeallocateFuzzyData);
   FuzzyData(theEnv)->FuzzyInferenceType = MAXMIN;  /* inference type 'max-min' by default */
   FuzzyData(theEnv)->FuzzyFloatPrecision = 4;      /* default precision for printing fuzzy set values */
   FuzzyData(theEnv)->FuzzyAlphaValue = 0.0;        /* default alpha cut for pattern matching */
-  FuzzyData(theEnv)->is_last_defuzzify_valid = TRUE;
+  FuzzyData(theEnv)->is_last_defuzzify_valid = true;
   DeffuzzyCommands(theEnv);       /* in fuzzycom.c */
   Init_S_Z_PI_yvalues(theEnv);    /* in fuzzypsr.c */
   initFuzzyModifierList(theEnv);  /* in fuzzymod.c */
@@ -119,7 +119,7 @@ globle void InitializeFuzzy(
 /*    data for symbols.                         */
 /************************************************/
 static void DeallocateFuzzyData(
-  void *theEnv)
+  Environment *theEnv)
   {
    struct modifierListItem *tmpPtr, *nextPtr;
    

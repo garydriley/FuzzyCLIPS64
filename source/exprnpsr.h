@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  11/17/17            */
    /*                                                     */
    /*            EXPRESSION PARSER HEADER FILE            */
    /*******************************************************/
@@ -33,69 +33,63 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Eval support for run time and bload only.      */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_exprnpsr
 
+#pragma once
+
 #define _H_exprnpsr
 
-#if (! RUN_TIME)
-
-typedef struct saved_contexts
+typedef enum
   {
-   int rtn;
-   int brk;
-   struct saved_contexts *nxt;
-  } SAVED_CONTEXTS;
+   FAE_NO_ERROR = 0,
+   FAE_COUNT_ERROR,
+   FAE_TYPE_ERROR
+  } FunctionArgumentsError;
 
-#endif
-
-#ifndef _H_extnfunc
 #include "extnfunc.h"
-#endif
-#ifndef _H_scanner
 #include "scanner.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _EXPRNPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE struct expr                   *Function0Parse(void *,const char *);
-   LOCALE struct expr                   *Function1Parse(void *,const char *);
-   LOCALE struct expr                   *Function2Parse(void *,const char *,const char *);
-   LOCALE void                           PushRtnBrkContexts(void *);
-   LOCALE void                           PopRtnBrkContexts(void *);
-   LOCALE intBool                        ReplaceSequenceExpansionOps(void *,struct expr *,struct expr *,
+   struct expr                   *Function0Parse(Environment *,const char *);
+   struct expr                   *Function1Parse(Environment *,const char *);
+   struct expr                   *Function2Parse(Environment *,const char *,const char *);
+   void                           PushRtnBrkContexts(Environment *);
+   void                           PopRtnBrkContexts(Environment *);
+   bool                           ReplaceSequenceExpansionOps(Environment *,struct expr *,struct expr *,
                                                                      void *,void *);
-   LOCALE struct expr                   *CollectArguments(void *,struct expr *,const char *);
-   LOCALE struct expr                   *ArgumentParse(void *,const char *,int *);
-   LOCALE struct expr                   *ParseAtomOrExpression(void *,const char *,struct token *);
-   LOCALE EXPRESSION                    *ParseConstantArguments(void *,const char *,int *);
-   LOCALE intBool                        EnvSetSequenceOperatorRecognition(void *,int);
-   LOCALE intBool                        EnvGetSequenceOperatorRecognition(void *);
-   LOCALE struct expr                   *GroupActions(void *,const char *,struct token *,
-                                                      int,const char *,int);
-   LOCALE struct expr                   *RemoveUnneededProgn(void *,struct expr *);
+   struct expr                   *CollectArguments(Environment *,struct expr *,const char *);
+   struct expr                   *ArgumentParse(Environment *,const char *,bool *);
+   struct expr                   *ParseAtomOrExpression(Environment *,const char *,struct token *);
+   Expression                    *ParseConstantArguments(Environment *,const char *,bool *);
+   struct expr                   *GroupActions(Environment *,const char *,struct token *,
+                                                      bool,const char *,bool);
+   struct expr                   *RemoveUnneededProgn(Environment *,struct expr *);
+   void                           PopulateRestriction(Environment *,unsigned *,unsigned,const char *,unsigned int);
+
+
+   FunctionArgumentsError         CheckExpressionAgainstRestrictions(Environment *,struct expr *,
+                                                                     struct functionDefinition *,const char *);
 
 #if (! RUN_TIME)
+   bool                           RestrictionExists(const char *,int);
 
-   LOCALE int                            CheckExpressionAgainstRestrictions(void *,struct expr *,
-                                                                            const char *,const char *);
 #endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        SetSequenceOperatorRecognition(int);
-   LOCALE intBool                        GetSequenceOperatorRecognition(void);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* _H_exprnpsr */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -22,9 +22,19 @@
 /*                                                           */
 /*            Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_genrcbin
+
+#pragma once
+
 #define _H_genrcbin
 
 #include "genrcfun.h"
@@ -32,35 +42,25 @@
 #define GENRCBIN_DATA 28
 
 struct defgenericBinaryData
-  { 
-   DEFGENERIC *DefgenericArray;
-   long ModuleCount;
-   long GenericCount;
-   long MethodCount;
-   long RestrictionCount;
-   long TypeCount;
+  {
+   Defgeneric *DefgenericArray;
+   unsigned long ModuleCount;
+   unsigned long GenericCount;
+   unsigned long MethodCount;
+   unsigned long RestrictionCount;
+   unsigned long TypeCount;
    DEFGENERIC_MODULE *ModuleArray;
-   DEFMETHOD *MethodArray;
+   Defmethod *MethodArray;
    RESTRICTION *RestrictionArray;
    void **TypeArray;
   };
-  
+
 #define DefgenericBinaryData(theEnv) ((struct defgenericBinaryData *) GetEnvironmentData(theEnv,GENRCBIN_DATA))
 
-#define GenericPointer(i) (((i) == -1L) ? NULL : (DEFGENERIC *) &DefgenericBinaryData(theEnv)->DefgenericArray[i])
+#define GenericPointer(i) (((i) == ULONG_MAX) ? NULL : &DefgenericBinaryData(theEnv)->DefgenericArray[i])
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GENRCBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupGenericsBload(void *);
-   LOCALE void                          *BloadDefgenericModuleReference(void *,int);
+   void                           SetupGenericsBload(Environment *);
+   void                          *BloadDefgenericModuleReference(Environment *,unsigned long);
 
 #endif /* _H_genrcbin */
 

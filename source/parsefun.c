@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  11/13/17             */
    /*                                                     */
    /*               PARSING FUNCTIONS MODULE              */
    /*******************************************************/
@@ -34,9 +34,21 @@
 /*            Fixed function declaration issue when          */
 /*            BLOAD_ONLY compiler flag is set to 1.          */
 /*                                                           */
+/*      6.40: Changed check-syntax router name because of    */
+/*            a conflict with another error-capture router.  */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Changed return values for router functions.    */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
-
-#define _PARSEFUN_SOURCE_
 
 #include "setup.h"
 
@@ -46,10 +58,11 @@
 #include "cstrcpsr.h"
 #include "envrnmnt.h"
 #include "exprnpsr.h"
-#include "extnfunc.h"
 #include "memalloc.h"
 #include "multifld.h"
+#include "pprint.h"
 #include "prcdrpsr.h"
+#include "prntutil.h"
 #include "router.h"
 #include "strngrtr.h"
 #include "utility.h"
@@ -59,7 +72,7 @@
 #define PARSEFUN_DATA 11
 
 struct parseFunctionData
-  { 
+  {
    char *ErrorString;
    size_t ErrorCurrentPosition;
    size_t ErrorMaximumPosition;
@@ -75,23 +88,23 @@ struct parseFunctionData
 /***************************************/
 
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   static int                     FindErrorCapture(void *,const char *);
-   static int                     PrintErrorCapture(void *,const char *,const char *);
-   static void                    DeactivateErrorCapture(void *);
-   static void                    SetErrorCaptureValues(void *,DATA_OBJECT_PTR);
+   static bool                    QueryErrorCaptureCallback(Environment *,const char *,void *);
+   static void                    WriteErrorCaptureCallback(Environment *,const char *,const char *,void *);
+   static void                    DeactivateErrorCapture(Environment *);
+   static void                    SetErrorCaptureValues(Environment *,UDFValue *);
 #endif
 
 /*****************************************/
 /* ParseFunctionDefinitions: Initializes */
 /*   the parsing related functions.      */
 /*****************************************/
-globle void ParseFunctionDefinitions(
-  void *theEnv)
+void ParseFunctionDefinitions(
+  Environment *theEnv)
   {
    AllocateEnvironmentData(theEnv,PARSEFUN_DATA,sizeof(struct parseFunctionData),NULL);
 
 #if ! RUN_TIME
-   EnvDefineFunction2(theEnv,"check-syntax",'u',PTIEF CheckSyntaxFunction,"CheckSyntaxFunction","11s");
+   AddUDF(theEnv,"check-syntax","ym",1,1,"s",CheckSyntaxFunction,"CheckSyntaxFunction",NULL);
 #endif
   }
 
@@ -100,61 +113,47 @@ globle void ParseFunctionDefinitions(
 /* CheckSyntaxFunction: H/L access routine */
 /*   for the check-syntax function.        */
 /*******************************************/
-globle void CheckSyntaxFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
+void CheckSyntaxFunction(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   DATA_OBJECT theArg;
-
-   /*===============================*/
-   /* Set up a default return value */
-   /* (TRUE for problems found).    */
-   /*===============================*/
-
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvTrueSymbol(theEnv));
-
-   /*=====================================================*/
-   /* Function check-syntax expects exactly one argument. */
-   /*=====================================================*/
-
-   if (EnvArgCountCheck(theEnv,"check-syntax",EXACTLY,1) == -1) return;
+   UDFValue theArg;
 
    /*========================================*/
-   /* The argument should be of type STRING. */
+   /* The argument should be of type STRING_TYPE. */
    /*========================================*/
 
-   if (EnvArgTypeCheck(theEnv,"check-syntax",1,STRING,&theArg) == FALSE)
+   if (! UDFFirstArgument(context,STRING_BIT,&theArg))
      { return; }
 
    /*===================*/
    /* Check the syntax. */
    /*===================*/
 
-   CheckSyntax(theEnv,DOToString(theArg),returnValue);
+   CheckSyntax(theEnv,theArg.lexemeValue->contents,returnValue);
   }
 
 /*********************************/
 /* CheckSyntax: C access routine */
 /*   for the build function.     */
 /*********************************/
-globle int CheckSyntax(
-  void *theEnv,
+bool CheckSyntax(
+  Environment *theEnv,
   const char *theString,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
    const char *name;
    struct token theToken;
    struct expr *top;
-   short rv;
+   bool rv;
 
    /*==============================*/
    /* Set the default return value */
    /* (TRUE for problems found).   */
    /*==============================*/
 
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvTrueSymbol(theEnv));
+   returnValue->lexemeValue = TrueSymbol(theEnv);
 
    /*===========================================*/
    /* Create a string source router so that the */
@@ -162,7 +161,7 @@ globle int CheckSyntax(
    /*===========================================*/
 
    if (OpenStringSource(theEnv,"check-syntax",theString,0) == 0)
-     { return(TRUE); }
+     { return true; }
 
    /*=================================*/
    /* Only expressions and constructs */
@@ -171,11 +170,11 @@ globle int CheckSyntax(
 
    GetToken(theEnv,"check-syntax",&theToken);
 
-   if (theToken.type != LPAREN)
+   if (theToken.tknType != LEFT_PARENTHESIS_TOKEN)
      {
       CloseStringSource(theEnv,"check-syntax");
-      SetpValue(returnValue,EnvAddSymbol(theEnv,"MISSING-LEFT-PARENTHESIS"));
-      return(TRUE);
+      returnValue->lexemeValue = CreateSymbol(theEnv,"MISSING-LEFT-PARENTHESIS");
+      return true;
      }
 
    /*========================================*/
@@ -184,22 +183,22 @@ globle int CheckSyntax(
    /*========================================*/
 
    GetToken(theEnv,"check-syntax",&theToken);
-   if (theToken.type != SYMBOL)
+   if (theToken.tknType != SYMBOL_TOKEN)
      {
       CloseStringSource(theEnv,"check-syntax");
-      SetpValue(returnValue,EnvAddSymbol(theEnv,"EXPECTED-SYMBOL-AFTER-LEFT-PARENTHESIS"));
-      return(TRUE);
+      returnValue->lexemeValue = CreateSymbol(theEnv,"EXPECTED-SYMBOL_TYPE-AFTER-LEFT-PARENTHESIS");
+      return true;
      }
 
-   name = ValueToString(theToken.value);
+   name = theToken.lexemeValue->contents;
 
    /*==============================================*/
    /* Set up a router to capture the error output. */
    /*==============================================*/
 
-   EnvAddRouter(theEnv,"error-capture",40,
-              FindErrorCapture, PrintErrorCapture,
-              NULL, NULL, NULL);
+   AddRouter(theEnv,"cs-error-capture",40,
+             QueryErrorCaptureCallback,WriteErrorCaptureCallback,
+             NULL,NULL,NULL,NULL);
 
    /*================================*/
    /* Determine if it's a construct. */
@@ -207,40 +206,44 @@ globle int CheckSyntax(
 
    if (FindConstruct(theEnv,name))
      {
-      ConstructData(theEnv)->CheckSyntaxMode = TRUE;
-      rv = (short) ParseConstruct(theEnv,name,"check-syntax");
+      ConstructData(theEnv)->CheckSyntaxMode = true;
+      
+      if (ParseConstruct(theEnv,name,"check-syntax") == BE_PARSING_ERROR)
+        { rv = true; }
+       else
+        { rv = false; }
+         
       GetToken(theEnv,"check-syntax",&theToken);
-      ConstructData(theEnv)->CheckSyntaxMode = FALSE;
+      ConstructData(theEnv)->CheckSyntaxMode = false;
 
       if (rv)
         {
-         EnvPrintRouter(theEnv,WERROR,"\nERROR:\n");
-         PrintInChunks(theEnv,WERROR,GetPPBuffer(theEnv));
-         EnvPrintRouter(theEnv,WERROR,"\n");
+         WriteString(theEnv,STDERR,"\nERROR:\n");
+         WriteString(theEnv,STDERR,GetPPBuffer(theEnv));
+         WriteString(theEnv,STDERR,"\n");
         }
 
       DestroyPPBuffer(theEnv);
 
       CloseStringSource(theEnv,"check-syntax");
 
-      if ((rv != FALSE) || (ParseFunctionData(theEnv)->WarningString != NULL))
+      if ((rv != false) || (ParseFunctionData(theEnv)->WarningString != NULL))
         {
          SetErrorCaptureValues(theEnv,returnValue);
          DeactivateErrorCapture(theEnv);
-         return(TRUE);
+         return true;
         }
 
-      if (theToken.type != STOP)
+      if (theToken.tknType != STOP_TOKEN)
         {
-         SetpValue(returnValue,EnvAddSymbol(theEnv,"EXTRANEOUS-INPUT-AFTER-LAST-PARENTHESIS"));
+         returnValue->value = CreateSymbol(theEnv,"EXTRANEOUS-INPUT-AFTER-LAST-PARENTHESIS");
          DeactivateErrorCapture(theEnv);
-         return(TRUE);
+         return true;
         }
 
-      SetpType(returnValue,SYMBOL);
-      SetpValue(returnValue,EnvFalseSymbol(theEnv));
+      returnValue->lexemeValue = FalseSymbol(theEnv);
       DeactivateErrorCapture(theEnv);
-      return(FALSE);
+      return false;
      }
 
    /*=======================*/
@@ -256,23 +259,22 @@ globle int CheckSyntax(
      {
       SetErrorCaptureValues(theEnv,returnValue);
       DeactivateErrorCapture(theEnv);
-      return(TRUE);
+      return true;
      }
 
-   if (theToken.type != STOP)
+   if (theToken.tknType != STOP_TOKEN)
      {
-      SetpValue(returnValue,EnvAddSymbol(theEnv,"EXTRANEOUS-INPUT-AFTER-LAST-PARENTHESIS"));
+      returnValue->lexemeValue = CreateSymbol(theEnv,"EXTRANEOUS-INPUT-AFTER-LAST-PARENTHESIS");
       DeactivateErrorCapture(theEnv);
       ReturnExpression(theEnv,top);
-      return(TRUE);
+      return true;
      }
 
    DeactivateErrorCapture(theEnv);
 
    ReturnExpression(theEnv,top);
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvFalseSymbol(theEnv));
-   return(FALSE);
+   returnValue->lexemeValue = FalseSymbol(theEnv);
+   return false;
   }
 
 /**************************************************/
@@ -281,8 +283,8 @@ globle int CheckSyntax(
 /*   the captured information.                    */
 /**************************************************/
 static void DeactivateErrorCapture(
-  void *theEnv)
-  {   
+  Environment *theEnv)
+  {
    if (ParseFunctionData(theEnv)->ErrorString != NULL)
      {
       rm(theEnv,ParseFunctionData(theEnv)->ErrorString,ParseFunctionData(theEnv)->ErrorMaximumPosition);
@@ -300,95 +302,82 @@ static void DeactivateErrorCapture(
    ParseFunctionData(theEnv)->WarningCurrentPosition = 0;
    ParseFunctionData(theEnv)->WarningMaximumPosition = 0;
 
-   EnvDeleteRouter(theEnv,"error-capture");
+   DeleteRouter(theEnv,"cs-error-capture");
   }
 
-/******************************************************************/
-/* SetErrorCaptureValues: Stores the error/warnings captured when */
-/*   parsing an expression or construct into a multifield value.  */
-/*   The first field contains the output sent to the WERROR       */
-/*   logical name and the second field contains the output sent   */
-/*   to the WWARNING logical name. FALSE is stored in either      */
-/*   position if no output was sent to those logical names.       */
-/******************************************************************/
+/*******************************************************************/
+/* SetErrorCaptureValues: Stores the error/warnings captured when  */
+/*   parsing an expression or construct into a multifield value.   */
+/*   The first field contains the output sent to the STDERR        */
+/*   logical name and the second field contains the output sent    */
+/*   to the STDWRN logical name. The symbol FALSE is stored in   */
+/*   either position if no output was sent to those logical names. */
+/*******************************************************************/
 static void SetErrorCaptureValues(
-  void *theEnv,
-  DATA_OBJECT_PTR returnValue)
+  Environment *theEnv,
+  UDFValue *returnValue)
   {
-   struct multifield *theMultifield;
+   Multifield *theMultifield;
 
-   theMultifield = (struct multifield *) EnvCreateMultifield(theEnv,2L);
+   theMultifield = CreateMultifield(theEnv,2L);
 
    if (ParseFunctionData(theEnv)->ErrorString != NULL)
-     {
-      SetMFType(theMultifield,1,STRING);
-      SetMFValue(theMultifield,1,EnvAddSymbol(theEnv,ParseFunctionData(theEnv)->ErrorString));
-     }
+     { theMultifield->contents[0].lexemeValue = CreateString(theEnv,ParseFunctionData(theEnv)->ErrorString); }
    else
-     {
-      SetMFType(theMultifield,1,SYMBOL);
-      SetMFValue(theMultifield,1,EnvFalseSymbol(theEnv));
-     }
+     { theMultifield->contents[0].lexemeValue = FalseSymbol(theEnv); }
 
    if (ParseFunctionData(theEnv)->WarningString != NULL)
-     {
-      SetMFType(theMultifield,2,STRING);
-      SetMFValue(theMultifield,2,EnvAddSymbol(theEnv,ParseFunctionData(theEnv)->WarningString));
-     }
+     { theMultifield->contents[1].lexemeValue = CreateString(theEnv,ParseFunctionData(theEnv)->WarningString); }
    else
-     {
-      SetMFType(theMultifield,2,SYMBOL);
-      SetMFValue(theMultifield,2,EnvFalseSymbol(theEnv));
-     }
+     { theMultifield->contents[1].lexemeValue = FalseSymbol(theEnv); }
 
-   SetpType(returnValue,MULTIFIELD);
-   SetpDOBegin(returnValue,1);
-   SetpDOEnd(returnValue,2);
-   SetpValue(returnValue,(void *) theMultifield);
+   returnValue->begin = 0;
+   returnValue->range = 2;
+   returnValue->value = theMultifield;
   }
 
-/**********************************/
-/* FindErrorCapture: Find routine */
-/*   for the check-syntax router. */
-/**********************************/
-static int FindErrorCapture(
-  void *theEnv,
-  const char *logicalName)
+/*********************************************/
+/* QueryErrorCaptureCallback: Query callback */
+/*   for the check-syntax router.            */
+/*********************************************/
+static bool QueryErrorCaptureCallback(
+  Environment *theEnv,
+  const char *logicalName,
+  void *context)
   {
 #if MAC_XCD
-#pragma unused(theEnv)
+#pragma unused(theEnv,context)
 #endif
 
-   if ((strcmp(logicalName,WERROR) == 0) ||
-       (strcmp(logicalName,WWARNING) == 0))
-     { return(TRUE); }
+   if ((strcmp(logicalName,STDERR) == 0) ||
+       (strcmp(logicalName,STDWRN) == 0))
+     { return true; }
 
-   return(FALSE);
+   return false;
   }
 
-/************************************/
-/* PrintErrorCapture: Print routine */
-/*   for the check-syntax router.   */
-/************************************/
-static int PrintErrorCapture(
-  void *theEnv,
+/*********************************************/
+/* WriteErrorCaptureCallback: Write callback */
+/*   for the check-syntax router.            */
+/*********************************************/
+static void WriteErrorCaptureCallback(
+  Environment *theEnv,
   const char *logicalName,
-  const char *str)
+  const char *str,
+  void *context)
   {
-   if (strcmp(logicalName,WERROR) == 0)
+   if (strcmp(logicalName,STDERR) == 0)
      {
       ParseFunctionData(theEnv)->ErrorString = AppendToString(theEnv,str,ParseFunctionData(theEnv)->ErrorString,
                                    &ParseFunctionData(theEnv)->ErrorCurrentPosition,
                                    &ParseFunctionData(theEnv)->ErrorMaximumPosition);
      }
-   else if (strcmp(logicalName,WWARNING) == 0)
+   else if (strcmp(logicalName,STDWRN) == 0)
      {
       ParseFunctionData(theEnv)->WarningString = AppendToString(theEnv,str,ParseFunctionData(theEnv)->WarningString,
                                      &ParseFunctionData(theEnv)->WarningCurrentPosition,
                                      &ParseFunctionData(theEnv)->WarningMaximumPosition);
      }
-
-   return(1);
   }
 
 #else
@@ -396,30 +385,29 @@ static int PrintErrorCapture(
 /* CheckSyntaxFunction: This is the non-functional  */
 /*   stub provided for use with a run-time version. */
 /****************************************************/
-globle void CheckSyntaxFunction(
-  void *theEnv,
-  DATA_OBJECT *returnValue)
+void CheckSyntaxFunction(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   PrintErrorID(theEnv,"PARSEFUN",1,FALSE);
-   EnvPrintRouter(theEnv,WERROR,"Function check-syntax does not work in run time modules.\n");
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvTrueSymbol(theEnv));
+   PrintErrorID(theEnv,"PARSEFUN",1,false);
+   WriteString(theEnv,STDERR,"Function check-syntax does not work in run time modules.\n");
+   returnValue->value = TrueSymbol(theEnv);
   }
 
 /************************************************/
 /* CheckSyntax: This is the non-functional stub */
 /*   provided for use with a run-time version.  */
 /************************************************/
-globle int CheckSyntax(
-  void *theEnv,
+bool CheckSyntax(
+  Environment *theEnv,
   const char *theString,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
-   PrintErrorID(theEnv,"PARSEFUN",1,FALSE);
-   EnvPrintRouter(theEnv,WERROR,"Function check-syntax does not work in run time modules.\n");
-   SetpType(returnValue,SYMBOL);
-   SetpValue(returnValue,EnvTrueSymbol(theEnv));
-   return(TRUE);
+   PrintErrorID(theEnv,"PARSEFUN",1,false);
+   WriteString(theEnv,STDERR,"Function check-syntax does not work in run time modules.\n");
+   returnValue->value = TrueSymbol(theEnv);
+   return true;
   }
 
 #endif /* (! RUN_TIME) && (! BLOAD_ONLY) */

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*           DEFFACTS BSAVE/BLOAD HEADER FILE          */
    /*******************************************************/
@@ -19,59 +19,58 @@
 /*                                                           */
 /*      6.30: Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
-
-#if (! RUN_TIME)
 
 #ifndef _H_dffctbin
 
+#pragma once
+
 #define _H_dffctbin
 
-#include "modulbin.h"
-#include "cstrcbin.h"
-#ifndef _H_constrct
+#if (! RUN_TIME)
+
 #include "constrct.h"
-#endif
+#include "cstrcbin.h"
+#include "dffctdef.h"
+#include "modulbin.h"
 
 struct bsaveDeffacts
   {
    struct bsaveConstructHeader header;
-   long assertList;
+   unsigned long assertList;
   };
 
 struct bsaveDeffactsModule
   {
    struct bsaveDefmoduleItemHeader header;
   };
-  
+
 #define DFFCTBIN_DATA 26
 
 struct deffactsBinaryData
-  { 
-   struct deffacts *DeffactsArray;
-   long NumberOfDeffacts;
+  {
+   Deffacts *DeffactsArray;
+   unsigned long NumberOfDeffacts;
    struct deffactsModule *ModuleArray;
-   long NumberOfDeffactsModules;
+   unsigned long NumberOfDeffactsModules;
   };
-  
+
 #define DeffactsBinaryData(theEnv) ((struct deffactsBinaryData *) GetEnvironmentData(theEnv,DFFCTBIN_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           DeffactsBinarySetup(Environment *);
+   void                          *BloadDeffactsModuleReference(Environment *,unsigned long);
 
-#ifdef _DFFCTBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DeffactsBinarySetup(void *);
-   LOCALE void                          *BloadDeffactsModuleReference(void *,int);
+#endif /* (! RUN_TIME) */
 
 #endif /* _H_dffctbin */
 
-#endif /* (! RUN_TIME) */
 
 
 

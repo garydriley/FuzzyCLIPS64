@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  10/18/16            */
    /*                                                     */
    /*           INSTANCE MODIFY AND DUPLICATE MODULE      */
    /*******************************************************/
@@ -32,9 +32,25 @@
 /*            The return value of DirectMessage indicates    */
 /*            whether an execution error has occurred.       */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Removed DATA_OBJECT_ARRAY primitive type.      */
+/*                                                           */
+/*            Eval support for run time and bload only.      */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_insmoddp
+
+#pragma once
+
 #define _H_insmoddp
 
 #define DIRECT_MODIFY_STRING    "direct-modify"
@@ -46,36 +62,24 @@
 #include "evaluatn.h"
 #endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           SetupInstanceModDupCommands(Environment *);
 
-#ifdef _INSMODDP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#if (! RUN_TIME)
-   LOCALE void                           SetupInstanceModDupCommands(void *);
-#endif
-
-   LOCALE void                           ModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           MsgModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           DuplicateInstance(void *,DATA_OBJECT *);
-   LOCALE void                           MsgDuplicateInstance(void *,DATA_OBJECT *);
+   void                           ModifyInstance(Environment *,UDFContext *,UDFValue *);
+   void                           MsgModifyInstance(Environment *,UDFContext *,UDFValue *);
+   void                           DuplicateInstance(Environment *,UDFContext *,UDFValue *);
+   void                           MsgDuplicateInstance(Environment *,UDFContext *,UDFValue *);
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
-   LOCALE void                           InactiveModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           InactiveMsgModifyInstance(void *,DATA_OBJECT *);
-   LOCALE void                           InactiveDuplicateInstance(void *,DATA_OBJECT *);
-   LOCALE void                           InactiveMsgDuplicateInstance(void *,DATA_OBJECT *);
+   void                           InactiveModifyInstance(Environment *,UDFContext *,UDFValue *);
+   void                           InactiveMsgModifyInstance(Environment *,UDFContext *,UDFValue *);
+   void                           InactiveDuplicateInstance(Environment *,UDFContext *,UDFValue *);
+   void                           InactiveMsgDuplicateInstance(Environment *,UDFContext *,UDFValue *);
 #endif
 
-   LOCALE void                           DirectModifyMsgHandler(void *,DATA_OBJECT *);
-   LOCALE void                           MsgModifyMsgHandler(void *,DATA_OBJECT *);
-   LOCALE void                           DirectDuplicateMsgHandler(void *,DATA_OBJECT *);
-   LOCALE void                           MsgDuplicateMsgHandler(void *,DATA_OBJECT *);
+   void                           DirectModifyMsgHandler(Environment *,UDFContext *,UDFValue *);
+   void                           MsgModifyMsgHandler(Environment *,UDFContext *,UDFValue *);
+   void                           DirectDuplicateMsgHandler(Environment *,UDFContext *,UDFValue *);
+   void                           MsgDuplicateMsgHandler(Environment *,UDFContext *,UDFValue *);
 
 #endif /* _H_insmoddp */
 

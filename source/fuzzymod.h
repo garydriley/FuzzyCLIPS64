@@ -67,10 +67,10 @@
 struct modifierListItem
   {
      char *name;   /* name of the modifier */
-     void (*modfunc)(void *,struct fuzzy_value *fv);
-     struct FunctionDefinition *modClipsfunc;
+     void (*modfunc)(Environment *,struct fuzzy_value *fv);
+     FunctionDefinition *modClipsfunc;
 #if DEFFUNCTION_CONSTRUCT
-     DEFFUNCTION *modDeffunc;
+     Deffunction *modDeffunc;
 #endif      
      struct modifierListItem *next;
   };
@@ -79,16 +79,16 @@ struct modifierListItem
 
 /* routines globally accessible and defined in fuzzycom.c */
 
-     LOCALE void initFuzzyModifierList(void *theEnv);
-     LOCALE void executeModifyFunction(void *theEnv,struct fuzzy_value *, struct modifierListItem *);
-     LOCALE int  AddFuzzyModifier(void *,const char *, void (*)(void *,struct fuzzy_value *),
-                                  struct FunctionDefinition *
+     LOCALE void initFuzzyModifierList(Environment *theEnv);
+     LOCALE void executeModifyFunction(Environment *theEnv,struct fuzzy_value *, struct modifierListItem *);
+     LOCALE bool AddFuzzyModifier(Environment *,const char *, void (*)(Environment *,struct fuzzy_value *),
+                                  FunctionDefinition *
 #if DEFFUNCTION_CONSTRUCT
-                                  ,DEFFUNCTION *
+                                  ,Deffunction *
 #endif
                                  );
-     LOCALE void RemoveFuzzyModifier(void *theEnv,const char *);
-     LOCALE struct modifierListItem *FindModifier(void *theEnv,const char *mod_name);
+     LOCALE void RemoveFuzzyModifier(Environment *theEnv,const char *);
+     LOCALE struct modifierListItem *FindModifier(Environment *theEnv,const char *mod_name);
 
 
 

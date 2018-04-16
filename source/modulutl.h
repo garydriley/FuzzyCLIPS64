@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  11/01/16            */
    /*                                                     */
    /*            DEFMODULE UTILITY HEADER FILE            */
    /*******************************************************/
@@ -24,49 +24,60 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_modulutl
+
+#pragma once
+
 #define _H_modulutl
 
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_moduldef
+typedef void *GetNextItemFunction(Environment *,void *);
+typedef void PrintItemFunction(Environment *,const char *,void *);
+
 #include "moduldef.h"
-#endif
+#include "symbol.h"
+#include "scanner.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   unsigned                       FindModuleSeparator(const char *);
+   CLIPSLexeme                   *ExtractModuleName(Environment *,unsigned,const char *);
+   CLIPSLexeme                   *ExtractConstructName(Environment *,unsigned,const char *,unsigned);
+   const char                    *ExtractModuleAndConstructName(Environment *,const char *);
+   ConstructHeader               *FindImportedConstruct(Environment *,const char *,Defmodule *,
+                                                        const char *,unsigned int *,bool,Defmodule *);
+   void                           AmbiguousReferenceErrorMessage(Environment *,const char *,const char *);
+   void                           MarkModulesAsUnvisited(Environment *);
+   bool                           AllImportedModulesVisited(Environment *,Defmodule *);
+   void                           ListItemsDriver(Environment *,
+                                                  const char *,Defmodule *,
+                                                  const char *,const char *,
+                                                  GetNextItemFunction *,
+                                                  const char *(*)(void *),
+                                                  PrintItemFunction *,
+                                                  bool (*)(void *));
+   long                           DoForAllModules(Environment *,
+                                                  void (*)(Defmodule *,void *),
+                                                  int,void *);
+   bool                           ConstructExported(Environment *,const char *,CLIPSLexeme *,CLIPSLexeme *);
 
-#ifdef _MODULUTL_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+#if (! RUN_TIME) && (! BLOAD_ONLY)
+   void                           RemoveConstructFromModule(Environment *,ConstructHeader *);
+   CLIPSLexeme                   *GetConstructNameAndComment(Environment *,const char *,
+                                                             struct token *,const char *,
+                                                             FindConstructFunction *,
+                                                             DeleteConstructFunction *,
+                                                             const char *,bool,bool,bool,bool);
+#endif /* (! RUN_TIME) && (! BLOAD_ONLY) */
 
-   LOCALE unsigned                       FindModuleSeparator(const char *);
-   LOCALE SYMBOL_HN                     *ExtractModuleName(void *,unsigned,const char *);
-   LOCALE SYMBOL_HN                     *ExtractConstructName(void *,unsigned,const char *);
-   LOCALE const char                    *ExtractModuleAndConstructName(void *,const char *);
-   LOCALE void                          *FindImportedConstruct(void *,const char *,struct defmodule *,
-                                                               const char *,int *,int,struct defmodule *);
-   LOCALE void                           AmbiguousReferenceErrorMessage(void *,const char *,const char *);
-   LOCALE void                           MarkModulesAsUnvisited(void *);
-   LOCALE intBool                        AllImportedModulesVisited(void *,struct defmodule *);
-   LOCALE void                           ListItemsDriver(void *,
-                                                         const char *,struct defmodule *,
-                                                         const char *,const char *,
-                                                         void *(*)(void *,void *),
-                                                         const char *(*)(void *),
-                                                         void (*)(void *,const char *,void *),
-                                                         int (*)(void *,void *));
-   LOCALE long                           DoForAllModules(void *,
-                                                         void (*)(struct defmodule *,void *),
-                                                         int,void *);
-   LOCALE intBool                        ConstructExported(void *,const char *,struct symbolHashNode *,struct symbolHashNode *);
-   
 #endif /* _H_modulutl */
 
 

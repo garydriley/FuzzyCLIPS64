@@ -2,9 +2,9 @@ TRUE
 FuzzyCLIPS> (batch "predcfnx.bat")
 TRUE
 FuzzyCLIPS> (numberp)                          ; 10.2.1
-[ARGACCES4] Function numberp expected exactly 1 argument(s)
+[ARGACCES1] Function 'numberp' expected exactly 1 argument.
 FuzzyCLIPS> (numberp 3 a)                      ; 10.2.1
-[ARGACCES4] Function numberp expected exactly 1 argument(s)
+[ARGACCES1] Function 'numberp' expected exactly 1 argument.
 FuzzyCLIPS> (numberp 8)                        ; 10.2.1
 TRUE
 FuzzyCLIPS> (numberp 8.1)                      ; 10.2.1
@@ -12,9 +12,9 @@ TRUE
 FuzzyCLIPS> (numberp "hit")                    ; 10.2.1
 FALSE
 FuzzyCLIPS> (floatp)                           ; 10.2.2
-[ARGACCES4] Function floatp expected exactly 1 argument(s)
+[ARGACCES1] Function 'floatp' expected exactly 1 argument.
 FuzzyCLIPS> (floatp 3 a)                       ; 10.2.2
-[ARGACCES4] Function floatp expected exactly 1 argument(s)
+[ARGACCES1] Function 'floatp' expected exactly 1 argument.
 FuzzyCLIPS> (floatp 8)                         ; 10.2.2
 FALSE
 FuzzyCLIPS> (floatp 8.1)                       ; 10.2.2
@@ -22,9 +22,9 @@ TRUE
 FuzzyCLIPS> (floatp "hit")                     ; 10.2.2
 FALSE
 FuzzyCLIPS> (integerp)                         ; 10.2.3
-[ARGACCES4] Function integerp expected exactly 1 argument(s)
+[ARGACCES1] Function 'integerp' expected exactly 1 argument.
 FuzzyCLIPS> (integerp 3 a)                     ; 10.2.3
-[ARGACCES4] Function integerp expected exactly 1 argument(s)
+[ARGACCES1] Function 'integerp' expected exactly 1 argument.
 FuzzyCLIPS> (integerp 8)                       ; 10.2.3
 TRUE
 FuzzyCLIPS> (integerp 8.1)                     ; 10.2.3
@@ -32,9 +32,9 @@ FALSE
 FuzzyCLIPS> (integerp "hit")                   ; 10.2.3
 FALSE
 FuzzyCLIPS> (lexemep)                          ; 10.2.4
-[ARGACCES4] Function lexemep expected exactly 1 argument(s)
+[ARGACCES1] Function 'lexemep' expected exactly 1 argument.
 FuzzyCLIPS> (lexemep a 3)                      ; 10.2.4
-[ARGACCES4] Function lexemep expected exactly 1 argument(s)
+[ARGACCES1] Function 'lexemep' expected exactly 1 argument.
 FuzzyCLIPS> (lexemep b)                        ; 10.2.4
 TRUE
 FuzzyCLIPS> (lexemep "a w")                    ; 10.2.4
@@ -42,9 +42,9 @@ TRUE
 FuzzyCLIPS> (lexemep [this])                   ; 10.2.4
 FALSE
 FuzzyCLIPS> (stringp)                          ; 10.2.5
-[ARGACCES4] Function stringp expected exactly 1 argument(s)
+[ARGACCES1] Function 'stringp' expected exactly 1 argument.
 FuzzyCLIPS> (stringp a 3)                      ; 10.2.5
-[ARGACCES4] Function stringp expected exactly 1 argument(s)
+[ARGACCES1] Function 'stringp' expected exactly 1 argument.
 FuzzyCLIPS> (stringp b)                        ; 10.2.5
 FALSE
 FuzzyCLIPS> (stringp "a w")                    ; 10.2.5
@@ -52,9 +52,9 @@ TRUE
 FuzzyCLIPS> (stringp [this])                   ; 10.2.5
 FALSE
 FuzzyCLIPS> (symbolp)                          ; 10.2.6
-[ARGACCES4] Function symbolp expected exactly 1 argument(s)
+[ARGACCES1] Function 'symbolp' expected exactly 1 argument.
 FuzzyCLIPS> (symbolp a 3)                      ; 10.2.6
-[ARGACCES4] Function symbolp expected exactly 1 argument(s)
+[ARGACCES1] Function 'symbolp' expected exactly 1 argument.
 FuzzyCLIPS> (symbolp b)                        ; 10.2.6
 TRUE
 FuzzyCLIPS> (symbolp "a w")                    ; 10.2.6
@@ -62,29 +62,29 @@ FALSE
 FuzzyCLIPS> (symbolp [this])                   ; 10.2.6
 FALSE
 FuzzyCLIPS> (evenp)                            ; 10.2.7
-[ARGACCES4] Function evenp expected exactly 1 argument(s)
+[ARGACCES1] Function 'evenp' expected exactly 1 argument.
 FuzzyCLIPS> (evenp 3 a)                        ; 10.2.7
-[ARGACCES4] Function evenp expected exactly 1 argument(s)
+[ARGACCES1] Function 'evenp' expected exactly 1 argument.
 FuzzyCLIPS> (evenp 8)                          ; 10.2.7
 TRUE
 FuzzyCLIPS> (evenp 9)                          ; 10.2.7
 FALSE
 FuzzyCLIPS> (evenp "hit")                      ; 10.2.7
-[ARGACCES5] Function evenp expected argument #1 to be of type integer
+[ARGACCES2] Function 'evenp' expected argument #1 to be of type integer.
 FuzzyCLIPS> (oddp)                             ; 10.2.8
-[ARGACCES4] Function oddp expected exactly 1 argument(s)
+[ARGACCES1] Function 'oddp' expected exactly 1 argument.
 FuzzyCLIPS> (oddp 3 a)                         ; 10.2.8
-[ARGACCES4] Function oddp expected exactly 1 argument(s)
+[ARGACCES1] Function 'oddp' expected exactly 1 argument.
 FuzzyCLIPS> (oddp 8)                           ; 10.2.8
 FALSE
 FuzzyCLIPS> (oddp 9)                           ; 10.2.8
 TRUE
 FuzzyCLIPS> (oddp "hit")                       ; 10.2.8
-[ARGACCES5] Function oddp expected argument #1 to be of type integer
+[ARGACCES2] Function 'oddp' expected argument #1 to be of type integer.
 FuzzyCLIPS> (multifieldp)                      ; 10.2.9
-[ARGACCES4] Function multifieldp expected exactly 1 argument(s)
+[ARGACCES1] Function 'multifieldp' expected exactly 1 argument.
 FuzzyCLIPS> (multifieldp (create$ x) a)        ; 10.2.9
-[ARGACCES4] Function multifieldp expected exactly 1 argument(s)
+[ARGACCES1] Function 'multifieldp' expected exactly 1 argument.
 FuzzyCLIPS> (multifieldp (create$))            ; 10.2.9
 TRUE
 FuzzyCLIPS> (multifieldp (create$ a 3 4.1))    ; 10.2.9
@@ -92,17 +92,17 @@ TRUE
 FuzzyCLIPS> (multifieldp "hit")                ; 10.2.9
 FALSE
 FuzzyCLIPS> (pointerp)                         ; 10.2.10
-[ARGACCES4] Function pointerp expected exactly 1 argument(s)
+[ARGACCES1] Function 'pointerp' expected exactly 1 argument.
 FuzzyCLIPS> (pointerp 3 a)                     ; 10.2.10
-[ARGACCES4] Function pointerp expected exactly 1 argument(s)
+[ARGACCES1] Function 'pointerp' expected exactly 1 argument.
 FuzzyCLIPS> (pointerp 3)                       ; 10.2.10
 FALSE
 FuzzyCLIPS> (pointerp x)                       ; 10.2.10
 FALSE
 FuzzyCLIPS> (eq)                               ; 10.2.11
-[ARGACCES4] Function eq expected at least 2 argument(s)
+[ARGACCES1] Function 'eq' expected at least 2 arguments.
 FuzzyCLIPS> (eq a)                             ; 10.2.11
-[ARGACCES4] Function eq expected at least 2 argument(s)
+[ARGACCES1] Function 'eq' expected at least 2 arguments.
 FuzzyCLIPS> (eq a a b)                         ; 10.2.11
 FALSE
 FuzzyCLIPS> (eq a a a)                         ; 10.2.11
@@ -138,9 +138,9 @@ TRUE
 FuzzyCLIPS> (eq (create$ a b) (create$ a))     ; 10.2.11
 FALSE
 FuzzyCLIPS> (neq)                              ; 10.2.12
-[ARGACCES4] Function neq expected at least 2 argument(s)
+[ARGACCES1] Function 'neq' expected at least 2 arguments.
 FuzzyCLIPS> (neq a)                            ; 10.2.12
-[ARGACCES4] Function neq expected at least 2 argument(s)
+[ARGACCES1] Function 'neq' expected at least 2 arguments.
 FuzzyCLIPS> (neq a a b)                        ; 10.2.12
 FALSE
 FuzzyCLIPS> (neq a b c)                        ; 10.2.12
@@ -178,9 +178,9 @@ FALSE
 FuzzyCLIPS> (neq (create$ a b) (create$ a))    ; 10.2.12
 TRUE
 FuzzyCLIPS> (=)                                ; 10.2.13
-[ARGACCES4] Function = expected at least 2 argument(s)
+[ARGACCES1] Function '=' expected at least 2 arguments.
 FuzzyCLIPS> (= 3)                              ; 10.2.13
-[ARGACCES4] Function = expected at least 2 argument(s)
+[ARGACCES1] Function '=' expected at least 2 arguments.
 FuzzyCLIPS> (= 3 3)                            ; 10.2.13
 TRUE
 FuzzyCLIPS> (= 13.7 13.7)                      ; 10.2.13
@@ -194,15 +194,15 @@ FALSE
 FuzzyCLIPS> (= 3.0 3 4)                        ; 10.2.13
 FALSE
 FuzzyCLIPS> (= 3 a)                            ; 10.2.13
-[ARGACCES5] Function = expected argument #2 to be of type integer or float
+[ARGACCES2] Function '=' expected argument #2 to be of type integer or float.
 FuzzyCLIPS> (= 3 ?x)                           ; 10.2.13
-[EVALUATN1] Variable x is unbound
-[ARGACCES5] Function = expected argument #2 to be of type integer or float
+[EVALUATN1] Variable ?x is unbound.
+[ARGACCES2] Function '=' expected argument #2 to be of type integer or float.
 FALSE
 FuzzyCLIPS> (<>)                               ; 10.2.14
-[ARGACCES4] Function <> expected at least 2 argument(s)
+[ARGACCES1] Function '<>' expected at least 2 arguments.
 FuzzyCLIPS> (<> 3)                             ; 10.2.14
-[ARGACCES4] Function <> expected at least 2 argument(s)
+[ARGACCES1] Function '<>' expected at least 2 arguments.
 FuzzyCLIPS> (<> 3 3)                           ; 10.2.14
 FALSE
 FuzzyCLIPS> (<> 13.7 13.7)                     ; 10.2.14
@@ -218,15 +218,15 @@ TRUE
 FuzzyCLIPS> (<> 3.0 3 4)                       ; 10.2.14
 FALSE
 FuzzyCLIPS> (<> 3 a)                           ; 10.2.14
-[ARGACCES5] Function <> expected argument #2 to be of type integer or float
+[ARGACCES2] Function '<>' expected argument #2 to be of type integer or float.
 FuzzyCLIPS> (<> 3 ?x)                          ; 10.2.14
-[EVALUATN1] Variable x is unbound
-[ARGACCES5] Function <> expected argument #2 to be of type integer or float
+[EVALUATN1] Variable ?x is unbound.
+[ARGACCES2] Function '<>' expected argument #2 to be of type integer or float.
 FALSE
 FuzzyCLIPS> (>)                                ; 10.2.15
-[ARGACCES4] Function > expected at least 2 argument(s)
+[ARGACCES1] Function '>' expected at least 2 arguments.
 FuzzyCLIPS> (> 3)                              ; 10.2.15
-[ARGACCES4] Function > expected at least 2 argument(s)
+[ARGACCES1] Function '>' expected at least 2 arguments.
 FuzzyCLIPS> (> 3 3)                            ; 10.2.15
 FALSE
 FuzzyCLIPS> (> 3.3 3.3)                        ; 10.2.15
@@ -264,9 +264,9 @@ FALSE
 FuzzyCLIPS> (> 4 4 5 5)                        ; 10.2.15
 FALSE
 FuzzyCLIPS> (>=)                               ; 10.2.16
-[ARGACCES4] Function >= expected at least 2 argument(s)
+[ARGACCES1] Function '>=' expected at least 2 arguments.
 FuzzyCLIPS> (>= 3)                             ; 10.2.16
-[ARGACCES4] Function >= expected at least 2 argument(s)
+[ARGACCES1] Function '>=' expected at least 2 arguments.
 FuzzyCLIPS> (>= 3 3)                           ; 10.2.16
 TRUE
 FuzzyCLIPS> (>= 3.3 3.3)                       ; 10.2.16
@@ -304,9 +304,9 @@ TRUE
 FuzzyCLIPS> (>= 4 4 5 5)                       ; 10.2.16
 FALSE
 FuzzyCLIPS> (<)                                ; 10.2.17
-[ARGACCES4] Function < expected at least 2 argument(s)
+[ARGACCES1] Function '<' expected at least 2 arguments.
 FuzzyCLIPS> (< 3)                              ; 10.2.17
-[ARGACCES4] Function < expected at least 2 argument(s)
+[ARGACCES1] Function '<' expected at least 2 arguments.
 FuzzyCLIPS> (< 3 3)                            ; 10.2.17
 FALSE
 FuzzyCLIPS> (< 3.3 3.3)                        ; 10.2.17
@@ -344,9 +344,9 @@ FALSE
 FuzzyCLIPS> (< 4 4 5 5)                        ; 10.2.17
 FALSE
 FuzzyCLIPS> (<=)                               ; 10.2.18
-[ARGACCES4] Function <= expected at least 2 argument(s)
+[ARGACCES1] Function '<=' expected at least 2 arguments.
 FuzzyCLIPS> (<= 3)                             ; 10.2.18
-[ARGACCES4] Function <= expected at least 2 argument(s)
+[ARGACCES1] Function '<=' expected at least 2 arguments.
 FuzzyCLIPS> (<= 3 3)                           ; 10.2.18
 TRUE
 FuzzyCLIPS> (<= 3.3 3.3)                       ; 10.2.18
@@ -384,9 +384,9 @@ FALSE
 FuzzyCLIPS> (<= 4 4 5 5)                       ; 10.2.18
 TRUE
 FuzzyCLIPS> (and)                              ; 10.2.19
-[ARGACCES4] Function and expected at least 2 argument(s)
+[ARGACCES1] Function 'and' expected at least 2 arguments.
 FuzzyCLIPS> (and TRUE)                         ; 10.2.19        
-[ARGACCES4] Function and expected at least 2 argument(s)
+[ARGACCES1] Function 'and' expected at least 2 arguments.
 FuzzyCLIPS> (and TRUE 1)                       ; 10.2.19
 TRUE
 FuzzyCLIPS> (and TRUE FALSE)                   ; 10.2.19
@@ -400,9 +400,9 @@ FALSE
 FuzzyCLIPS> (and 0 1 TRUE a "a" [a] 3.5 (create$) (create$ a))
 TRUE
 FuzzyCLIPS> (or)                               ; 10.2.20
-[ARGACCES4] Function or expected at least 2 argument(s)
+[ARGACCES1] Function 'or' expected at least 2 arguments.
 FuzzyCLIPS> (or FALSE)                         ; 10.2.20
-[ARGACCES4] Function or expected at least 2 argument(s)
+[ARGACCES1] Function 'or' expected at least 2 arguments.
 FuzzyCLIPS> (or FALSE FALSE)                   ; 10.2.20
 FALSE
 FuzzyCLIPS> (or FALSE 1)                       ; 10.2.20
@@ -426,7 +426,7 @@ TRUE
 FuzzyCLIPS> (or FALSE FALSE TRUE)              ; 10.2.20
 TRUE
 FuzzyCLIPS> (not)                              ; 10.2.21
-[ARGACCES4] Function not expected exactly 1 argument(s)
+[ARGACCES1] Function 'not' expected exactly 1 argument.
 FuzzyCLIPS> (not FALSE)                        ; 10.2.21
 TRUE
 FuzzyCLIPS> (not TRUE)                         ; 10.2.21
@@ -448,5 +448,5 @@ FALSE
 FuzzyCLIPS> (not (create$ x y))                ; 10.2.21
 FALSE
 FuzzyCLIPS> (not x y)                          ; 10.2.21
-[ARGACCES4] Function not expected exactly 1 argument(s)
+[ARGACCES1] Function 'not' expected exactly 1 argument.
 FuzzyCLIPS> (dribble-off)

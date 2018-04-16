@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*            CLIPS Version 6.40  08/25/16             */
    /*                                                     */
    /*         CONFLICT RESOLUTION STRATEGY MODULE         */
    /*******************************************************/
@@ -39,25 +39,33 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
-#define _CRSTRTGY_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT
 
-#include "constant.h"
-#include "pattern.h"
-#include "reteutil.h"
-#include "argacces.h"
 #include "agenda.h"
+#include "argacces.h"
+#include "constant.h"
 #include "envrnmnt.h"
 #include "memalloc.h"
+#include "pattern.h"
+#include "reteutil.h"
 
 #include "crstrtgy.h"
 
@@ -68,35 +76,35 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static ACTIVATION             *PlaceDepthActivation(ACTIVATION *,struct salienceGroup *);
-   static ACTIVATION             *PlaceBreadthActivation(ACTIVATION *,struct salienceGroup *);
-   static ACTIVATION             *PlaceLEXActivation(void *,ACTIVATION *,struct salienceGroup *);
-   static ACTIVATION             *PlaceMEAActivation(void *,ACTIVATION *,struct salienceGroup *);
-   static ACTIVATION             *PlaceComplexityActivation(ACTIVATION *,struct salienceGroup *);
-   static ACTIVATION             *PlaceSimplicityActivation(ACTIVATION *,struct salienceGroup *);
-   static ACTIVATION             *PlaceRandomActivation(ACTIVATION *,struct salienceGroup *);
-   static int                     ComparePartialMatches(void *,ACTIVATION *,ACTIVATION *);
-   static const char             *GetStrategyName(int);
-   static unsigned long long     *SortPartialMatch(void *,struct partialMatch *);
-   
+   static Activation             *PlaceDepthActivation(Activation *,struct salienceGroup *);
+   static Activation             *PlaceBreadthActivation(Activation *,struct salienceGroup *);
+   static Activation             *PlaceLEXActivation(Environment *,Activation *,struct salienceGroup *);
+   static Activation             *PlaceMEAActivation(Environment *,Activation *,struct salienceGroup *);
+   static Activation             *PlaceComplexityActivation(Activation *,struct salienceGroup *);
+   static Activation             *PlaceSimplicityActivation(Activation *,struct salienceGroup *);
+   static Activation             *PlaceRandomActivation(Activation *,struct salienceGroup *);
+   static int                     ComparePartialMatches(Environment *,Activation *,Activation *);
+   static const char             *GetStrategyName(StrategyType);
+   static unsigned long long     *SortPartialMatch(Environment *,struct partialMatch *);
+
 /******************************************************************/
 /* PlaceActivation: Coordinates placement of an activation on the */
 /*   Agenda based on the current conflict resolution strategy.    */
 /******************************************************************/
-globle void PlaceActivation(
-  void *theEnv,
-  ACTIVATION **whichAgenda,
-  ACTIVATION *newActivation,
+void PlaceActivation(
+  Environment *theEnv,
+  Activation **whichAgenda,
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
-   ACTIVATION *placeAfter = NULL;
+   Activation *placeAfter = NULL;
 
    /*================================================*/
    /* Set the flag which indicates that a change has */
    /* been made to the agenda.                       */
    /*================================================*/
 
-   EnvSetAgendaChanged(theEnv,TRUE);
+   SetAgendaChanged(theEnv,true);
 
    /*=============================================*/
    /* Determine the location where the activation */
@@ -104,7 +112,7 @@ globle void PlaceActivation(
    /* current conflict resolution strategy.       */
    /*==============================================*/
 
-   if (*whichAgenda != NULL) 
+   if (*whichAgenda != NULL)
      {
       switch (AgendaData(theEnv)->Strategy)
         {
@@ -136,7 +144,7 @@ globle void PlaceActivation(
            placeAfter = PlaceRandomActivation(newActivation,theGroup);
            break;
         }
-     } 
+     }
    else
      {
       theGroup->first = newActivation;
@@ -170,13 +178,13 @@ globle void PlaceActivation(
 /*    the new activation should be placed (or NULL if the          */
 /*    activation should be placed at the beginning of the agenda). */
 /*******************************************************************/
-static ACTIVATION *PlaceDepthActivation(
-  ACTIVATION *newActivation,
+static Activation *PlaceDepthActivation(
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
-   ACTIVATION *lastAct, *actPtr;
+   Activation *lastAct, *actPtr;
    unsigned long long timetag;
-     
+
    /*============================================*/
    /* Set up initial information for the search. */
    /*============================================*/
@@ -204,7 +212,7 @@ static ACTIVATION *PlaceDepthActivation(
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
       else
@@ -214,11 +222,11 @@ static ACTIVATION *PlaceDepthActivation(
    /*========================================*/
    /* Update the salience group information. */
    /*========================================*/
-   
-   if ((lastAct == NULL) || 
+
+   if ((lastAct == NULL) ||
        ((theGroup->prev != NULL) && (theGroup->prev->last == lastAct)))
      { theGroup->first = newActivation; }
-     
+
    if ((theGroup->last == NULL) || (theGroup->last == lastAct))
      { theGroup->last = newActivation; }
 
@@ -236,12 +244,12 @@ static ACTIVATION *PlaceDepthActivation(
 /*    the new activation should be placed (or NULL if the          */
 /*    activation should be placed at the beginning of the agenda). */
 /*******************************************************************/
-static ACTIVATION *PlaceBreadthActivation(
-  ACTIVATION *newActivation,
+static Activation *PlaceBreadthActivation(
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
    unsigned long long timetag;
-   ACTIVATION *lastAct, *actPtr;
+   Activation *lastAct, *actPtr;
 
    /*============================================*/
    /* Set up initial information for the search. */
@@ -249,7 +257,7 @@ static ACTIVATION *PlaceBreadthActivation(
 
    timetag = newActivation->timetag;
    if (theGroup->last == NULL)
-     {    
+     {
       if (theGroup->prev == NULL)
         { lastAct = NULL; }
       else
@@ -280,24 +288,24 @@ static ACTIVATION *PlaceBreadthActivation(
               { lastAct = theGroup->prev->last; }
             break;
            }
-         else 
+         else
            { actPtr = actPtr->prev; }
         }
       else
         {
-         lastAct = actPtr; 
-         break; 
+         lastAct = actPtr;
+         break;
         }
      }
-     
+
    /*========================================*/
    /* Update the salience group information. */
    /*========================================*/
-   
-   if ((lastAct == NULL) || 
+
+   if ((lastAct == NULL) ||
        ((theGroup->prev != NULL) && (theGroup->prev->last == lastAct)))
      { theGroup->first = newActivation; }
-     
+
    if ((theGroup->last == NULL) || (theGroup->last == lastAct))
      { theGroup->last = newActivation; }
 
@@ -305,7 +313,7 @@ static ACTIVATION *PlaceBreadthActivation(
    /* Return the insertion point in the agenda. */
    /*===========================================*/
 
-   return(lastAct);
+   return lastAct;
   }
 
 /*******************************************************************/
@@ -315,13 +323,13 @@ static ACTIVATION *PlaceBreadthActivation(
 /*    the new activation should be placed (or NULL if the          */
 /*    activation should be placed at the beginning of the agenda). */
 /*******************************************************************/
-static ACTIVATION *PlaceLEXActivation(
-  void *theEnv,
-  ACTIVATION *newActivation,
+static Activation *PlaceLEXActivation(
+  Environment *theEnv,
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
    unsigned long long timetag;
-   ACTIVATION *lastAct, *actPtr;
+   Activation *lastAct, *actPtr;
    int flag;
 
    /*============================================*/
@@ -338,21 +346,21 @@ static ACTIVATION *PlaceLEXActivation(
    /* Look first at the very end of the group to see */
    /* if the activation should be placed there.      */
    /*================================================*/
-   
+
    actPtr = theGroup->last;
    if (actPtr != NULL)
      {
       flag = ComparePartialMatches(theEnv,actPtr,newActivation);
-      
+
       if ((flag == LESS_THAN) ||
           ((flag == EQUAL) &&  (timetag > actPtr->timetag)))
         {
-         theGroup->last = newActivation; 
-         
-         return(actPtr);
+         theGroup->last = newActivation;
+
+         return actPtr;
         }
      }
-     
+
    /*=========================================================*/
    /* Find the insertion point in the agenda. The activation  */
    /* is placed before activations of lower salience and      */
@@ -371,7 +379,7 @@ static ACTIVATION *PlaceLEXActivation(
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
       else if (flag == GREATER_THAN)
@@ -383,22 +391,22 @@ static ACTIVATION *PlaceLEXActivation(
             lastAct = actPtr;
             if (actPtr == theGroup->last)
               { break; }
-            else 
+            else
               { actPtr = actPtr->next; }
            }
          else
            { break; }
         }
      }
-     
+
    /*========================================*/
    /* Update the salience group information. */
    /*========================================*/
-   
-   if ((lastAct == NULL) || 
+
+   if ((lastAct == NULL) ||
        ((theGroup->prev != NULL) && (theGroup->prev->last == lastAct)))
      { theGroup->first = newActivation; }
-     
+
    if ((theGroup->last == NULL) || (theGroup->last == lastAct))
      { theGroup->last = newActivation; }
 
@@ -406,7 +414,7 @@ static ACTIVATION *PlaceLEXActivation(
    /* Return the insertion point in the agenda. */
    /*===========================================*/
 
-   return(lastAct);
+   return lastAct;
   }
 
 /*******************************************************************/
@@ -416,16 +424,16 @@ static ACTIVATION *PlaceLEXActivation(
 /*    the new activation should be placed (or NULL if the          */
 /*    activation should be placed at the beginning of the agenda). */
 /*******************************************************************/
-static ACTIVATION *PlaceMEAActivation(
-  void *theEnv,
-  ACTIVATION *newActivation,
+static Activation *PlaceMEAActivation(
+  Environment *theEnv,
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
    unsigned long long timetag;
-   ACTIVATION *lastAct, *actPtr;
+   Activation *lastAct, *actPtr;
    int flag;
-   long long cWhoset = 0, oWhoset = 0;
-   intBool cSet, oSet;
+   unsigned long long cWhoset = 0, oWhoset = 0;
+   bool cSet, oSet;
 
    /*============================================*/
    /* Set up initial information for the search. */
@@ -441,31 +449,31 @@ static ACTIVATION *PlaceMEAActivation(
    /* Look first at the very end of the group to see */
    /* if the activation should be placed there.      */
    /*================================================*/
-   
+
    actPtr = theGroup->last;
    if (actPtr != NULL)
      {
       if (GetMatchingItem(newActivation,0) != NULL)
-        { 
-         cWhoset = GetMatchingItem(newActivation,0)->timeTag; 
-         cSet = TRUE;
+        {
+         cWhoset = GetMatchingItem(newActivation,0)->timeTag;
+         cSet = true;
         }
       else
-        { cSet = FALSE; }
-        
+        { cSet = false; }
+
       if (GetMatchingItem(actPtr,0) != NULL)
         {
-         oWhoset = GetMatchingItem(actPtr,0)->timeTag; 
-         oSet = TRUE;
+         oWhoset = GetMatchingItem(actPtr,0)->timeTag;
+         oSet = true;
         }
       else
-        { oSet = FALSE; }
-        
-      if ((cSet == FALSE) && (oSet == FALSE))  
+        { oSet = false; }
+
+      if ((cSet == false) && (oSet == false))
         { flag = ComparePartialMatches(theEnv,actPtr,newActivation); }
-      else if ((cSet == TRUE) && (oSet == FALSE))
+      else if ((cSet == true) && (oSet == false))
         { flag = GREATER_THAN; }
-      else if ((cSet == FALSE) && (oSet == TRUE))
+      else if ((cSet == false) && (oSet == true))
         { flag = LESS_THAN; }
       else if (oWhoset < cWhoset)
         { flag = GREATER_THAN; }
@@ -477,9 +485,9 @@ static ACTIVATION *PlaceMEAActivation(
       if ((flag == LESS_THAN) ||
           ((flag == EQUAL) &&  (timetag > actPtr->timetag)))
         {
-         theGroup->last = newActivation; 
-         
-         return(actPtr);
+         theGroup->last = newActivation;
+
+         return actPtr;
         }
      }
 
@@ -494,14 +502,14 @@ static ACTIVATION *PlaceMEAActivation(
    actPtr = theGroup->first;
    while (actPtr != NULL)
      {
-      cWhoset = -1;
-      oWhoset = -1;
+      cWhoset = 0;
+      oWhoset = 0;
       if (GetMatchingItem(newActivation,0) != NULL)
         { cWhoset = GetMatchingItem(newActivation,0)->timeTag; }
-        
+
       if (GetMatchingItem(actPtr,0) != NULL)
         { oWhoset = GetMatchingItem(actPtr,0)->timeTag; }
-        
+
       if (oWhoset < cWhoset)
         {
          if (cWhoset > 0) flag = GREATER_THAN;
@@ -520,7 +528,7 @@ static ACTIVATION *PlaceMEAActivation(
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
       else if (flag == GREATER_THAN)
@@ -532,22 +540,22 @@ static ACTIVATION *PlaceMEAActivation(
             lastAct = actPtr;
             if (actPtr == theGroup->last)
               { break; }
-            else 
+            else
               { actPtr = actPtr->next; }
            }
          else
            { break; }
         }
      }
-     
+
    /*========================================*/
    /* Update the salience group information. */
    /*========================================*/
-   
-   if ((lastAct == NULL) || 
+
+   if ((lastAct == NULL) ||
        ((theGroup->prev != NULL) && (theGroup->prev->last == lastAct)))
      { theGroup->first = newActivation; }
-     
+
    if ((theGroup->last == NULL) || (theGroup->last == lastAct))
      { theGroup->last = newActivation; }
 
@@ -555,7 +563,7 @@ static ACTIVATION *PlaceMEAActivation(
    /* Return the insertion point in the agenda. */
    /*===========================================*/
 
-   return(lastAct);
+   return lastAct;
   }
 
 /*********************************************************************/
@@ -565,13 +573,13 @@ static ACTIVATION *PlaceMEAActivation(
 /*    new activation should be placed (or NULL if the activation     */
 /*    should be placed at the beginning of the agenda).              */
 /*********************************************************************/
-static ACTIVATION *PlaceComplexityActivation(
-  ACTIVATION *newActivation,
+static Activation *PlaceComplexityActivation(
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
-   int complexity;
+   unsigned int complexity;
    unsigned long long timetag;
-   ACTIVATION *lastAct, *actPtr;
+   Activation *lastAct, *actPtr;
 
    /*========================================*/
    /* Set up initial information for search. */
@@ -595,36 +603,36 @@ static ACTIVATION *PlaceComplexityActivation(
    actPtr = theGroup->first;
    while (actPtr != NULL)
      {
-      if (complexity < (int) actPtr->theRule->complexity)
+      if (complexity < actPtr->theRule->complexity)
         {
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
-      else if (complexity > (int) actPtr->theRule->complexity)
+      else if (complexity > actPtr->theRule->complexity)
         { break; }
       else if (timetag > actPtr->timetag)
         {
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
       else
         { break; }
      }
-     
+
    /*========================================*/
    /* Update the salience group information. */
    /*========================================*/
-   
-   if ((lastAct == NULL) || 
+
+   if ((lastAct == NULL) ||
        ((theGroup->prev != NULL) && (theGroup->prev->last == lastAct)))
      { theGroup->first = newActivation; }
-     
+
    if ((theGroup->last == NULL) || (theGroup->last == lastAct))
      { theGroup->last = newActivation; }
 
@@ -632,7 +640,7 @@ static ACTIVATION *PlaceComplexityActivation(
    /* Return the insertion point in the agenda. */
    /*===========================================*/
 
-   return(lastAct);
+   return lastAct;
   }
 
 /*********************************************************************/
@@ -642,13 +650,13 @@ static ACTIVATION *PlaceComplexityActivation(
 /*    new activation should be placed (or NULL if the activation     */
 /*    should be placed at the beginning of the agenda).              */
 /*********************************************************************/
-static ACTIVATION *PlaceSimplicityActivation(
-  ACTIVATION *newActivation,
+static Activation *PlaceSimplicityActivation(
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
-   int complexity;
+   unsigned int complexity;
    unsigned long long timetag;
-   ACTIVATION *lastAct, *actPtr;
+   Activation *lastAct, *actPtr;
 
    /*============================================*/
    /* Set up initial information for the search. */
@@ -672,36 +680,36 @@ static ACTIVATION *PlaceSimplicityActivation(
    actPtr = theGroup->first;
    while (actPtr != NULL)
      {
-      if (complexity > (int) actPtr->theRule->complexity)
+      if (complexity > actPtr->theRule->complexity)
         {
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
-      else if (complexity < (int) actPtr->theRule->complexity)
+      else if (complexity < actPtr->theRule->complexity)
         { break; }
       else if (timetag > actPtr->timetag)
         {
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
       else
        { break; }
      }
-     
+
    /*========================================*/
    /* Update the salience group information. */
    /*========================================*/
-   
-   if ((lastAct == NULL) || 
+
+   if ((lastAct == NULL) ||
        ((theGroup->prev != NULL) && (theGroup->prev->last == lastAct)))
      { theGroup->first = newActivation; }
-     
+
    if ((theGroup->last == NULL) || (theGroup->last == lastAct))
      { theGroup->last = newActivation; }
 
@@ -719,13 +727,13 @@ static ACTIVATION *PlaceSimplicityActivation(
 /*    the new activation should be placed (or NULL if the          */
 /*    activation should be placed at the beginning of the agenda). */
 /*******************************************************************/
-static ACTIVATION *PlaceRandomActivation(
-  ACTIVATION *newActivation,
+static Activation *PlaceRandomActivation(
+  Activation *newActivation,
   struct salienceGroup *theGroup)
   {
    int randomID;
    unsigned long long timetag;
-   ACTIVATION *lastAct, *actPtr;
+   Activation *lastAct, *actPtr;
 
    /*============================================*/
    /* Set up initial information for the search. */
@@ -754,7 +762,7 @@ static ACTIVATION *PlaceRandomActivation(
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
       else if (randomID < actPtr->randomID)
@@ -764,21 +772,21 @@ static ACTIVATION *PlaceRandomActivation(
          lastAct = actPtr;
          if (actPtr == theGroup->last)
            { break; }
-         else 
+         else
            { actPtr = actPtr->next; }
         }
       else
        { break; }
      }
-     
+
    /*========================================*/
    /* Update the salience group information. */
    /*========================================*/
-   
-   if ((lastAct == NULL) || 
+
+   if ((lastAct == NULL) ||
        ((theGroup->prev != NULL) && (theGroup->prev->last == lastAct)))
      { theGroup->first = newActivation; }
-     
+
    if ((theGroup->last == NULL) || (theGroup->last == lastAct))
      { theGroup->last = newActivation; }
 
@@ -794,13 +802,13 @@ static ACTIVATION *PlaceRandomActivation(
 /*    in ascending order from a partial match.           */
 /*********************************************************/
 static unsigned long long *SortPartialMatch(
-  void *theEnv,
+  Environment *theEnv,
   struct partialMatch *binds)
   {
    unsigned long long *nbinds;
    unsigned long long temp;
-   int flag;
-   unsigned j, k;
+   bool flag;
+   unsigned short j, k;
 
    /*====================================================*/
    /* Copy the array. Use 0 to represent the timetags of */
@@ -809,8 +817,8 @@ static unsigned long long *SortPartialMatch(
    /*====================================================*/
 
    nbinds = (unsigned long long *) get_mem(theEnv,sizeof(long long) * binds->bcount);
-      
-   for (j = 0; j < (unsigned) binds->bcount; j++)
+
+   for (j = 0; j < binds->bcount; j++)
      {
       if ((binds->binds[j].gm.theMatch != NULL) &&
           (binds->binds[j].gm.theMatch->matchingItem != NULL))
@@ -823,11 +831,11 @@ static unsigned long long *SortPartialMatch(
    /* Sort the array. */
    /*=================*/
 
-   for (flag = TRUE, k = binds->bcount - 1;
-        flag == TRUE;
+   for (flag = true, k = binds->bcount - 1;
+        flag == true;
         k--)
      {
-      flag = FALSE;
+      flag = false;
       for (j = 0 ; j < k ; j++)
         {
          if (nbinds[j] < nbinds[j + 1])
@@ -835,7 +843,7 @@ static unsigned long long *SortPartialMatch(
             temp = nbinds[j];
             nbinds[j] = nbinds[j+1];
             nbinds[j+1] = temp;
-            flag = TRUE;
+            flag = true;
            }
         }
      }
@@ -844,7 +852,7 @@ static unsigned long long *SortPartialMatch(
    /* Return the array. */
    /*===================*/
 
-   return(nbinds);
+   return nbinds;
   }
 
 /**************************************************************************/
@@ -854,11 +862,11 @@ static unsigned long long *SortPartialMatch(
 /*   for both the lex and mea strategies.                                 */
 /**************************************************************************/
 static int ComparePartialMatches(
-  void *theEnv,
-  ACTIVATION *actPtr,
-  ACTIVATION *newActivation)
+  Environment *theEnv,
+  Activation *actPtr,
+  Activation *newActivation)
   {
-   int cCount, oCount, mCount, i;
+   unsigned cCount, oCount, mCount, i;
    unsigned long long *basis1, *basis2;
 
    /*=================================================*/
@@ -868,7 +876,7 @@ static int ComparePartialMatches(
 
    basis1 = SortPartialMatch(theEnv,newActivation->basis);
    basis2 = SortPartialMatch(theEnv,actPtr->basis);
-   
+
    /*==============================================================*/
    /* Determine the number of timetags in each of the activations. */
    /* The number of timetags to be compared is the lessor of these */
@@ -877,7 +885,7 @@ static int ComparePartialMatches(
 
    cCount = newActivation->basis->bcount;
    oCount = actPtr->basis->bcount;
- 
+
    if (oCount > cCount) mCount = cCount;
    else mCount = oCount;
 
@@ -892,19 +900,19 @@ static int ComparePartialMatches(
    for (i = 0 ; i < mCount ; i++)
      {
       if (basis1[i] < basis2[i])
-        { 
+        {
          rtn_mem(theEnv,sizeof(long long) * cCount,basis1);
          rtn_mem(theEnv,sizeof(long long) * oCount,basis2);
-         return(LESS_THAN); 
+         return(LESS_THAN);
         }
       else if (basis1[i] > basis2[i])
-        { 
+        {
          rtn_mem(theEnv,sizeof(long long) * cCount,basis1);
          rtn_mem(theEnv,sizeof(long long) * oCount,basis2);
-         return(GREATER_THAN); 
+         return(GREATER_THAN);
         }
      }
-  
+
    rtn_mem(theEnv,sizeof(long long) * cCount,basis1);
    rtn_mem(theEnv,sizeof(long long) * oCount,basis2);
 
@@ -940,101 +948,99 @@ static int ComparePartialMatches(
    return(EQUAL);
   }
 
-/************************************/
-/* EnvSetStrategy: C access routine */
-/*   for the set-strategy command.  */
-/************************************/
-globle int EnvSetStrategy(
-  void *theEnv,
-  int value)
+/***********************************/
+/* SetStrategy: C access routine   */
+/*   for the set-strategy command. */
+/***********************************/
+StrategyType SetStrategy(
+  Environment *theEnv,
+  StrategyType value)
   {
-   int oldStrategy;
-   
+   StrategyType oldStrategy;
+
    oldStrategy = AgendaData(theEnv)->Strategy;
    AgendaData(theEnv)->Strategy = value;
 
-   if (oldStrategy != AgendaData(theEnv)->Strategy) EnvReorderAgenda(theEnv,NULL);
+   if (oldStrategy != AgendaData(theEnv)->Strategy)
+     { ReorderAllAgendas(theEnv); }
 
-   return(oldStrategy);
+   return oldStrategy;
   }
 
-/************************************/
-/* EnvGetStrategy: C access routine */
-/*   for the get-strategy command.  */
-/************************************/
-globle int EnvGetStrategy(
-  void *theEnv)
+/***********************************/
+/* GetStrategy: C access routine   */
+/*   for the get-strategy command. */
+/***********************************/
+StrategyType GetStrategy(
+  Environment *theEnv)
   {
-   return(AgendaData(theEnv)->Strategy);
+   return AgendaData(theEnv)->Strategy;
   }
 
 /********************************************/
 /* GetStrategyCommand: H/L access routine   */
 /*   for the get-strategy command.          */
 /********************************************/
-globle void *GetStrategyCommand(
-  void *theEnv)
+void GetStrategyCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   EnvArgCountCheck(theEnv,"get-strategy",EXACTLY,0);
-
-   return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv))));
+   returnValue->lexemeValue = CreateSymbol(theEnv,GetStrategyName(GetStrategy(theEnv)));
   }
 
 /********************************************/
 /* SetStrategyCommand: H/L access routine   */
 /*   for the set-strategy command.          */
 /********************************************/
-globle void *SetStrategyCommand(
-  void *theEnv)
+void SetStrategyCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   DATA_OBJECT argPtr;
+   UDFValue theArg;
    const char *argument;
-   int oldStrategy;
-   
-   oldStrategy = AgendaData(theEnv)->Strategy;
+   StrategyType oldStrategy;
 
-   /*=====================================================*/
-   /* Check for the correct number and type of arguments. */
-   /*=====================================================*/
+   /*=======================*/
+   /* Set the return value. */
+   /*=======================*/
 
-   if (EnvArgCountCheck(theEnv,"set-strategy",EXACTLY,1) == -1)
-     { return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv)))); }
+   oldStrategy = GetStrategy(theEnv);
+   returnValue->lexemeValue = CreateSymbol(theEnv,GetStrategyName(oldStrategy));
 
-   if (EnvArgTypeCheck(theEnv,"set-strategy",1,SYMBOL,&argPtr) == FALSE)
-     { return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv)))); }
+   /*=========================================*/
+   /* Check for the correct type of argument. */
+   /*=========================================*/
 
-   argument = DOToString(argPtr);
+   if (! UDFFirstArgument(context,SYMBOL_BIT,&theArg))
+     { return; }
 
    /*=============================================*/
    /* Set the strategy to the specified strategy. */
    /*=============================================*/
 
+   argument = theArg.lexemeValue->contents;
+
    if (strcmp(argument,"depth") == 0)
-     { EnvSetStrategy(theEnv,DEPTH_STRATEGY); }
+     { SetStrategy(theEnv,DEPTH_STRATEGY); }
    else if (strcmp(argument,"breadth") == 0)
-     { EnvSetStrategy(theEnv,BREADTH_STRATEGY); }
+     { SetStrategy(theEnv,BREADTH_STRATEGY); }
    else if (strcmp(argument,"lex") == 0)
-     { EnvSetStrategy(theEnv,LEX_STRATEGY); }
+     { SetStrategy(theEnv,LEX_STRATEGY); }
    else if (strcmp(argument,"mea") == 0)
-     { EnvSetStrategy(theEnv,MEA_STRATEGY); }
+     { SetStrategy(theEnv,MEA_STRATEGY); }
    else if (strcmp(argument,"complexity") == 0)
-     { EnvSetStrategy(theEnv,COMPLEXITY_STRATEGY); }
+     { SetStrategy(theEnv,COMPLEXITY_STRATEGY); }
    else if (strcmp(argument,"simplicity") == 0)
-     { EnvSetStrategy(theEnv,SIMPLICITY_STRATEGY); }
+     { SetStrategy(theEnv,SIMPLICITY_STRATEGY); }
    else if (strcmp(argument,"random") == 0)
-     { EnvSetStrategy(theEnv,RANDOM_STRATEGY); }
+     { SetStrategy(theEnv,RANDOM_STRATEGY); }
    else
      {
-      ExpectedTypeError1(theEnv,"set-strategy",1,
-      "symbol with value depth, breadth, lex, mea, complexity, simplicity, or random");
-      return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(EnvGetStrategy(theEnv))));
+      UDFInvalidArgumentMessage(context,
+         "symbol with value depth, breadth, lex, mea, complexity, simplicity, or random");
      }
-
-   /*=======================================*/
-   /* Return the old value of the strategy. */
-   /*=======================================*/
-
-   return((SYMBOL_HN *) EnvAddSymbol(theEnv,GetStrategyName(oldStrategy)));
   }
 
 /**********************************************************/
@@ -1043,7 +1049,7 @@ globle void *SetStrategyCommand(
 /*   of the strategy's name.                              */
 /**********************************************************/
 static const char *GetStrategyName(
-  int strategy)
+  StrategyType strategy)
   {
    const char *sname;
 
@@ -1077,25 +1083,6 @@ static const char *GetStrategyName(
 
    return(sname);
   }
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle int SetStrategy(
-  int value)
-  {
-   return EnvSetStrategy(GetCurrentEnvironment(),value);
-  }
-
-globle int GetStrategy()
-  {
-   return EnvGetStrategy(GetCurrentEnvironment());
-  }
-
-#endif
 
 #endif /* DEFRULE_CONSTRUCT */
 

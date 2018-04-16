@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*            PARSING FUNCTIONS HEADER FILE            */
    /*******************************************************/
@@ -34,29 +34,30 @@
 /*            Fixed function declaration issue when          */
 /*            BLOAD_ONLY compiler flag is set to 1.          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_parsefun
 
+#pragma once
+
 #define _H_parsefun
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _PARSEFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           ParseFunctionDefinitions(void *);
-   LOCALE void                           CheckSyntaxFunction(void *,DATA_OBJECT *);
-   LOCALE int                            CheckSyntax(void *,const char *,DATA_OBJECT_PTR);
+   void                           ParseFunctionDefinitions(Environment *);
+   void                           CheckSyntaxFunction(Environment *,UDFContext *,UDFValue *);
+   bool                           CheckSyntax(Environment *,const char *,UDFValue *);
 
 #endif /* _H_parsefun */
 

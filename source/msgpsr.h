@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -37,31 +37,31 @@
 /*            Fixed linkage issue when BLOAD_AND_SAVE        */
 /*            compiler flag is set to 0.                     */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_msgpsr
+
+#pragma once
+
 #define _H_msgpsr
 
 #if OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME)
 
 #define SELF_STRING     "self"
 
-#ifndef _H_object
 #include "object.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MSGCOM_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE int              ParseDefmessageHandler(void *,const char *);
-   LOCALE void             CreateGetAndPutHandlers(void *,SLOT_DESC *);
+   bool             ParseDefmessageHandler(Environment *,const char *);
+   void             CreateGetAndPutHandlers(Environment *,SlotDescriptor *);
 
 #endif /* OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME) */
 

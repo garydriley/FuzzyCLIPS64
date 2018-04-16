@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                 SCANNER HEADER FILE                 */
    /*******************************************************/
@@ -14,6 +14,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -28,62 +32,89 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_scanner
+
+#pragma once
+
 #define _H_scanner
 
-struct token;
+typedef struct token Token;
 
-#ifndef _H_pprint
-#include "pprint.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _SCANNER_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+typedef enum
+  {
+   SYMBOL_TOKEN = 1025,
+   STRING_TOKEN,
+   INSTANCE_NAME_TOKEN,
+   FLOAT_TOKEN,
+   INTEGER_TOKEN,
+   LEFT_PARENTHESIS_TOKEN,
+   RIGHT_PARENTHESIS_TOKEN,
+   SF_VARIABLE_TOKEN,
+   MF_VARIABLE_TOKEN,
+   GBL_VARIABLE_TOKEN,
+   SF_WILDCARD_TOKEN,
+   MF_WILDCARD_TOKEN,
+   MF_GBL_VARIABLE_TOKEN,
+   NOT_CONSTRAINT_TOKEN,
+   AND_CONSTRAINT_TOKEN,
+   OR_CONSTRAINT_TOKEN,
+   STOP_TOKEN,
+   UNKNOWN_VALUE_TOKEN,
+  } TokenType;
 
 struct token
   {
-   unsigned short type;
-   void *value;
+   TokenType tknType;
+   union
+     {
+      void *value;
+      CLIPSLexeme *lexemeValue;
+      CLIPSFloat *floatValue;
+      CLIPSInteger *integerValue;
+     };
    const char *printForm;
   };
 
 #define SCANNER_DATA 57
 
 struct scannerData
-  { 
+  {
    char *GlobalString;
    size_t GlobalMax;
    size_t GlobalPos;
    long LineCount;
-   int IgnoreCompletionErrors;
+   bool IgnoreCompletionErrors;
 #if CERTAINTY_FACTORS    /* added 03-12-96 */
    struct token TheUnToken;
-   intBool UnTokenIsAvailable;
+   bool UnTokenIsAvailable;
 #endif
   };
 
 #define ScannerData(theEnv) ((struct scannerData *) GetEnvironmentData(theEnv,SCANNER_DATA))
 
-   LOCALE void                           InitializeScannerData(void *);
-   LOCALE void                           GetToken(void *,const char *,struct token *);
-   LOCALE void                           CopyToken(struct token *,struct token *);
-   LOCALE void                           ResetLineCount(void *);
-   LOCALE long                           GetLineCount(void *);
-   LOCALE long                           SetLineCount(void *,long);
-   LOCALE void                           IncrementLineCount(void *);
-   LOCALE void                           DecrementLineCount(void *);
+   void                           InitializeScannerData(Environment *);
+   void                           GetToken(Environment *,const char *,struct token *);
+   void                           CopyToken(struct token *,struct token *);
+   void                           ResetLineCount(Environment *);
+   long                           GetLineCount(Environment *);
+   long                           SetLineCount(Environment *,long);
+   void                           IncrementLineCount(Environment *);
+   void                           DecrementLineCount(Environment *);
+   unsigned short                 TokenTypeToType(TokenType);
 #if CERTAINTY_FACTORS
-   LOCALE void                           UnGetToken(void *,struct token *);
-   LOCALE void                           ClearTheUnToken(void *);
+   void                           UnGetToken(Environment *,struct token *);
+   void                           ClearTheUnToken(Environment *);
 #endif
 
 #endif /* _H_scanner */

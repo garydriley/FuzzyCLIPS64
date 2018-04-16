@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  11/13/17            */
    /*                                                     */
    /*              CONSTRUCT PARSER MODULE                */
    /*******************************************************/
@@ -41,56 +41,50 @@
 /*            Fixed linkage issue when BLOAD_ONLY compiler   */
 /*            flag is set to 1.                              */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_cstrcpsr
 
+#pragma once
+
 #define _H_cstrcpsr
 
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_scanner
-#include "scanner.h"
-#endif
-#ifndef _H_constrct
-#include "constrct.h"
-#endif
+#include "strngfun.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+typedef enum
+  {
+   LE_NO_ERROR = 0,
+   LE_OPEN_FILE_ERROR,
+   LE_PARSING_ERROR,
+  } LoadError;
 
-#ifdef _CSTRCPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-   LOCALE int                            Load(const char *);
-#endif
-
-   LOCALE int                            EnvLoad(void *,const char *);
-   LOCALE int                            LoadConstructsFromLogicalName(void *,const char *);
-   LOCALE int                            ParseConstruct(void *,const char *,const char *);
-   LOCALE void                           RemoveConstructFromModule(void *,struct constructHeader *);
-   LOCALE struct symbolHashNode         *GetConstructNameAndComment(void *,const char *,
-                                                                    struct token *,const char *,
-                                                                    void *(*)(void *,const char *),
-                                                                    int (*)(void *,void *),
-                                                                    const char *,int,int,int,int);
-   LOCALE void                           ImportExportConflictMessage(void *,const char *,const char *,const char *,const char *);
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   LOCALE void                           FlushParsingMessages(void *);
-   LOCALE char                          *EnvGetParsingFileName(void *);
-   LOCALE void                           EnvSetParsingFileName(void *,const char *);
-   LOCALE char                          *EnvGetErrorFileName(void *);
-   LOCALE void                           EnvSetErrorFileName(void *,const char *);
-   LOCALE char                          *EnvGetWarningFileName(void *);
-   LOCALE void                           EnvSetWarningFileName(void *,const char *);
-   LOCALE void                           CreateErrorCaptureRouter(void *);
-   LOCALE void                           DeleteErrorCaptureRouter(void *);
+   LoadError                      Load(Environment *,const char *);
+   bool                           LoadConstructsFromLogicalName(Environment *,const char *);
+   bool                           LoadFromString(Environment *,const char *,size_t);
+   BuildError                     ParseConstruct(Environment *,const char *,const char *);
+   void                           ImportExportConflictMessage(Environment *,const char *,const char *,
+                                                              const char *,const char *);
+   void                           FlushParsingMessages(Environment *);
+   char                          *GetParsingFileName(Environment *);
+   void                           SetParsingFileName(Environment *,const char *);
+   char                          *GetErrorFileName(Environment *);
+   void                           SetErrorFileName(Environment *,const char *);
+   char                          *GetWarningFileName(Environment *);
+   void                           SetWarningFileName(Environment *,const char *);
+   void                           CreateErrorCaptureRouter(Environment *);
+   void                           DeleteErrorCaptureRouter(Environment *);
 #endif
 
 #endif

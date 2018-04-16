@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*         FACT RETE PRINT FUNCTIONS HEADER FILE       */
    /*******************************************************/
@@ -13,6 +13,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -27,36 +31,35 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factprt
 
+#pragma once
+
 #define _H_factprt
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTPRT_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           PrintFactJNCompVars1(void *,const char *,void *);
-   LOCALE void                           PrintFactJNCompVars2(void *,const char *,void *);
-   LOCALE void                           PrintFactPNCompVars1(void *,const char *,void *);
-   LOCALE void                           PrintFactJNGetVar1(void *,const char *,void *);
-   LOCALE void                           PrintFactJNGetVar2(void *,const char *,void *);
-   LOCALE void                           PrintFactJNGetVar3(void *,const char *,void *);
-   LOCALE void                           PrintFactPNGetVar1(void *,const char *,void *);
-   LOCALE void                           PrintFactPNGetVar2(void *,const char *,void *);
-   LOCALE void                           PrintFactPNGetVar3(void *,const char *,void *);
-   LOCALE void                           PrintFactSlotLength(void *,const char *,void *);
-   LOCALE void                           PrintFactPNConstant1(void *,const char *,void *);
-   LOCALE void                           PrintFactPNConstant2(void *,const char *,void *);
+   void                           PrintFactJNCompVars1(Environment *,const char *,void *);
+   void                           PrintFactJNCompVars2(Environment *,const char *,void *);
+   void                           PrintFactPNCompVars1(Environment *,const char *,void *);
+   void                           PrintFactJNGetVar1(Environment *,const char *,void *);
+   void                           PrintFactJNGetVar2(Environment *,const char *,void *);
+   void                           PrintFactJNGetVar3(Environment *,const char *,void *);
+   void                           PrintFactPNGetVar1(Environment *,const char *,void *);
+   void                           PrintFactPNGetVar2(Environment *,const char *,void *);
+   void                           PrintFactPNGetVar3(Environment *,const char *,void *);
+   void                           PrintFactSlotLength(Environment *,const char *,void *);
+   void                           PrintFactPNConstant1(Environment *,const char *,void *);
+   void                           PrintFactPNConstant2(Environment *,const char *,void *);
 #if FUZZY_DEFTEMPLATES
-   LOCALE void                           PrintPNFUZZY_VALUE(void *,const char *,void *);
+   void                           PrintPNFUZZY_VALUE(Environment *,const char *,void *);
 #endif
 
 #endif /* _H_factprt */

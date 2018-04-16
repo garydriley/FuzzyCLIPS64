@@ -3,21 +3,21 @@ FuzzyCLIPS> (batch "memrycmd.bat")
 TRUE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (mem-used 10)
-[ARGACCES4] Function mem-used expected exactly 0 argument(s)
+[ARGACCES1] Function 'mem-used' expected exactly 0 arguments.
 FuzzyCLIPS> (progn (mem-used) TRUE)
 TRUE
 FuzzyCLIPS> (mem-requests 20)
-[ARGACCES4] Function mem-requests expected exactly 0 argument(s)
+[ARGACCES1] Function 'mem-requests' expected exactly 0 arguments.
 FuzzyCLIPS> (progn (mem-requests) TRUE)
 TRUE
 FuzzyCLIPS> (release-mem 10)
-[ARGACCES4] Function release-mem expected exactly 0 argument(s)
+[ARGACCES1] Function 'release-mem' expected exactly 0 arguments.
 FuzzyCLIPS> (progn (release-mem) TRUE)
 TRUE
 FuzzyCLIPS> (conserve-mem)
-[ARGACCES4] Function conserve-mem expected exactly 1 argument(s)
+[ARGACCES1] Function 'conserve-mem' expected exactly 1 argument.
 FuzzyCLIPS> (conserve-mem on off)
-[ARGACCES4] Function conserve-mem expected exactly 1 argument(s)
+[ARGACCES1] Function 'conserve-mem' expected exactly 1 argument.
 FuzzyCLIPS> (conserve-mem off)
 FuzzyCLIPS> (defrule foo =>)
 FuzzyCLIPS> (deftemplate foo)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*            SORT FUNCTIONS HEADER MODULE             */
    /*******************************************************/
@@ -25,26 +25,29 @@
 /*      6.30: Added environment cleanup call function        */
 /*            DeallocateSortFunctionData.                    */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_sortfun
 
+#pragma once
+
 #define _H_sortfun
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _SORTFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SortFunctionDefinitions(void *);
-   LOCALE void                           MergeSort(void *,unsigned long,DATA_OBJECT *,
-                                                   int (*)(void *,DATA_OBJECT *,DATA_OBJECT *));
-   LOCALE void                           SortFunction(void *,DATA_OBJECT *);
+   void                           SortFunctionDefinitions(Environment *);
+   void                           MergeSort(Environment *,size_t,UDFValue *,
+                                            bool (*)(Environment *,UDFValue *,UDFValue *));
+   void                           SortFunction(Environment *,UDFContext *,UDFValue *);
 
 #endif /* _H_sortfun */
 

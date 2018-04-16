@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  06/28/17            */
+   /*             CLIPS Version 6.40  06/28/17            */
    /*                                                     */
    /*               RULE BUILD HEADER FILE                */
    /*******************************************************/
@@ -33,31 +33,28 @@
 /*      6.31: DR#882 Logical retraction not working if       */
 /*            logical CE starts with test CE.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_rulebld
 
+#pragma once
+
 #define _H_rulebld
 
-#ifndef _H_reorder
-#include "reorder.h"
-#endif
-#ifndef _H_network
 #include "network.h"
-#endif
+#include "reorder.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULEBLD_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE struct joinNode               *ConstructJoins(void *,int,struct lhsParseNode *,int,struct joinNode *,int,int);
-   LOCALE void                           AttachTestCEsToPatternCEs(void *,struct lhsParseNode *);
+   struct joinNode               *ConstructJoins(Environment *,int,struct lhsParseNode *,int,struct joinNode *,bool,bool);
+   void                           AttachTestCEsToPatternCEs(Environment *,struct lhsParseNode *);
 
 #endif /* _H_rulebld */
 

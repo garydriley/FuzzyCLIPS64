@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -42,33 +42,35 @@
 /*            Fixed typing issue when OBJECT_SYSTEM          */
 /*            compiler flag is set to 0.                     */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_genrcpsr
+
+#pragma once
+
 #define _H_genrcpsr
 
 #if DEFGENERIC_CONSTRUCT && (! BLOAD_ONLY) && (! RUN_TIME)
 
 #include "genrcfun.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _GENRCPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE intBool                        ParseDefgeneric(void *,const char *);
-   LOCALE intBool                        ParseDefmethod(void *,const char *);
-   LOCALE DEFMETHOD                     *AddMethod(void *,DEFGENERIC *,DEFMETHOD *,int,short,EXPRESSION *,
-                                                   int,int,SYMBOL_HN *,EXPRESSION *,char *,int);
-   LOCALE void                           PackRestrictionTypes(void *,RESTRICTION *,EXPRESSION *);
-   LOCALE void                           DeleteTempRestricts(void *,EXPRESSION *);
-   LOCALE DEFMETHOD                     *FindMethodByRestrictions(DEFGENERIC *,EXPRESSION *,int,
-                                                                  SYMBOL_HN *,int *);
+   bool                           ParseDefgeneric(Environment *,const char *);
+   bool                           ParseDefmethod(Environment *,const char *);
+   Defmethod                     *AddMethod(Environment *,Defgeneric *,Defmethod *,int,unsigned short,Expression *,
+                                            unsigned short,unsigned short,CLIPSLexeme *,Expression *,char *,bool);
+   void                           PackRestrictionTypes(Environment *,RESTRICTION *,Expression *);
+   void                           DeleteTempRestricts(Environment *,Expression *);
+   Defmethod                     *FindMethodByRestrictions(Defgeneric *,Expression *,int,
+                                                           CLIPSLexeme *,int *);
 
 #endif /* DEFGENERIC_CONSTRUCT && (! BLOAD_ONLY) && (! RUN_TIME) */
 

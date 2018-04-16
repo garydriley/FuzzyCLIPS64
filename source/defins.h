@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  02/04/15          */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
-   /*                                                     */
+   /*               DEFINSTANCES HEADER FILE              */
    /*******************************************************/
 
 /*************************************************************/
@@ -36,30 +36,36 @@
 /*            imported modules are search when locating a    */
 /*            named construct.                               */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_defins
+
+#pragma once
+
 #define _H_defins
 
 #if DEFINSTANCES_CONSTRUCT
 
 struct definstances;
 
-#ifndef _H_conscomp
 #include "conscomp.h"
-#endif
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
-#ifndef _H_cstrccom
 #include "cstrccom.h"
-#endif
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
-#ifndef _H_object
 #include "object.h"
-#endif
 
 typedef struct definstancesModule
   {
@@ -68,17 +74,17 @@ typedef struct definstancesModule
 
 typedef struct definstances
   {
-   struct constructHeader header;
+   ConstructHeader header;
    unsigned busy;
-   EXPRESSION *mkinstance;
-  } DEFINSTANCES;
+   Expression *mkinstance;
+  } Definstances;
 
 #define DEFINSTANCES_DATA 22
 
 struct definstancesData
-  { 
-   struct construct *DefinstancesConstruct;
-   int DefinstancesModuleIndex;
+  {
+   Construct *DefinstancesConstruct;
+   unsigned DefinstancesModuleIndex;
 #if CONSTRUCT_COMPILER && (! RUN_TIME)
    struct CodeGeneratorItem *DefinstancesCodeItem;
 #endif
@@ -86,53 +92,31 @@ struct definstancesData
 
 #define DefinstancesData(theEnv) ((struct definstancesData *) GetEnvironmentData(theEnv,DEFINSTANCES_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DEFINS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE const char                    *EnvDefinstancesModule(void *,void *);
-   LOCALE const char                    *EnvDefinstancesModuleName(void *,void *);
-   LOCALE void                          *EnvFindDefinstances(void *,const char *);
-   LOCALE void                          *EnvFindDefinstancesInModule(void *,const char *);
-   LOCALE void                           EnvGetDefinstancesList(void *,DATA_OBJECT *,struct defmodule *);
-   LOCALE const char                    *EnvGetDefinstancesName(void *,void *);
-   LOCALE SYMBOL_HN                     *EnvGetDefinstancesNamePointer(void *,void *);
-   LOCALE const char                    *EnvGetDefinstancesPPForm(void *,void *);
-   LOCALE void                          *EnvGetNextDefinstances(void *,void *);
-   LOCALE int                            EnvIsDefinstancesDeletable(void *,void *);
-   LOCALE void                           EnvSetDefinstancesPPForm(void *,void *,const char *);
-   LOCALE intBool                        EnvUndefinstances(void *,void *);
-   LOCALE void                           GetDefinstancesListFunction(void *,DATA_OBJECT *);
-   LOCALE void                          *GetDefinstancesModuleCommand(void *);
-   LOCALE void                           SetupDefinstances(void *);
-   LOCALE void                           UndefinstancesCommand(void *);
+   const char                    *DefinstancesModule(Definstances *);
+   const char                    *DefinstancesModuleName(Environment *,Definstances *);
+   Definstances                  *FindDefinstances(Environment *,const char *);
+   Definstances                  *FindDefinstancesInModule(Environment *,const char *);
+   void                           GetDefinstancesList(Environment *,CLIPSValue *,Defmodule *);
+   const char                    *DefinstancesName(Definstances *);
+   CLIPSLexeme                   *GetDefinstancesNamePointer(Environment *,Definstances *);
+   const char                    *DefinstancesPPForm(Definstances *);
+   Definstances                  *GetNextDefinstances(Environment *,Definstances *);
+   bool                           DefinstancesIsDeletable(Definstances *);
+   void                           SetDefinstancesPPForm(Environment *,Definstances *,const char *);
+   bool                           Undefinstances(Definstances *,Environment *);
+   void                           GetDefinstancesListFunction(Environment *,UDFContext *,UDFValue *);
+   void                           GetDefinstancesModuleCommand(Environment *,UDFContext *,UDFValue *);
+   void                           SetupDefinstances(Environment *);
+   void                           UndefinstancesCommand(Environment *,UDFContext *,UDFValue *);
 #if DEBUGGING_FUNCTIONS
-   LOCALE void                           PPDefinstancesCommand(void *);
-   LOCALE void                           ListDefinstancesCommand(void *);
-   LOCALE void                           EnvListDefinstances(void *,const char *,struct defmodule *);
+   void                           PPDefinstancesCommand(Environment *,UDFContext *,UDFValue *);
+   void                           ListDefinstancesCommand(Environment *,UDFContext *,UDFValue *);
+   void                           ListDefinstances(Environment *,const char *,Defmodule *);
 #endif
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE const char                    *DefinstancesModule(void *);
-   LOCALE void                          *FindDefinstances(const char *);
-   LOCALE void                           GetDefinstancesList(DATA_OBJECT *,struct defmodule *);
-   LOCALE const char                    *GetDefinstancesName(void *);
-   LOCALE const char                    *GetDefinstancesPPForm(void *);
-   LOCALE void                          *GetNextDefinstances(void *);
-   LOCALE int                            IsDefinstancesDeletable(void *);
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                           ListDefinstances(const char *,struct defmodule *);
+#if RUN_TIME
+   void                           DefinstancesRunTimeInitialize(Environment *);
 #endif
-   LOCALE intBool                        Undefinstances(void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFINSTANCES_CONSTRUCT */
 

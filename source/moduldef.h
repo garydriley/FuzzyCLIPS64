@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/22/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*                DEFMODULE HEADER FILE                */
    /*******************************************************/
@@ -37,39 +37,81 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_moduldef
+
+#pragma once
+
 #define _H_moduldef
 
-struct defmodule;
-struct portItem;
-struct defmoduleItemHeader;
-struct moduleItem;
+typedef struct defmodule Defmodule;
+typedef struct portItem PortItem;
+typedef struct defmoduleItemHeader DefmoduleItemHeader;
+typedef struct moduleItem ModuleItem;
+typedef struct constructHeader ConstructHeader;
+typedef struct moduleStackItem ModuleStackItem;
 
-#ifndef _STDIO_INCLUDED_
+typedef void *AllocateModuleFunction(Environment *);
+typedef void FreeModuleFunction(Environment *,void *);
+
+typedef enum
+  {
+   DEFMODULE,
+   DEFRULE,
+   DEFTEMPLATE,
+   DEFFACTS,
+   DEFGLOBAL,
+   DEFFUNCTION,
+   DEFGENERIC,
+   DEFMETHOD,
+   DEFCLASS,
+   DEFMESSAGE_HANDLER,
+   DEFINSTANCES
+  } ConstructType;
+
 #include <stdio.h>
-#define _STDIO_INCLUDED_
-#endif
-
-#ifndef _H_conscomp
-#include "conscomp.h"
-#endif
-#ifndef _H_modulpsr
-#include "modulpsr.h"
-#endif
-#ifndef _H_utility
+#include "entities.h"
+#include "userdata.h"
 #include "utility.h"
-#endif
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrct
-#include "constrct.h"
-#endif
+
+struct constructHeader
+  {
+   ConstructType constructType;
+   CLIPSLexeme *name;
+   const char *ppForm;
+   DefmoduleItemHeader *whichModule;
+   unsigned long bsaveID;
+   ConstructHeader *next;
+   struct userData *usrData;
+   Environment *env;
+  };
+
+struct defmoduleItemHeader
+  {
+   Defmodule *theModule;
+   ConstructHeader *firstItem;
+   ConstructHeader *lastItem;
+  };
+
+typedef ConstructHeader *FindConstructFunction(Environment *,const char *);
+typedef ConstructHeader *GetNextConstructFunction(Environment *,ConstructHeader *);
+typedef bool IsConstructDeletableFunction(ConstructHeader *);
+typedef bool DeleteConstructFunction(ConstructHeader *,Environment *);
+typedef void FreeConstructFunction(Environment *,ConstructHeader *);
 
 /**********************************************************************/
 /* defmodule                                                          */
@@ -90,35 +132,25 @@ struct moduleItem;
 /*                                                                    */
 /* next: A pointer to the next defmodule data structure.              */
 /**********************************************************************/
+
 struct defmodule
   {
-   struct symbolHashNode *name;
-   char *ppForm;
-   struct defmoduleItemHeader **itemsArray;
-   struct portItem *importList;
-   struct portItem *exportList;
-   unsigned visitedFlag;
-   long bsaveID;
-   struct userData *usrData;
-   struct defmodule *next;
+   ConstructHeader header;
+   DefmoduleItemHeader **itemsArray;
+   PortItem *importList;
+   PortItem *exportList;
+   bool visitedFlag;
   };
 
 struct portItem
   {
-   struct symbolHashNode *moduleName;
-   struct symbolHashNode *constructType;
-   struct symbolHashNode *constructName;
-   struct portItem *next;
+   CLIPSLexeme *moduleName;
+   CLIPSLexeme *constructType;
+   CLIPSLexeme *constructName;
+   PortItem *next;
   };
 
-struct defmoduleItemHeader
-  {
-   struct defmodule *theModule;
-   struct constructHeader *firstItem;
-   struct constructHeader *lastItem;
-  };
-
-#define MIHS (struct defmoduleItemHeader *)
+#define MIHS (DefmoduleItemHeader *)
 
 /**********************************************************************/
 /* moduleItem                                                         */
@@ -145,8 +177,8 @@ struct defmoduleItemHeader
 /*   a string and the function returns a pointer to the specified     */
 /*   construct if it exists.                                          */
 /*                                                                    */
-/* exportable: If TRUE, then the specified construct type can be      */
-/*   exported (and hence imported). If FALSE, it can't be exported.   */
+/* exportable: If true, then the specified construct type can be      */
+/*   exported (and hence imported). If false, it can't be exported.   */
 /*                                                                    */
 /* next: A pointer to the next moduleItem data structure.             */
 /**********************************************************************/
@@ -154,105 +186,85 @@ struct defmoduleItemHeader
 struct moduleItem
   {
    const char *name;
-   int moduleIndex;
-   void *(*allocateFunction)(void *);
-   void  (*freeFunction)(void *,void *);
-   void *(*bloadModuleReference)(void *,int);
-   void  (*constructsToCModuleReference)(void *,FILE *,int,int,int);
-   void *(*findFunction)(void *,const char *);
-   struct moduleItem *next;
+   unsigned moduleIndex;
+   void *(*allocateFunction)(Environment *);
+   void  (*freeFunction)(Environment *,void *);
+   void *(*bloadModuleReference)(Environment *,unsigned long);
+   void  (*constructsToCModuleReference)(Environment *,FILE *,unsigned long,unsigned int,unsigned int);
+   FindConstructFunction *findFunction;
+   ModuleItem *next;
   };
 
-typedef struct moduleStackItem
+struct moduleStackItem
   {
-   intBool changeFlag;
-   struct defmodule *theModule;
-   struct moduleStackItem *next;
-  } MODULE_STACK_ITEM;
+   bool changeFlag;
+   Defmodule *theModule;
+   ModuleStackItem *next;
+  };
 
 #define DEFMODULE_DATA 4
 
 struct defmoduleData
-  {   
+  {
    struct moduleItem *LastModuleItem;
-   struct callFunctionItem *AfterModuleChangeFunctions;
-   MODULE_STACK_ITEM *ModuleStack;
-   intBool CallModuleChangeFunctions;
-   struct defmodule *ListOfDefmodules;
-   struct defmodule *CurrentModule;
-   struct defmodule *LastDefmodule;
-   int NumberOfModuleItems;
+   struct voidCallFunctionItem *AfterModuleChangeFunctions;
+   ModuleStackItem *ModuleStack;
+   bool CallModuleChangeFunctions;
+   Defmodule *ListOfDefmodules;
+   Defmodule *CurrentModule;
+   Defmodule *LastDefmodule;
+   unsigned NumberOfModuleItems;
    struct moduleItem *ListOfModuleItems;
    long ModuleChangeIndex;
-   int MainModuleRedefinable;
+   bool MainModuleRedefinable;
 #if (! RUN_TIME) && (! BLOAD_ONLY)
    struct portConstructItem *ListOfPortConstructItems;
-   long NumberOfDefmodules;
-   struct callFunctionItem *AfterModuleDefinedFunctions;
+   unsigned short NumberOfDefmodules;
+   struct voidCallFunctionItem *AfterModuleDefinedFunctions;
 #endif
 #if CONSTRUCT_COMPILER && (! RUN_TIME)
    struct CodeGeneratorItem *DefmoduleCodeItem;
 #endif
 #if (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) && (! RUN_TIME)
-   long BNumberOfDefmodules;
-   long NumberOfPortItems;
+   unsigned long BNumberOfDefmodules;
+   unsigned long NumberOfPortItems;
    struct portItem *PortItemArray;
-   struct defmodule *DefmoduleArray;
+   Defmodule *DefmoduleArray;
 #endif
   };
-  
+
 #define DefmoduleData(theEnv) ((struct defmoduleData *) GetEnvironmentData(theEnv,DEFMODULE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULDEF_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDefmodules(void *);
-   LOCALE void                          *EnvFindDefmodule(void *,const char *);
-   LOCALE const char                    *EnvGetDefmoduleName(void *,void *);
-   LOCALE const char                    *EnvGetDefmodulePPForm(void *,void *);
-   LOCALE void                          *EnvGetNextDefmodule(void *,void *);
-   LOCALE void                           RemoveAllDefmodules(void *);
-   LOCALE int                            AllocateModuleStorage(void);
-   LOCALE int                            RegisterModuleItem(void *,const char *,
-                                                            void *(*)(void *),
-                                                            void (*)(void *,void *),
-                                                            void *(*)(void *,int),
-                                                            void (*)(void *,FILE *,int,int,int),
-                                                            void *(*)(void *,const char *));
-   LOCALE void                          *GetModuleItem(void *,struct defmodule *,int);
-   LOCALE void                           SetModuleItem(void *,struct defmodule *,int,void *);
-   LOCALE void                          *EnvGetCurrentModule(void *);
-   LOCALE void                          *EnvSetCurrentModule(void *,void *);
-   LOCALE void                          *GetCurrentModuleCommand(void *);
-   LOCALE void                          *SetCurrentModuleCommand(void *);
-   LOCALE int                            GetNumberOfModuleItems(void *);
-   LOCALE void                           CreateMainModule(void *);
-   LOCALE void                           SetListOfDefmodules(void *,void *);
-   LOCALE struct moduleItem             *GetListOfModuleItems(void *);
-   LOCALE struct moduleItem             *FindModuleItem(void *,const char *);
-   LOCALE void                           SaveCurrentModule(void *);
-   LOCALE void                           RestoreCurrentModule(void *);
-   LOCALE void                           AddAfterModuleChangeFunction(void *,const char *,void (*)(void *),int);
-   LOCALE void                           IllegalModuleSpecifierMessage(void *);
-   LOCALE void                           AllocateDefmoduleGlobals(void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                          *FindDefmodule(const char *);
-   LOCALE void                          *GetCurrentModule(void);
-   LOCALE const char                    *GetDefmoduleName(void *);
-   LOCALE const char                    *GetDefmodulePPForm(void *);
-   LOCALE void                          *GetNextDefmodule(void *);
-   LOCALE void                          *SetCurrentModule(void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           InitializeDefmodules(Environment *);
+   Defmodule                     *FindDefmodule(Environment *,const char *);
+   const char                    *DefmoduleName(Defmodule *);
+   const char                    *DefmodulePPForm(Defmodule *);
+   Defmodule                     *GetNextDefmodule(Environment *,Defmodule *);
+   void                           RemoveAllDefmodules(Environment *,void *);
+   int                            AllocateModuleStorage(void);
+   unsigned                       RegisterModuleItem(Environment *,const char *,
+                                                     AllocateModuleFunction *,
+                                                     FreeModuleFunction *,
+                                                     void *(*)(Environment *,unsigned long),
+                                                     void (*)(Environment *,FILE *,unsigned long,unsigned int,unsigned int),
+                                                     FindConstructFunction *);
+   void                          *GetModuleItem(Environment *,Defmodule *,unsigned);
+   void                           SetModuleItem(Environment *,Defmodule *,unsigned,void *);
+   Defmodule                     *GetCurrentModule(Environment *);
+   Defmodule                     *SetCurrentModule(Environment *,Defmodule *);
+   void                           GetCurrentModuleCommand(Environment *,UDFContext *,UDFValue *);
+   void                           SetCurrentModuleCommand(Environment *,UDFContext *,UDFValue *);
+   unsigned                       GetNumberOfModuleItems(Environment *);
+   void                           CreateMainModule(Environment *,void *);
+   void                           SetListOfDefmodules(Environment *,Defmodule *);
+   struct moduleItem             *GetListOfModuleItems(Environment *);
+   struct moduleItem             *FindModuleItem(Environment *,const char *);
+   void                           SaveCurrentModule(Environment *);
+   void                           RestoreCurrentModule(Environment *);
+   void                           AddAfterModuleChangeFunction(Environment *,const char *,VoidCallFunction *,int,void *);
+   void                           IllegalModuleSpecifierMessage(Environment *);
+   void                           AllocateDefmoduleGlobals(Environment *);
+   unsigned short                 GetNumberOfDefmodules(Environment *);
 
 #endif /* _H_moduldef */
 

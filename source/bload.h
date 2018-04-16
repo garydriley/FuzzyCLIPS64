@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  09/29/16          */
+   /*             CLIPS Version 6.40  10/01/16            */
    /*                                                     */
    /*                 BLOAD HEADER FILE                   */
    /*******************************************************/
@@ -32,72 +32,63 @@
 /*      6.31: Data sizes written to binary files for         */
 /*            validation when loaded.                        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_bload
+
+#pragma once
+
 #define _H_bload
 
-#ifndef _H_utility
 #include "utility.h"
-#endif
-#ifndef _H_extnfunc
 #include "extnfunc.h"
-#endif
-#ifndef _H_exprnbin
 #include "exprnbin.h"
-#endif
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
-#ifndef _H_sysdep
 #include "sysdep.h"
-#endif
-#ifndef _H_symblbin
 #include "symblbin.h"
-#endif
 
 #define BLOAD_DATA 38
 
 struct bloadData
-  { 
+  {
    const char *BinaryPrefixID;
    const char *BinaryVersionID;
    char *BinarySizes;
-   struct FunctionDefinition **FunctionArray;
-   int BloadActive;
-   struct callFunctionItem *BeforeBloadFunctions;
-   struct callFunctionItem *AfterBloadFunctions;
-   struct callFunctionItem *ClearBloadReadyFunctions;
-   struct callFunctionItem *AbortBloadFunctions;
+   struct functionDefinition **FunctionArray;
+   bool BloadActive;
+   struct voidCallFunctionItem *BeforeBloadFunctions;
+   struct voidCallFunctionItem *AfterBloadFunctions;
+   struct boolCallFunctionItem *ClearBloadReadyFunctions;
+   struct voidCallFunctionItem *AbortBloadFunctions;
   };
 
 #define BloadData(theEnv) ((struct bloadData *) GetEnvironmentData(theEnv,BLOAD_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _BLOAD_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+#define FunctionPointer(i) ((((i) == ULONG_MAX) ? NULL : BloadData(theEnv)->FunctionArray[i]))
 
-#define FunctionPointer(i) ((struct FunctionDefinition *) (((i) == -1L) ? NULL : BloadData(theEnv)->FunctionArray[i]))
-
-   LOCALE void                    InitializeBloadData(void *);
-   LOCALE int                     BloadCommand(void *);
-   LOCALE intBool                 EnvBload(void *,const char *);
-   LOCALE void                    BloadandRefresh(void *,long,size_t,void (*)(void *,void *,long));
-   LOCALE intBool                 Bloaded(void *);
-   LOCALE void                    AddBeforeBloadFunction(void *,const char *,void (*)(void *),int);
-   LOCALE void                    AddAfterBloadFunction(void *,const char *,void (*)(void *),int);
-   LOCALE void                    AddClearBloadReadyFunction(void *,const char *,int (*)(void *),int);
-   LOCALE void                    AddAbortBloadFunction(void *,const char *,void (*)(void *),int);
-   LOCALE void                    CannotLoadWithBloadMessage(void *,const char *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-   LOCALE int                     Bload(const char *);
-#endif
+   void                    InitializeBloadData(Environment *);
+   void                    BloadCommand(Environment *,UDFContext *,UDFValue *);
+   bool                    Bload(Environment *,const char *);
+   void                    BloadandRefresh(Environment *,unsigned long,size_t,void (*)(Environment *,void *,unsigned long));
+   bool                    Bloaded(Environment *);
+   void                    AddBeforeBloadFunction(Environment *,const char *,VoidCallFunction *,int,void *);
+   void                    AddAfterBloadFunction(Environment *,const char *,VoidCallFunction *,int,void *);
+   void                    AddClearBloadReadyFunction(Environment *,const char *,BoolCallFunction *,int,void *);
+   void                    AddAbortBloadFunction(Environment *,const char *,VoidCallFunction *,int,void *);
+   void                    CannotLoadWithBloadMessage(Environment *,const char *);
 
 #endif
 

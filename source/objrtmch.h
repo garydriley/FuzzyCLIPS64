@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/03/18          */
+   /*             CLIPS Version 6.40  02/03/18            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -44,9 +44,23 @@
 /*      6.31: Optimization for marking relevant alpha nodes  */
 /*            in the object pattern network.                 */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_objrtmch
+
+#pragma once
+
 #define _H_objrtmch
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
@@ -58,24 +72,12 @@ typedef struct classAlphaLink CLASS_ALPHA_LINK;
 #define OBJECT_RETRACT 2
 #define OBJECT_MODIFY  3
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_network
 #include "network.h"
-#endif
-#ifndef _H_object
 #include "object.h"
-#endif
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
 
 typedef struct classBitMap
   {
@@ -104,25 +106,25 @@ typedef struct objectPatternNode
    unsigned whichField     : 8;
    unsigned short leaveFields;
    unsigned long long matchTimeTag;
-   int slotNameID;
-   EXPRESSION *networkTest;
+   unsigned short slotNameID;
+   Expression *networkTest;
    struct objectPatternNode *nextLevel;
    struct objectPatternNode *lastLevel;
    struct objectPatternNode *leftNode;
    struct objectPatternNode *rightNode;
    OBJECT_ALPHA_NODE *alphaNode;
-   long bsaveID;
+   unsigned long bsaveID;
   } OBJECT_PATTERN_NODE;
 
 struct objectAlphaNode
   {
    struct patternNodeHeader header;
    unsigned long long matchTimeTag;
-   BITMAP_HN *classbmp,*slotbmp;
+   CLIPSBitMap *classbmp,*slotbmp;
    OBJECT_PATTERN_NODE *patternNode;
    struct objectAlphaNode *nxtInGroup,
                           *nxtTerminal;
-   long bsaveID;
+   unsigned long bsaveID;
   };
 
 struct classAlphaLink
@@ -135,30 +137,20 @@ struct classAlphaLink
 typedef struct objectMatchAction
   {
    int type;
-   INSTANCE_TYPE *ins;
+   Instance *ins;
    SLOT_BITMAP *slotNameIDs;
    struct objectMatchAction *nxt;
   } OBJECT_MATCH_ACTION;
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJRTMCH_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                  ObjectMatchDelay(void *,DATA_OBJECT *);
-   LOCALE intBool               SetDelayObjectPatternMatching(void *,int);
-   LOCALE intBool               GetDelayObjectPatternMatching(void *);
-   LOCALE OBJECT_PATTERN_NODE  *ObjectNetworkPointer(void *);
-   LOCALE OBJECT_ALPHA_NODE    *ObjectNetworkTerminalPointer(void *);
-   LOCALE void                  SetObjectNetworkPointer(void *,OBJECT_PATTERN_NODE *);
-   LOCALE void                  SetObjectNetworkTerminalPointer(void *,OBJECT_ALPHA_NODE *);
-   LOCALE void                  ObjectNetworkAction(void *,int,INSTANCE_TYPE *,int);
-   LOCALE void                  ResetObjectMatchTimeTags(void *);
+   void                  ObjectMatchDelay(Environment *,UDFContext *,UDFValue *);
+   bool                  SetDelayObjectPatternMatching(Environment *,bool);
+   bool                  GetDelayObjectPatternMatching(Environment *);
+   OBJECT_PATTERN_NODE  *ObjectNetworkPointer(Environment *);
+   OBJECT_ALPHA_NODE    *ObjectNetworkTerminalPointer(Environment *);
+   void                  SetObjectNetworkPointer(Environment *,OBJECT_PATTERN_NODE *);
+   void                  SetObjectNetworkTerminalPointer(Environment *,OBJECT_ALPHA_NODE *);
+   void                  ObjectNetworkAction(Environment *,int,Instance *,int);
+   void                  ResetObjectMatchTimeTags(Environment *);
 
 #endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 

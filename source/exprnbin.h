@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*           EXPRESSION BLOAD/BSAVE HEADER FILE        */
    /*******************************************************/
@@ -20,38 +20,35 @@
 /*                                                           */
 /*      6.30: Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_exprnbin
+
+#pragma once
+
 #define _H_exprnbin
 
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _EXPRNBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+#include "expressn.h"
 
-#define ExpressionPointer(i) ((struct expr *) (((i) == -1L) ? NULL : &ExpressionData(theEnv)->ExpressionArray[i]))
+#define ExpressionPointer(i) ((struct expr *) (((i) == ULONG_MAX) ? NULL : &ExpressionData(theEnv)->ExpressionArray[i]))
 #define HashedExpressionPointer(i) ExpressionPointer(i)
 
-   LOCALE void                        AllocateExpressions(void *);
-   LOCALE void                        RefreshExpressions(void *);
-   LOCALE void                        ClearBloadedExpressions(void *);
-   LOCALE void                        FindHashedExpressions(void *);
-   LOCALE void                        BsaveHashedExpressions(void *,FILE *);
-   LOCALE void                        BsaveConstructExpressions(void *,FILE *);
-   LOCALE void                        BsaveExpression(void *,struct expr *,FILE *);
+   void                        AllocateExpressions(Environment *);
+   void                        RefreshExpressions(Environment *);
+   void                        ClearBloadedExpressions(Environment *);
+   void                        FindHashedExpressions(Environment *);
+   void                        BsaveHashedExpressions(Environment *,FILE *);
+   void                        BsaveConstructExpressions(Environment *,FILE *);
+   void                        BsaveExpression(Environment *,struct expr *,FILE *);
 
 #endif /* _H_exprnbin */
 

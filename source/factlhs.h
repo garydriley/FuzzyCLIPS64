@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                FACT BUILD HEADER FILE               */
    /*******************************************************/
@@ -25,32 +25,30 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Removed initial-fact support.                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factlhs
 
+#pragma once
+
 #define _H_factlhs
 
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_scanner
 #include "scanner.h"
-#endif
+#include "symbol.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTLHS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE int                            FactPatternParserFind(SYMBOL_HN *);
-   LOCALE struct lhsParseNode           *FactPatternParse(void *,const char *,struct token *);
-   LOCALE struct lhsParseNode           *SequenceRestrictionParse(void *,const char *,struct token *);
-   LOCALE struct lhsParseNode           *CreateInitialFactPattern(void *);
+   bool                           FactPatternParserFind(CLIPSLexeme *);
+   struct lhsParseNode           *FactPatternParse(Environment *,const char *,struct token *);
+   struct lhsParseNode           *SequenceRestrictionParse(Environment *,const char *,struct token *);
 
 #endif /* _H_factlhs */

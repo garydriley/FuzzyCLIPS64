@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  12/30/16            */
    /*                                                     */
    /*                 FACT HASHING MODULE                 */
    /*******************************************************/
@@ -13,6 +13,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -28,54 +32,56 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Modify command preserves fact id and address.  */
+/*                                                           */
+/*            Assert returns duplicate fact. FALSE is now    */
+/*            returned only if an error occurs.              */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_facthsh
 
+#pragma once
+
 #define _H_facthsh
 
-struct factHashEntry;
+#include "entities.h"
 
-#ifndef _H_factmngr
-#include "factmngr.h"
-#endif
+typedef struct factHashEntry FactHashEntry;
 
 struct factHashEntry
   {
-   struct fact *theFact;
-   struct factHashEntry *next;
+   Fact *theFact;
+   FactHashEntry *next;
   };
 
 #define SIZE_FACT_HASH 16231
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _FACTHSH_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           AddHashedFact(void *,struct fact *,unsigned long);
-   LOCALE intBool                        RemoveHashedFact(void *,struct fact *);
-   LOCALE unsigned long                  HandleFactDuplication(void *,void *,intBool *);
+   void                           AddHashedFact(Environment *,Fact *,size_t);
+   bool                           RemoveHashedFact(Environment *,Fact *);
+   size_t                         HandleFactDuplication(Environment *,Fact *,Fact **,long long);
 #if FUZZY_DEFTEMPLATES
-   LOCALE unsigned long                  HandleExistingFuzzyFact(void *,void **);
+   unsigned long                  HandleExistingFuzzyFact(Environment *,Fact **);
 #endif
-   LOCALE intBool                        EnvGetFactDuplication(void *);
-   LOCALE intBool                        EnvSetFactDuplication(void *,int);
-   LOCALE void                           InitializeFactHashTable(void *);
-   LOCALE void                           ShowFactHashTable(void *);
-   LOCALE unsigned long                  HashFact(struct fact *);
-   LOCALE intBool                        FactWillBeAsserted(void *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE intBool                        GetFactDuplication(void);
-   LOCALE intBool                        SetFactDuplication(int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   bool                           GetFactDuplication(Environment *);
+   bool                           SetFactDuplication(Environment *,bool);
+   void                           InitializeFactHashTable(Environment *);
+   void                           ShowFactHashTableCommand(Environment *,UDFContext *,UDFValue *);
+   size_t                         HashFact(Fact *);
+   bool                           FactWillBeAsserted(Environment *,Fact *);
 
 #endif /* _H_facthsh */
 

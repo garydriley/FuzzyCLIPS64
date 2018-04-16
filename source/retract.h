@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                RETRACT HEADER FILE                  */
    /*******************************************************/
@@ -32,27 +32,25 @@
 /*                                                           */
 /*            Removed pseudo-facts used in not CEs.          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_retract
+
+#pragma once
+
 #define _H_retract
 
-#ifndef _H_match
 #include "match.h"
-#endif
-#ifndef _H_network
 #include "network.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RETRACT_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 struct rdriveinfo
   {
@@ -61,14 +59,14 @@ struct rdriveinfo
    struct rdriveinfo *next;
   };
 
-LOCALE void                           NetworkRetract(void *,struct patternMatch *);
-LOCALE void                           ReturnPartialMatch(void *,struct partialMatch *);
-LOCALE void                           DestroyPartialMatch(void *,struct partialMatch *);
-LOCALE void                           FlushGarbagePartialMatches(void *);
-LOCALE void                           DeletePartialMatches(void *,struct partialMatch *);
-LOCALE void                           PosEntryRetractBeta(void *,struct partialMatch *,struct partialMatch *,int);
-LOCALE void                           PosEntryRetractAlpha(void *,struct partialMatch *,int);
-LOCALE intBool                        PartialMatchWillBeDeleted(void *,struct partialMatch *);
+void                           NetworkRetract(Environment *,struct patternMatch *);
+void                           ReturnPartialMatch(Environment *,struct partialMatch *);
+void                           DestroyPartialMatch(Environment *,struct partialMatch *);
+void                           FlushGarbagePartialMatches(Environment *);
+void                           DeletePartialMatches(Environment *,struct partialMatch *);
+void                           PosEntryRetractBeta(Environment *,struct partialMatch *,struct partialMatch *,int);
+void                           PosEntryRetractAlpha(Environment *,struct partialMatch *,int);
+bool                           PartialMatchWillBeDeleted(Environment *,struct partialMatch *);
 
 #endif /* _H_retract */
 

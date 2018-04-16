@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -24,41 +24,39 @@
 /*                                                           */
 /*            Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dfinsbin
+
+#pragma once
+
 #define _H_dfinsbin
 
 #if DEFINSTANCES_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
 
-#ifndef _H_defins
 #include "defins.h"
-#endif
 
 #define DFINSBIN_DATA 25
 
 struct definstancesBinaryData
-  { 
-   DEFINSTANCES *DefinstancesArray;
-   long DefinstancesCount;
-   long ModuleCount;
+  {
+   Definstances *DefinstancesArray;
+   unsigned long DefinstancesCount;
+   unsigned long ModuleCount;
    DEFINSTANCES_MODULE *ModuleArray;
   };
-  
+
 #define DefinstancesBinaryData(theEnv) ((struct definstancesBinaryData *) GetEnvironmentData(theEnv,DFINSBIN_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFINSBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupDefinstancesBload(void *);
-   LOCALE void                          *BloadDefinstancesModuleRef(void *,int);
+   void                           SetupDefinstancesBload(Environment *);
+   void                          *BloadDefinstancesModuleRef(Environment *,unsigned long);
 
 #endif /* DEFINSTANCES_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) */
 

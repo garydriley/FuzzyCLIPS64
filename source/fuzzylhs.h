@@ -27,27 +27,20 @@
 /*                                                           */
 /*************************************************************/
 
-
-
 #ifndef _H_fuzzylhs
+
+#pragma once
+
 #define _H_fuzzylhs
 
+#include "fuzzylv.h"
+#include "scanner.h"
 
-
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FUZZYLHS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-    LOCALE struct fuzzy_value *GetFuzzyLHSPattern(void *theEnv,const char *readSource,struct token *theToken,
-                                    struct fuzzyLv *fzTemplate,int *error);
-
+   struct fuzzy_value            *GetFuzzyLHSPattern(Environment *theEnv,
+                                                     const char *readSource,
+                                                     struct token *theToken,
+                                                     struct fuzzyLv *fzTemplate,
+                                                     bool *error);
 
 #endif
 

@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
-   /*            STRING I/O ROUTER HEADER FILE            */
+   /*            STRING_TYPE I/O ROUTER HEADER FILE            */
    /*******************************************************/
 
 /*************************************************************/
@@ -18,7 +18,7 @@
 /* Revision History:                                         */
 /*                                                           */
 /*      6.30: Used genstrcpy instead of strcpy.              */
-/*                                                           */             
+/*                                                           */
 /*            Removed conditional code for unsupported       */
 /*            compilers/operating systems (IBM_MCW,          */
 /*            MAC_MCW, and IBM_TBC).                         */
@@ -28,15 +28,28 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_strngrtr
+
+#pragma once
+
 #define _H_strngrtr
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
+typedef struct stringRouter StringRouter;
+typedef struct stringBuilderRouter StringBuilderRouter;
+
 #include <stdio.h>
-#endif
+#include "utility.h"
 
 #define STRING_ROUTER_DATA 48
 
@@ -45,40 +58,39 @@ struct stringRouter
    const char *name;
    const char *readString;
    char *writeString;
-   //char *str;
    size_t currentPosition;
    size_t maximumPosition;
    int readWriteType;
-   struct stringRouter *next;
+   StringRouter *next;
+  };
+
+struct stringBuilderRouter
+  {
+   const char *name;
+   StringBuilder *SBR;
+   StringBuilderRouter *next;
   };
 
 struct stringRouterData
-  { 
-   struct stringRouter *ListOfStringRouters;
+  {
+   StringRouter *ListOfStringRouters;
+   StringBuilderRouter *ListOfStringBuilderRouters;
   };
 
 #define StringRouterData(theEnv) ((struct stringRouterData *) GetEnvironmentData(theEnv,STRING_ROUTER_DATA))
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _STRNGRTR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 /**************************/
 /* I/O ROUTER DEFINITIONS */
 /**************************/
 
-   LOCALE void                           InitializeStringRouter(void *);
-   LOCALE int                            OpenStringSource(void *,const char *,const char *,size_t);
-   LOCALE int                            OpenTextSource(void *,const char *,const char *,size_t,size_t);
-   LOCALE int                            CloseStringSource(void *,const char *);
-   LOCALE int                            OpenStringDestination(void *,const char *,char *,size_t);
-   LOCALE int                            CloseStringDestination(void *,const char *);
+   void                           InitializeStringRouter(Environment *);
+   bool                           OpenStringSource(Environment *,const char *,const char *,size_t);
+   bool                           OpenTextSource(Environment *,const char *,const char *,size_t,size_t);
+   bool                           CloseStringSource(Environment *,const char *);
+   bool                           OpenStringDestination(Environment *,const char *,char *,size_t);
+   bool                           CloseStringDestination(Environment *,const char *);
+   bool                           OpenStringBuilderDestination(Environment *,const char *,StringBuilder *);
+   bool                           CloseStringBuilderDestination(Environment *,const char *);
 
 #endif /* _H_strngrtr */
 

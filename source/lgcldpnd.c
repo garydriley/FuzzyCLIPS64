@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  08/25/16             */
    /*                                                     */
    /*             LOGICAL DEPENDENCIES MODULE             */
    /*******************************************************/
@@ -26,30 +26,35 @@
 /*                                                           */
 /*      6.30: Added support for hashed memories.             */
 /*                                                           */
+/*      6.40: Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
-#define _LGCLDPND_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "setup.h"
 
 #if DEFRULE_CONSTRUCT
 
-#include "memalloc.h"
-#include "router.h"
+#include "argacces.h"
+#include "engine.h"
 #include "envrnmnt.h"
 #include "evaluatn.h"
-#include "engine.h"
-#include "reteutil.h"
-#include "pattern.h"
-#include "argacces.h"
 #include "factmngr.h"
-
-#if OBJECT_SYSTEM
-#include "insfun.h"
-#endif
+#include "memalloc.h"
+#include "pattern.h"
+#include "reteutil.h"
+#include "router.h"
 
 #include "lgcldpnd.h"
 
@@ -57,7 +62,7 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static struct dependency      *DetachAssociatedDependencies(void *,struct dependency *,void *);
+   static struct dependency      *DetachAssociatedDependencies(Environment *,struct dependency *,void *);
 
 /***********************************************************************/
 /* AddLogicalDependencies: Adds the logical dependency links between a */
@@ -74,10 +79,10 @@
 /*   creating a fact with the assert command and creating an instance  */
 /*   with the make-instance command.                                   */
 /***********************************************************************/
-globle intBool AddLogicalDependencies(
-  void *theEnv,
+bool AddLogicalDependencies(
+  Environment *theEnv,
   struct patternEntity *theEntity,
-  int existingEntity)
+  bool existingEntity)
   {
    struct partialMatch *theBinds;
    struct dependency *newDependency;
@@ -90,10 +95,10 @@ globle intBool AddLogicalDependencies(
    if (EngineData(theEnv)->TheLogicalJoin == NULL)
      {
       if (existingEntity) RemoveEntityDependencies(theEnv,theEntity);
-      return(TRUE);
+      return true;
      }
    else if (existingEntity && (theEntity->dependents == NULL))
-     { return(TRUE); }
+     { return true; }
 
    /*===========================================================*/
    /* Retrieve the partial match in the logical join associated */
@@ -105,9 +110,9 @@ globle intBool AddLogicalDependencies(
    /*===========================================================*/
 
    theBinds = EngineData(theEnv)->TheLogicalBind;
-   if (theBinds == NULL) return(FALSE);
+   if (theBinds == NULL) return false;
    if ((theBinds->leftParent == NULL) && (theBinds->rightParent == NULL))
-     { return(FALSE); }
+     { return false; }
 
    /*==============================================================*/
    /* Add a dependency link between the partial match and the data */
@@ -117,24 +122,24 @@ globle intBool AddLogicalDependencies(
    /*==============================================================*/
 
    newDependency = get_struct(theEnv,dependency);
-   newDependency->dPtr = (void *) theEntity;
+   newDependency->dPtr = theEntity;
    newDependency->next = (struct dependency *) theBinds->dependents;
-   theBinds->dependents = (void *) newDependency;
+   theBinds->dependents = newDependency;
 
    /*================================================================*/
    /* Add a dependency link between the entity and the partialMatch. */
    /*================================================================*/
 
    newDependency = get_struct(theEnv,dependency);
-   newDependency->dPtr = (void *) theBinds;
+   newDependency->dPtr = theBinds;
    newDependency->next = (struct dependency *) theEntity->dependents;
-   theEntity->dependents = (void *) newDependency;
+   theEntity->dependents = newDependency;
 
    /*==================================================================*/
-   /* Return TRUE to indicate that the data entity should be asserted. */
+   /* Return true to indicate that the data entity should be asserted. */
    /*==================================================================*/
 
-   return(TRUE);
+   return true;
   }
 
 /************************************************************************/
@@ -144,19 +149,19 @@ globle intBool AddLogicalDependencies(
 /*   creating logical support links between the data entity and         */
 /*   supporting partial matches.                                        */
 /************************************************************************/
-globle struct partialMatch *FindLogicalBind(
+struct partialMatch *FindLogicalBind(
   struct joinNode *theJoin,
   struct partialMatch *theBinds)
   {
    struct partialMatch *compPtr;
-      
+
    /*========================================================*/
    /* Follow the parent link of the activation back through  */
    /* the join network until the join containing the logical */
    /* partial match is found. The partial match at this      */
    /* join will have the dependency link assigned to it.     */
    /*========================================================*/
-   
+
    for (compPtr = theBinds;
         compPtr != NULL;
         compPtr = compPtr->leftParent)
@@ -165,7 +170,7 @@ globle struct partialMatch *FindLogicalBind(
         { return(compPtr); }
      }
 
-   return(NULL);
+   return NULL;
   }
 
 /*********************************************************************/
@@ -175,8 +180,8 @@ globle struct partialMatch *FindLogicalBind(
 /*   matches or pattern entities which point back to the pattern     */
 /*   entities.                                                       */
 /*********************************************************************/
-globle void RemoveEntityDependencies(
-  void *theEnv,
+void RemoveEntityDependencies(
+  Environment *theEnv,
   struct patternEntity *theEntity)
   {
    struct dependency *fdPtr, *nextPtr, *theList;
@@ -206,8 +211,8 @@ globle void RemoveEntityDependencies(
 
       theBinds = (struct partialMatch *) fdPtr->dPtr;
       theList = (struct dependency *) theBinds->dependents;
-      theList = DetachAssociatedDependencies(theEnv,theList,(void *) theEntity);
-      theBinds->dependents = (void *) theList;
+      theList = DetachAssociatedDependencies(theEnv,theList,theEntity);
+      theBinds->dependents = theList;
 
       /*========================*/
       /* Return the dependency. */
@@ -228,14 +233,14 @@ globle void RemoveEntityDependencies(
 
    theEntity->dependents = NULL;
   }
-  
+
 /********************************************************************/
 /* ReturnEntityDependencies: Removes all logical support links from */
 /*   a pattern entity. This is unidirectional. The links from the   */
 /*   the partial match to the entity are not removed.               */
 /********************************************************************/
-globle void ReturnEntityDependencies(
-  void *theEnv,
+void ReturnEntityDependencies(
+  Environment *theEnv,
   struct patternEntity *theEntity)
   {
    struct dependency *fdPtr, *nextPtr;
@@ -260,7 +265,7 @@ globle void ReturnEntityDependencies(
 /*   the other direction.                                          */
 /*******************************************************************/
 static struct dependency *DetachAssociatedDependencies(
-  void *theEnv,
+  Environment *theEnv,
   struct dependency *theList,
   void *theEntity)
   {
@@ -293,8 +298,8 @@ static struct dependency *DetachAssociatedDependencies(
 /*   match that point to any data entities. Also removes the associated   */
 /*   links from the data entities which point back to the partial match.  */
 /**************************************************************************/
-globle void RemovePMDependencies(
-  void *theEnv,
+void RemovePMDependencies(
+  Environment *theEnv,
   struct partialMatch *theBinds)
   {
    struct dependency *fdPtr, *nextPtr, *theList;
@@ -309,8 +314,8 @@ globle void RemovePMDependencies(
       theEntity = (struct patternEntity *) fdPtr->dPtr;
 
       theList = (struct dependency *) theEntity->dependents;
-      theList = DetachAssociatedDependencies(theEnv,theList,(void *) theBinds);
-      theEntity->dependents = (void *) theList;
+      theList = DetachAssociatedDependencies(theEnv,theList,theBinds);
+      theEntity->dependents = theList;
 
       rtn_struct(theEnv,dependency,fdPtr);
       fdPtr = nextPtr;
@@ -323,8 +328,8 @@ globle void RemovePMDependencies(
 /* DestroyPMDependencies: Removes all logical support links */
 /*   from a partial match that point to any data entities.  */
 /************************************************************/
-globle void DestroyPMDependencies(
-  void *theEnv,
+void DestroyPMDependencies(
+  Environment *theEnv,
   struct partialMatch *theBinds)
   {
    struct dependency *fdPtr, *nextPtr;
@@ -352,8 +357,8 @@ globle void DestroyPMDependencies(
 /*   added to the list of unsupported data entities so that the entity  */
 /*   will be deleted as a result of losing its logical support.         */
 /************************************************************************/
-globle void RemoveLogicalSupport(
-  void *theEnv,
+void RemoveLogicalSupport(
+  Environment *theEnv,
   struct partialMatch *theBinds)
   {
    struct dependency *dlPtr, *tempPtr, *theList;
@@ -390,8 +395,8 @@ globle void RemoveLogicalSupport(
       theEntity = (struct patternEntity *) dlPtr->dPtr;
 
       theList = (struct dependency *) theEntity->dependents;
-      theList = DetachAssociatedDependencies(theEnv,theList,(void *) theBinds);
-      theEntity->dependents = (void *) theList;
+      theList = DetachAssociatedDependencies(theEnv,theList,theBinds);
+      theEntity->dependents = theList;
 
       /*==============================================================*/
       /* If the data entity has lost all of its logical support, then */
@@ -432,8 +437,8 @@ globle void RemoveLogicalSupport(
 /*   add more data entities to the list of data entities which have */
 /*   lost their logical support.                                    */
 /********************************************************************/
-globle void ForceLogicalRetractions(
-  void *theEnv)
+void ForceLogicalRetractions(
+  Environment *theEnv)
   {
    struct dependency *tempPtr;
    struct patternEntity *theEntity;
@@ -446,7 +451,7 @@ globle void ForceLogicalRetractions(
    /*===================================================*/
 
    if (EngineData(theEnv)->alreadyEntered) return;
-   EngineData(theEnv)->alreadyEntered = TRUE;
+   EngineData(theEnv)->alreadyEntered = true;
 
    /*=======================================================*/
    /* Continue to delete the first item on the list as long */
@@ -476,21 +481,21 @@ globle void ForceLogicalRetractions(
       /*=========================*/
 
       (*theEntity->theInfo->base.decrementBusyCount)(theEnv,theEntity);
-      (*theEntity->theInfo->base.deleteFunction)(theEnv,theEntity);
+      (*theEntity->theInfo->base.deleteFunction)(theEntity,theEnv);
      }
 
    /*============================================*/
    /* Deletion of items on the list is complete. */
    /*============================================*/
 
-   EngineData(theEnv)->alreadyEntered = FALSE;
+   EngineData(theEnv)->alreadyEntered = false;
   }
 
 /****************************************************************/
 /* Dependencies: C access routine for the dependencies command. */
 /****************************************************************/
-globle void Dependencies(
-  void *theEnv,
+void Dependencies(
+  Environment *theEnv,
   struct patternEntity *theEntity)
   {
    struct dependency *fdPtr;
@@ -502,7 +507,7 @@ globle void Dependencies(
 
    if (theEntity->dependents == NULL)
      {
-      EnvPrintRouter(theEnv,WDISPLAY,"None\n");
+      WriteString(theEnv,STDOUT,"None\n");
       return;
      }
 
@@ -515,25 +520,25 @@ globle void Dependencies(
         fdPtr != NULL;
         fdPtr = fdPtr->next)
      {
-      if (GetHaltExecution(theEnv) == TRUE) return;
-      PrintPartialMatch(theEnv,WDISPLAY,(struct partialMatch *) fdPtr->dPtr);
-      EnvPrintRouter(theEnv,WDISPLAY,"\n");
+      if (GetHaltExecution(theEnv) == true) return;
+      PrintPartialMatch(theEnv,STDOUT,(struct partialMatch *) fdPtr->dPtr);
+      WriteString(theEnv,STDOUT,"\n");
      }
   }
 
 /************************************************************/
 /* Dependents: C access routine for the dependents command. */
 /************************************************************/
-globle void Dependents(
-  void *theEnv,
+void Dependents(
+  Environment *theEnv,
   struct patternEntity *theEntity)
   {
    struct patternEntity *entityPtr = NULL;
    struct patternParser *theParser = NULL;
    struct dependency *fdPtr;
    struct partialMatch *theBinds;
-   int found = FALSE;
-   
+   bool found = false;
+
    /*=================================*/
    /* Loop through every data entity. */
    /*=================================*/
@@ -542,7 +547,7 @@ globle void Dependents(
         entityPtr != NULL;
         GetNextPatternEntity(theEnv,&theParser,&entityPtr))
      {
-      if (GetHaltExecution(theEnv) == TRUE) return;
+      if (GetHaltExecution(theEnv) == true) return;
 
       /*====================================*/
       /* Loop through every dependency link */
@@ -553,7 +558,7 @@ globle void Dependents(
            fdPtr != NULL;
            fdPtr = fdPtr->next)
         {
-         if (GetHaltExecution(theEnv) == TRUE) return;
+         if (GetHaltExecution(theEnv) == true) return;
 
          /*=====================================================*/
          /* If the data entity which was the argument passed to */
@@ -565,11 +570,11 @@ globle void Dependents(
          /*=====================================================*/
 
          theBinds = (struct partialMatch *) fdPtr->dPtr;
-         if (FindEntityInPartialMatch(theEntity,theBinds) == TRUE)
+         if (FindEntityInPartialMatch(theEntity,theBinds) == true)
            {
-            if (found) EnvPrintRouter(theEnv,WDISPLAY,",");
-            (*entityPtr->theInfo->base.shortPrintFunction)(theEnv,WDISPLAY,entityPtr);
-            found = TRUE;
+            if (found) WriteString(theEnv,STDOUT,",");
+            (*entityPtr->theInfo->base.shortPrintFunction)(theEnv,STDOUT,entityPtr);
+            found = true;
             break;
            }
         }
@@ -581,8 +586,8 @@ globle void Dependents(
    /* list of dependents.                             */
    /*=================================================*/
 
-   if (! found) EnvPrintRouter(theEnv,WDISPLAY,"None\n");
-   else EnvPrintRouter(theEnv,WDISPLAY,"\n");
+   if (! found) WriteString(theEnv,STDOUT,"None\n");
+   else WriteString(theEnv,STDOUT,"\n");
   }
 
 #if DEBUGGING_FUNCTIONS
@@ -591,22 +596,22 @@ globle void Dependents(
 /* DependenciesCommand: H/L access routine   */
 /*   for the dependencies command.           */
 /*********************************************/
-globle void DependenciesCommand(
-  void *theEnv)
+void DependenciesCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   DATA_OBJECT item;
+   UDFValue item;
    void *ptr;
 
-   if (EnvArgCountCheck(theEnv,"dependencies",EXACTLY,1) == -1) return;
-
-   ptr = GetFactOrInstanceArgument(theEnv,1,&item,"dependencies");
+   ptr = GetFactOrInstanceArgument(context,1,&item);
 
    if (ptr == NULL) return;
 
 #if DEFRULE_CONSTRUCT
    Dependencies(theEnv,(struct patternEntity *) ptr);
 #else
-   EnvPrintRouter(theEnv,WDISPLAY,"None\n");
+   WriteString(theEnv,STDOUT,"None\n");
 #endif
   }
 
@@ -614,22 +619,22 @@ globle void DependenciesCommand(
 /* DependentsCommand: H/L access routine   */
 /*   for the dependents command.           */
 /*******************************************/
-globle void DependentsCommand(
-  void *theEnv)
+void DependentsCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
   {
-   DATA_OBJECT item;
+   UDFValue item;
    void *ptr;
 
-   if (EnvArgCountCheck(theEnv,"dependents",EXACTLY,1) == -1) return;
-
-   ptr = GetFactOrInstanceArgument(theEnv,1,&item,"dependents");
+   ptr = GetFactOrInstanceArgument(context,1,&item);
 
    if (ptr == NULL) return;
 
 #if DEFRULE_CONSTRUCT
    Dependents(theEnv,(struct patternEntity *) ptr);
 #else
-   EnvPrintRouter(theEnv,WDISPLAY,"None\n");
+   WriteString(theEnv,STDOUT,"None\n");
 #endif
   }
 

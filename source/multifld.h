@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/19/14            */
+   /*             CLIPS Version 6.40  11/17/17            */
    /*                                                     */
    /*                MULTIFIELD HEADER FILE               */
    /*******************************************************/
@@ -40,86 +40,88 @@
 /*            asserting void values in implied deftemplate   */
 /*            facts.                                         */
 /*                                                           */
+/*      6.40: Refactored code to reduce header dependencies  */
+/*            in sysdep.c.                                   */
+/*                                                           */
+/*            Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_multifld
 
+#pragma once
+
 #define _H_multifld
 
-struct field;
-struct multifield;
+#include "entities.h"
 
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
+typedef struct multifieldBuilder MultifieldBuilder;
 
-struct field
+struct multifieldBuilder
   {
-   unsigned short type;
-   void *value;
+   Environment *mbEnv;
+   CLIPSValue *contents;
+   size_t bufferReset;
+   size_t length;
+   size_t bufferMaximum;
   };
 
-struct multifield
-  {
-   unsigned busyCount;
-   long multifieldLength;
-   struct multifield *next;
-   struct field theFields[1];
-  };
-
-typedef struct multifield SEGMENT;
-typedef struct multifield * SEGMENT_PTR;
-typedef struct multifield * MULTIFIELD_PTR;
-typedef struct field FIELD;
-typedef struct field * FIELD_PTR;
-
-#define GetMFLength(target)     (((struct multifield *) (target))->multifieldLength)
-#define GetMFPtr(target,index)  (&(((struct field *) ((struct multifield *) (target))->theFields)[index-1]))
-#define SetMFType(target,index,value)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type = (unsigned short) (value))
-#define SetMFValue(target,index,val)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value = (void *) (val))
-#define GetMFType(target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type)
-#define GetMFValue(target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value)
-
-#define EnvGetMFLength(theEnv,target)     (((struct multifield *) (target))->multifieldLength)
-#define EnvGetMFPtr(theEnv,target,index)  (&(((struct field *) ((struct multifield *) (target))->theFields)[index-1]))
-#define EnvSetMFType(theEnv,target,index,value)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type = (unsigned short) (value))
-#define EnvSetMFValue(theEnv,target,index,val)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value = (void *) (val))
-#define EnvGetMFType(theEnv,target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].type)
-#define EnvGetMFValue(theEnv,target,index)  (((struct field *) ((struct multifield *) (target))->theFields)[index-1].value)
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-#ifdef _MULTIFLD_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                          *CreateMultifield2(void *,long);
-   LOCALE void                           ReturnMultifield(void *,struct multifield *);
-   LOCALE void                           MultifieldInstall(void *,struct multifield *);
-   LOCALE void                           MultifieldDeinstall(void *,struct multifield *);
-   LOCALE struct multifield             *StringToMultifield(void *,const char *);
-   LOCALE void                          *EnvCreateMultifield(void *,long);
-   LOCALE void                           AddToMultifieldList(void *,struct multifield *);
-   LOCALE void                           FlushMultifields(void *);
-   LOCALE void                           DuplicateMultifield(void *,struct dataObject *,struct dataObject *);
-   LOCALE void                           PrintMultifield(void *,const char *,SEGMENT_PTR,long,long,int);
-   LOCALE intBool                        MultifieldDOsEqual(DATA_OBJECT_PTR,DATA_OBJECT_PTR);
-   LOCALE void                           StoreInMultifield(void *,DATA_OBJECT *,EXPRESSION *,int);
-   LOCALE void                          *CopyMultifield(void *,struct multifield *);
-   LOCALE intBool                        MultifieldsEqual(struct multifield *,struct multifield *);
-   LOCALE void                          *DOToMultifield(void *,DATA_OBJECT *);
-   LOCALE unsigned long                  HashMultifield(struct multifield *,unsigned long);
-   LOCALE struct multifield             *GetMultifieldList(void *);
-   LOCALE void                          *ImplodeMultifield(void *,DATA_OBJECT *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                          *CreateMultifield(long);
-   
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   Multifield                    *CreateUnmanagedMultifield(Environment *,size_t);
+   void                           ReturnMultifield(Environment *,Multifield *);
+   void                           RetainMultifield(Environment *,Multifield *);
+   void                           ReleaseMultifield(Environment *,Multifield *);
+   void                           IncrementCLIPSValueMultifieldReferenceCount(Environment *,Multifield *);
+   void                           DecrementCLIPSValueMultifieldReferenceCount(Environment *,Multifield *);
+   Multifield                    *StringToMultifield(Environment *,const char *);
+   Multifield                    *CreateMultifield(Environment *,size_t);
+   void                           AddToMultifieldList(Environment *,Multifield *);
+   void                           FlushMultifields(Environment *);
+   void                           DuplicateMultifield(Environment *,UDFValue *,UDFValue *);
+   void                           WriteMultifield(Environment *,const char *,Multifield *);
+   void                           PrintMultifieldDriver(Environment *,const char *,Multifield *,size_t,size_t,bool);
+   bool                           MultifieldDOsEqual(UDFValue *,UDFValue *);
+   void                           StoreInMultifield(Environment *,UDFValue *,Expression *,bool);
+   Multifield                    *CopyMultifield(Environment *,Multifield *);
+   bool                           MultifieldsEqual(Multifield *,Multifield *);
+   Multifield                    *DOToMultifield(Environment *,UDFValue *);
+   size_t                         HashMultifield(Multifield *,size_t);
+   Multifield                    *GetMultifieldList(Environment *);
+   CLIPSLexeme                   *ImplodeMultifield(Environment *,UDFValue *);
+   void                           EphemerateMultifield(Environment *,Multifield *);
+   Multifield                    *ArrayToMultifield(Environment *,CLIPSValue *,unsigned long);
+   void                           NormalizeMultifield(Environment *,UDFValue *);
+   void                           CLIPSToUDFValue(CLIPSValue *,UDFValue *);
+   void                           UDFToCLIPSValue(Environment *,UDFValue *,CLIPSValue *);
+   MultifieldBuilder             *CreateMultifieldBuilder(Environment *,size_t);
+   void                           MBReset(MultifieldBuilder *);
+   void                           MBDispose(MultifieldBuilder *);
+   void                           MBAppend(MultifieldBuilder *theMB,CLIPSValue *);
+   Multifield                    *MBCreate(MultifieldBuilder *);
+   Multifield                    *EmptyMultifield(Environment *);
+   void                           MBAppendCLIPSInteger(MultifieldBuilder *,CLIPSInteger *);
+   void                           MBAppendInteger(MultifieldBuilder *,long long);
+   void                           MBAppendCLIPSFloat(MultifieldBuilder *,CLIPSFloat *);
+   void                           MBAppendFloat(MultifieldBuilder *,double);
+   void                           MBAppendCLIPSLexeme(MultifieldBuilder *,CLIPSLexeme *);
+   void                           MBAppendSymbol(MultifieldBuilder *,const char *);
+   void                           MBAppendString(MultifieldBuilder *,const char *);
+   void                           MBAppendInstanceName(MultifieldBuilder *,const char *);
+   void                           MBAppendCLIPSExternalAddress(MultifieldBuilder *,CLIPSExternalAddress *);
+   void                           MBAppendFact(MultifieldBuilder *,Fact *);
+   void                           MBAppendInstance(MultifieldBuilder *,Instance *);
+   void                           MBAppendMultifield(MultifieldBuilder *,Multifield *);
+   void                           MBAppendUDFValue(MultifieldBuilder *theMB,UDFValue *);
 
 #endif /* _H_multifld */
 

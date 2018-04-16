@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*         DEFMODULE BASIC COMMANDS HEADER FILE        */
    /*******************************************************/
@@ -28,40 +28,36 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_modulbsc
+
+#pragma once
+
 #define _H_modulbsc
 
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _MODULBSC_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           DefmoduleBasicCommands(void *);
-   LOCALE void                           EnvGetDefmoduleList(void *,DATA_OBJECT_PTR);
-   LOCALE void                           PPDefmoduleCommand(void *);
-   LOCALE int                            PPDefmodule(void *,const char *,const char *);
-   LOCALE void                           ListDefmodulesCommand(void *);
-   LOCALE void                           EnvListDefmodules(void *,const char *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           GetDefmoduleList(DATA_OBJECT_PTR);
-#if DEBUGGING_FUNCTIONS
-   LOCALE void                           ListDefmodules(const char *);
-#endif
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           DefmoduleBasicCommands(Environment *);
+   void                           GetDefmoduleListFunction(Environment *,UDFContext *,UDFValue *);
+   void                           GetDefmoduleList(Environment *,CLIPSValue *);
+   void                           PPDefmoduleCommand(Environment *,UDFContext *,UDFValue *);
+   bool                           PPDefmodule(Environment *,const char *,const char *);
+   void                           ListDefmodulesCommand(Environment *,UDFContext *,UDFValue *);
+   void                           ListDefmodules(Environment *,const char *);
 
 #endif /* _H_modulbsc */
 

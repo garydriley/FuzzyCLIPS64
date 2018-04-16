@@ -47,9 +47,9 @@ FuzzyCLIPS> (undefgeneric *)
 FuzzyCLIPS> (list-defgenerics)
 FuzzyCLIPS> (list-defmethods)
 FuzzyCLIPS> (call-next-method 0)
-[ARGACCES4] Function call-next-method expected exactly 0 argument(s)
+[ARGACCES1] Function 'call-next-method' expected exactly 0 arguments.
 FuzzyCLIPS> (next-methodp 0)
-[ARGACCES4] Function next-methodp expected exactly 0 argument(s)
+[ARGACCES1] Function 'next-methodp' expected exactly 0 arguments.
 FuzzyCLIPS> (preview-generic)
-[ARGACCES4] Function preview-generic expected at least 1 argument(s)
+[ARGACCES1] Function 'preview-generic' expected at least 1 argument.
 FuzzyCLIPS> (dribble-off)

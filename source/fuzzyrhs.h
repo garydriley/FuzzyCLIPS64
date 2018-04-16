@@ -27,56 +27,38 @@
 /*                                                           */
 /*************************************************************/
 
-
-
 #ifndef _H_fuzzyrhs
+
+#pragma once
+
 #define _H_fuzzyrhs
 
-
-#ifndef _H_tmpltdef
 #include "tmpltdef.h"
-#endif
-
-#ifndef _H_fuzzymod
 #include "fuzzymod.h"
-#endif
-
-#ifndef _H_fuzzylv
 #include "fuzzylv.h"
-#endif
+#include "scanner.h"
 
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FUZZYRHS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-
-   LOCALE struct expr        *ParseAssertFuzzyFact(void *theEnv,const char *readSource, struct token *tempToken,
-                                              int *error, int endType, int constantsOnly,
-                                              struct deftemplate *theDeftemplate,
-                                              int variablesAllowed);
-   LOCALE struct fuzzy_value *ParseLinguisticExpr(void *theEnv,const char *readSource,
-                                              struct token *tempToken,
-                                              struct fuzzyLv *lvp,
-                                              int *error);
-   LOCALE struct fuzzy_value *CopyFuzzyValue(void *theEnv,struct fuzzy_value *fv);
-   LOCALE void                CompactFuzzyValue(void *theEnv,struct fuzzy_value *fv);
-   LOCALE struct fuzzy_value *getConstantFuzzyValue(void *theEnv,struct expr *top, int *error);
-   LOCALE void                ModifyFuzzyValue(void *theEnv,struct modifierListItem *mptr,
+   struct expr        *ParseAssertFuzzyFact(Environment *theEnv,const char *readSource,
+                                            struct token *tempToken,
+                                            bool *error, TokenType endType, int constantsOnly,
+                                            Deftemplate *theDeftemplate,
+                                            int variablesAllowed);
+   struct fuzzy_value *ParseLinguisticExpr(Environment *theEnv,const char *readSource,
+                                           struct token *tempToken,
+                                           struct fuzzyLv *lvp,
+                                           bool *error);
+   struct fuzzy_value *CopyFuzzyValue(Environment *theEnv,struct fuzzy_value *fv);
+   void                CompactFuzzyValue(Environment *theEnv,struct fuzzy_value *fv);
+   struct fuzzy_value *getConstantFuzzyValue(Environment *theEnv,struct expr *top, bool *error);
+   void                ModifyFuzzyValue(Environment *theEnv,struct modifierListItem *mptr,
                                                struct fuzzy_value *elem);
-   LOCALE double             *FgetArray ( void *theEnv, int length );
-   LOCALE void                FrtnArray ( void *theEnv, double *p, int length );
-   LOCALE int                *IgetArray ( void *theEnv, int length );
-   LOCALE void                IrtnArray ( void *theEnv, int *p, int length );
-   LOCALE struct expr        *tokenToFloatExpression(void *theEnv,const char *readSource,
+   double             *FgetArray ( Environment *theEnv, int length );
+   void                FrtnArray ( Environment *theEnv, double *p, int length );
+   int                *IgetArray ( Environment *theEnv, int length );
+   void                IrtnArray ( Environment *theEnv, int *p, int length );
+   struct expr        *tokenToFloatExpression(Environment *theEnv,const char *readSource,
                                                 struct token *tempToken,
-                                                int  *error,
+                                                bool  *error,
                                                 int constantsOnly);
 
 #endif

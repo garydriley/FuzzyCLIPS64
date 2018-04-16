@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*          DEFTEMPLATE UTILITIES HEADER FILE          */
    /*******************************************************/
@@ -34,49 +34,43 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Watch facts for modify command only prints     */
+/*            changed slots.                                 */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_tmpltutl
 
+#pragma once
+
 #define _H_tmpltutl
 
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_factmngr
-#include "factmngr.h"
-#endif
-#ifndef _H_constrnt
 #include "constrnt.h"
-#endif
-#ifndef _H_symbol
+#include "evaluatn.h"
+#include "expressn.h"
+#include "factmngr.h"
 #include "symbol.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTUTL_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InvalidDeftemplateSlotMessage(void *,const char *,const char *,int);
-   LOCALE void                           SingleFieldSlotCardinalityError(void *,const char *);
-   LOCALE void                           MultiIntoSingleFieldSlotError(void *,struct templateSlot *,struct deftemplate *);
-   LOCALE void                           CheckTemplateFact(void *,struct fact *);
-   LOCALE intBool                        CheckRHSSlotTypes(void *,struct expr *,struct templateSlot *,const char *);
-   LOCALE struct templateSlot           *GetNthSlot(struct deftemplate *,int);
-   LOCALE int                            FindSlotPosition(struct deftemplate *,struct symbolHashNode *);
-   LOCALE void                           PrintTemplateFact(void *,const char *,struct fact *,int,int);
-   LOCALE void                           UpdateDeftemplateScope(void *);
-   LOCALE struct templateSlot           *FindSlot(struct deftemplate *,struct symbolHashNode *,short *);
-   LOCALE struct deftemplate            *CreateImpliedDeftemplate(void *,SYMBOL_HN *,int);
+   void                           InvalidDeftemplateSlotMessage(Environment *,const char *,const char *,bool);
+   void                           SingleFieldSlotCardinalityError(Environment *,const char *);
+   void                           MultiIntoSingleFieldSlotError(Environment *,struct templateSlot *,Deftemplate *);
+   void                           CheckTemplateFact(Environment *,Fact *);
+   bool                           CheckRHSSlotTypes(Environment *,struct expr *,struct templateSlot *,const char *);
+   struct templateSlot           *GetNthSlot(Deftemplate *,long long);
+   int                            FindSlotPosition(Deftemplate *,CLIPSLexeme *);
+   void                           PrintTemplateFact(Environment *,const char *,Fact *,bool,bool,const char *);
+   void                           UpdateDeftemplateScope(Environment *);
+   struct templateSlot           *FindSlot(Deftemplate *,CLIPSLexeme *,unsigned short *);
+   Deftemplate                   *CreateImpliedDeftemplate(Environment *,CLIPSLexeme *,bool);
 
 #endif /* _H_tmpltutl */
 

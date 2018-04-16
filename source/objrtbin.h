@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.31  02/03/18          */
+   /*             CLIPS Version 6.40  02/03/18            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -32,9 +32,19 @@
 /*      6.31: Optimization for marking relevant alpha nodes  */
 /*            in the object pattern network.                 */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_objrtbin
+
+#pragma once
+
 #define _H_objrtbin
 
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
@@ -46,10 +56,10 @@
 #endif
 
 struct objectReteBinaryData
-  { 
-   long AlphaNodeCount;
-   long PatternNodeCount;
-   long AlphaLinkCount;
+  {
+   unsigned long AlphaNodeCount;
+   unsigned long PatternNodeCount;
+   unsigned long AlphaLinkCount;
    OBJECT_ALPHA_NODE *AlphaArray;
    OBJECT_PATTERN_NODE *PatternArray;
    CLASS_ALPHA_LINK *AlphaLinkArray;
@@ -57,19 +67,9 @@ struct objectReteBinaryData
 
 #define ObjectReteBinaryData(theEnv) ((struct objectReteBinaryData *) GetEnvironmentData(theEnv,OBJECTRETEBIN_DATA))
 
-#define ClassAlphaPointer(i)   ((i == -1L) ? NULL : (CLASS_ALPHA_LINK *) &ObjectReteBinaryData(theEnv)->AlphaLinkArray[i])
+#define ClassAlphaPointer(i)   ((i == ULONG_MAX) ? NULL : (CLASS_ALPHA_LINK *) &ObjectReteBinaryData(theEnv)->AlphaLinkArray[i])
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _OBJRTBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                    SetupObjectPatternsBload(void *);
+   void                    SetupObjectPatternsBload(Environment *);
 
 #endif /* DEFRULE_CONSTRUCT && OBJECT_SYSTEM */
 

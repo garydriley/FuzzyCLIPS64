@@ -10,7 +10,6 @@ FuzzyCLIPS> (generate-instances WOZ 100 F G)
 FALSE
 FuzzyCLIPS> (instances *)
 MAIN:
-   [initial-object] of INITIAL-OBJECT
    [gen1] of B
    [gen2] of B
    [gen3] of B
@@ -514,9 +513,8 @@ WOZ:
    [gen399] of F
    [gen400] of F
 FOO:
-For a total of 501 instances.
+For a total of 500 instances.
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [gen1] of B
 [gen2] of B
 [gen3] of B
@@ -617,11 +615,10 @@ FuzzyCLIPS> (instances)
 [gen98] of B
 [gen99] of B
 [gen100] of B
-For a total of 101 instances.
+For a total of 100 instances.
 FuzzyCLIPS> (set-current-module BAR)
 MAIN
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [gen1] of MAIN::B
 [gen2] of MAIN::B
 [gen3] of MAIN::B
@@ -922,12 +919,12 @@ FuzzyCLIPS> (instances)
 [gen298] of E
 [gen299] of E
 [gen300] of E
-For a total of 301 instances.
+For a total of 300 instances.
 FuzzyCLIPS> (bsave-instances "Temp//inssav1.bin")
 200
 FuzzyCLIPS> (bload-instances inssav.clp)
-[INSFILE2] inssav.clp file is not a binary instances file.
-[INSFILE1] Function bload-instances could not completely process file inssav.clp.
+[INSFILE2] File 'inssav.clp' is not a binary instances file.
+[INSFILE1] Function 'bload-instances' could not completely process file 'inssav.clp'.
 -1
 FuzzyCLIPS> (save-instances "Actual//inssav1.out")
 200
@@ -948,15 +945,15 @@ FuzzyCLIPS> (save-instances "Actual//inssav1.out")
 FuzzyCLIPS> (file-message "Actual//inssav1.out" "D E")
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav2.out" gobbledy-gook)
-[ARGACCES5] Function save-instances expected argument #2 to be of type symbol "local" or "visible"
+[ARGACCES2] Function 'save-instances' expected argument #2 to be of type symbol "local" or "visible".
 0
 FuzzyCLIPS> (bsave-instances "Temp//inssav2.bin" gobbledy-gook)
-[ARGACCES5] Function bsave-instances expected argument #2 to be of type symbol "local" or "visible"
+[ARGACCES2] Function 'bsave-instances' expected argument #2 to be of type symbol "local" or "visible".
 0
 FuzzyCLIPS> (save-instances "Actual//inssav2.out" 123)
-[ARGACCES5] Function save-instances expected argument #2 to be of type symbol
+[ARGACCES2] Function 'save-instances' expected argument #2 to be of type symbol.
 FuzzyCLIPS> (bsave-instances "Temp//inssav2.bin" 123)
-[ARGACCES5] Function bsave-instances expected argument #2 to be of type symbol
+[ARGACCES2] Function 'bsave-instances' expected argument #2 to be of type symbol.
 FuzzyCLIPS> (bsave-instances "Temp//inssav2.bin" local)
 200
 FuzzyCLIPS> (bload-instances "Temp//inssav2.bin")
@@ -966,21 +963,21 @@ FuzzyCLIPS> (save-instances "Actual//inssav2.out" local)
 FuzzyCLIPS> (file-message "Actual//inssav2.out" "D E")
 TRUE
 FuzzyCLIPS> (bsave-instances "Temp//inssav3.bin" visible)
-301
+300
 FuzzyCLIPS> (bload-instances "Temp//inssav3.bin")
-301
+300
 FuzzyCLIPS> (save-instances "Actual//inssav3.out" visible)
-301
+300
 FuzzyCLIPS> (file-message "Actual//inssav3.out" "INITIAL-OBJECT B D E")
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav4.out" local inherit)
-[ARGACCES5] Function save-instances expected argument #3 to be of type valid concrete class name
+[ARGACCES2] Function 'save-instances' expected argument #3 to be of type 'valid concrete class name'.
 0
 FuzzyCLIPS> (save-instances "Actual//inssav4.out" local inherit A)
-[ARGACCES5] Function save-instances expected argument #4 to be of type valid class name
+[ARGACCES2] Function 'save-instances' expected argument #4 to be of type 'valid class name'.
 0
 FuzzyCLIPS> (save-instances "Actual//inssav4.out" local A)
-[ARGACCES5] Function save-instances expected argument #3 to be of type valid concrete class name
+[ARGACCES2] Function 'save-instances' expected argument #3 to be of type 'valid concrete class name'.
 0
 FuzzyCLIPS> (bsave-instances "Temp//inssav4.bin" visible inherit A)
 200
@@ -991,10 +988,10 @@ FuzzyCLIPS> (save-instances "Actual//inssav4.out" visible inherit A)
 FuzzyCLIPS> (file-message "Actual//inssav4.out" "B E")
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav5.out" local C)
-[ARGACCES5] Function save-instances expected argument #3 to be of type valid concrete class name
+[ARGACCES2] Function 'save-instances' expected argument #3 to be of type 'valid concrete class name'.
 0
 FuzzyCLIPS> (save-instances "Actual//inssav5.out" local inherit inherit)
-[ARGACCES5] Function save-instances expected argument #4 to be of type valid class name
+[ARGACCES2] Function 'save-instances' expected argument #4 to be of type 'valid class name'.
 0
 FuzzyCLIPS> (save-instances "Actual//inssav5.out" local inherit C)
 200
@@ -1103,7 +1100,6 @@ FuzzyCLIPS> (instances)
 [gen398] of WOZ::F
 [gen399] of WOZ::F
 [gen400] of WOZ::F
-[initial-object] of INITIAL-OBJECT
 [gen1] of MAIN::B
 [gen2] of MAIN::B
 [gen3] of MAIN::B
@@ -1304,13 +1300,13 @@ FuzzyCLIPS> (instances)
 [gen298] of BAR::E
 [gen299] of BAR::E
 [gen300] of BAR::E
-For a total of 301 instances.
+For a total of 300 instances.
 FuzzyCLIPS> (open "Actual//inssav6.out" inssav6 "w")
 TRUE
 FuzzyCLIPS> (close inssav6)
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav6.out" local inherit B)
-[ARGACCES5] Function save-instances expected argument #4 to be of type valid class name
+[ARGACCES2] Function 'save-instances' expected argument #4 to be of type 'valid class name'.
 0
 FuzzyCLIPS> (file-message "Actual//inssav6.out" "no classes")
 TRUE

@@ -3,24 +3,24 @@ FuzzyCLIPS> (batch "v610fun.bat")
 TRUE
 FuzzyCLIPS> (clear)                          
 FuzzyCLIPS> (sort)
-[ARGACCES4] Function sort expected at least 1 argument(s)
+[ARGACCES1] Function 'sort' expected at least 1 argument.
 FuzzyCLIPS> (sort 8)
-[ARGACCES5] Function sort expected argument #1 to be of type symbol
+[ARGACCES2] Function 'sort' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (sort 8.1)
-[ARGACCES5] Function sort expected argument #1 to be of type symbol
+[ARGACCES2] Function 'sort' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (sort a)
-[ARGACCES5] Function sort expected argument #1 to be of type function name, deffunction name, or defgeneric name
+[ARGACCES2] Function 'sort' expected argument #1 to be of type function name, deffunction name, or defgeneric name.
 FALSE
 FuzzyCLIPS> (sort "a")
-[ARGACCES5] Function sort expected argument #1 to be of type symbol
+[ARGACCES2] Function 'sort' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (sort [a])
-[ARGACCES5] Function sort expected argument #1 to be of type symbol
+[ARGACCES2] Function 'sort' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (sort >)
 ()
 FuzzyCLIPS> (sort > 3 2 5 1 2)
 (1 2 2 3 5)
 FuzzyCLIPS> (sort agenda 3 2 5 1 2)
-[ARGACCES5] Function sort expected argument #1 to be of type function name expecting two arguments
+[ARGACCES2] Function 'sort' expected argument #1 to be of type function name expecting two arguments.
 FALSE
 FuzzyCLIPS> 
 (deffunction str> (?a ?b)
@@ -31,22 +31,22 @@ FuzzyCLIPS>
 (deffunction three (?a ?b ?c)
    (> ?a ?b ?c))
 FuzzyCLIPS> (sort three 4 8 2 5 3)
-[ARGACCES5] Function sort expected argument #1 to be of type deffunction name expecting two arguments
+[ARGACCES2] Function 'sort' expected argument #1 to be of type deffunction name expecting two arguments.
 FALSE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (get-class-defaults-mode)
 convenience
 FuzzyCLIPS> (get-class-defaults-mode 10)
-[ARGACCES4] Function get-class-defaults-mode expected exactly 0 argument(s)
+[ARGACCES1] Function 'get-class-defaults-mode' expected exactly 0 arguments.
 FuzzyCLIPS> (set-class-defaults-mode)
-[ARGACCES4] Function set-class-defaults-mode expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-class-defaults-mode' expected exactly 1 argument.
 FuzzyCLIPS> (set-class-defaults-mode 10)
-[ARGACCES5] Function set-class-defaults-mode expected argument #1 to be of type symbol
+[ARGACCES2] Function 'set-class-defaults-mode' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (set-class-defaults-mode symbol)
-[ARGACCES5] Function set-class-defaults-mode expected argument #1 to be of type symbol with value conservation or convenience
+[ARGACCES2] Function 'set-class-defaults-mode' expected argument #1 to be of type symbol with value conservation or convenience.
 convenience
 FuzzyCLIPS> (set-class-defaults-mode conservation x)
-[ARGACCES4] Function set-class-defaults-mode expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-class-defaults-mode' expected exactly 1 argument.
 FuzzyCLIPS> (defclass A (is-a USER) (slot x))
 FuzzyCLIPS> (describe-class A)
 ================================================================================

@@ -3,15 +3,15 @@ FuzzyCLIPS> (batch "focuscmd.bat")
 TRUE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (get-focus 6)
-[ARGACCES4] Function get-focus expected exactly 0 argument(s)
+[ARGACCES1] Function 'get-focus' expected exactly 0 arguments.
 FuzzyCLIPS> (get-focus-stack 6)
-[ARGACCES4] Function get-focus-stack expected exactly 0 argument(s)
+[ARGACCES1] Function 'get-focus-stack' expected exactly 0 arguments.
 FuzzyCLIPS> (pop-focus 6)
-[ARGACCES4] Function pop-focus expected exactly 0 argument(s)
+[ARGACCES1] Function 'pop-focus' expected exactly 0 arguments.
 FuzzyCLIPS> (list-focus-stack 6)
-[ARGACCES4] Function list-focus-stack expected exactly 0 argument(s)
+[ARGACCES1] Function 'list-focus-stack' expected exactly 0 arguments.
 FuzzyCLIPS> (clear-focus-stack 6)
-[ARGACCES4] Function clear-focus-stack expected exactly 0 argument(s)
+[ARGACCES1] Function 'clear-focus-stack' expected exactly 0 arguments.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (get-focus)
 MAIN
@@ -83,16 +83,16 @@ FuzzyCLIPS> (get-focus-stack)
 ()
 FuzzyCLIPS> (list-focus-stack)
 FuzzyCLIPS> (focus 6)
-[ARGACCES5] Function focus expected argument #1 to be of type symbol
+[ARGACCES2] Function 'focus' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (focus "A")
-[ARGACCES5] Function focus expected argument #1 to be of type symbol
+[ARGACCES2] Function 'focus' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (focus A 6)
-[ARGACCES5] Function focus expected argument #2 to be of type symbol
+[ARGACCES2] Function 'focus' expected argument #2 to be of type symbol.
 FuzzyCLIPS> (focus C)
-[PRNTUTIL1] Unable to find defmodule C.
+[PRNTUTIL1] Unable to find defmodule 'C'.
 FALSE
 FuzzyCLIPS> (focus)
-[ARGACCES4] Function focus expected at least 1 argument(s)
+[ARGACCES1] Function 'focus' expected at least 1 argument.
 FuzzyCLIPS> (list-focus-stack)
 FuzzyCLIPS> (focus A)
 TRUE
@@ -111,13 +111,13 @@ FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defmodule A)
 FuzzyCLIPS> (defmodule B)
 FuzzyCLIPS> (watch focus 6)
-[ARGACCES4] Function watch expected exactly 1 argument(s)
+[ARGACCES1] Function 'watch' expected exactly 1 argument.
 FuzzyCLIPS> (unwatch focus 6)
-[ARGACCES4] Function unwatch expected exactly 1 argument(s)
+[ARGACCES1] Function 'unwatch' expected exactly 1 argument.
 FuzzyCLIPS> (focus A B)
 TRUE
 FuzzyCLIPS> (focus B C)
-[PRNTUTIL1] Unable to find defmodule C.
+[PRNTUTIL1] Unable to find defmodule 'C'.
 FALSE
 FuzzyCLIPS> (list-focus-stack)
 A

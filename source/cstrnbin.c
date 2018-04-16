@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  07/30/16             */
    /*                                                     */
    /*            CONSTRAINT BLOAD/BSAVE MODULE            */
    /*******************************************************/
@@ -15,6 +15,10 @@
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Brian L. Dantes                                      */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -22,9 +26,14 @@
 /*                                                           */
 /*      6.30: Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
-
-#define _CSTRNBIN_SOURCE_
 
 #include "setup.h"
 
@@ -33,6 +42,7 @@
 #include "constant.h"
 #include "envrnmnt.h"
 #include "memalloc.h"
+#include "prntutil.h"
 #include "router.h"
 #include "bload.h"
 
@@ -57,7 +67,7 @@ struct bsaveConstraintRecord
    unsigned int instanceAddressesAllowed : 1;
    unsigned int externalAddressesAllowed : 1;
    unsigned int factAddressesAllowed : 1;
-#if FUZZY_DEFTEMPLATES
+ #if FUZZY_DEFTEMPLATES
    unsigned int fuzzyValuesAllowed : 1;
    unsigned int fuzzyValueRestriction : 1;
 #endif
@@ -71,12 +81,12 @@ struct bsaveConstraintRecord
    unsigned int instanceNameRestriction : 1;
    unsigned int multifieldsAllowed : 1;
    unsigned int singlefieldsAllowed : 1;
-   long classList;
-   long restrictionList;
-   long minValue;
-   long maxValue;
-   long minFields;
-   long maxFields;
+   unsigned long classList;
+   unsigned long restrictionList;
+   unsigned long minValue;
+   unsigned long maxValue;
+   unsigned long minFields;
+   unsigned long maxFields;
   };
 
 typedef struct bsaveConstraintRecord BSAVE_CONSTRAINT_RECORD;
@@ -86,9 +96,9 @@ typedef struct bsaveConstraintRecord BSAVE_CONSTRAINT_RECORD;
 /***************************************/
 
 #if BLOAD_AND_BSAVE
-   static void                    CopyToBsaveConstraintRecord(void *,CONSTRAINT_RECORD *,BSAVE_CONSTRAINT_RECORD *);
+   static void                    CopyToBsaveConstraintRecord(Environment *,CONSTRAINT_RECORD *,BSAVE_CONSTRAINT_RECORD *);
 #endif
-   static void                    CopyFromBsaveConstraintRecord(void *,void *,long);
+   static void                    CopyFromBsaveConstraintRecord(Environment *,void *,unsigned long);
 
 #if BLOAD_AND_BSAVE
 
@@ -97,18 +107,18 @@ typedef struct bsaveConstraintRecord BSAVE_CONSTRAINT_RECORD;
 /*   in the constraint table to the binary image  */
 /*   currently being saved.                       */
 /**************************************************/
-globle void WriteNeededConstraints(
-  void *theEnv,
+void WriteNeededConstraints(
+  Environment *theEnv,
   FILE *fp)
   {
    int i;
-   unsigned short theIndex = 0;
-   unsigned long int numberOfUsedConstraints = 0;
+   unsigned long theIndex = 0;
+   unsigned long numberOfUsedConstraints = 0;
    CONSTRAINT_RECORD *tmpPtr;
    BSAVE_CONSTRAINT_RECORD bsaveConstraints;
 #if FUZZY_DEFTEMPLATES
    unsigned long int numberOfFuzzyValueConstraints = 0;
-   int saveOnlyFuzzyValueConstraints = FALSE;
+   bool saveOnlyFuzzyValueConstraints = false;
 #endif
 
    /*================================*/
@@ -135,12 +145,12 @@ globle void WriteNeededConstraints(
    /* then no constraints are saved.              */
    /*=============================================*/
 
-   if ((! EnvGetDynamicConstraintChecking(theEnv)) && (numberOfUsedConstraints != 0))
+   if ((! GetDynamicConstraintChecking(theEnv)) && (numberOfUsedConstraints != 0))
      {
 #if FUZZY_DEFTEMPLATES
       /* Fuzzy Value constraints MUST always be kept!! */
       numberOfUsedConstraints = numberOfFuzzyValueConstraints;
-      saveOnlyFuzzyValueConstraints = TRUE;
+      saveOnlyFuzzyValueConstraints = true;
       theIndex = 0;
       for (i = 0 ; i < SIZE_CONSTRAINT_HASH; i++)
         {
@@ -151,17 +161,17 @@ globle void WriteNeededConstraints(
               if (tmpPtr->fuzzyValuesAllowed)
                  tmpPtr->bsaveIndex = theIndex++;
               else
-                 tmpPtr->bsaveIndex = -1L;
+                 tmpPtr->bsaveIndex = ULONG_MAX;
           }
         }
-#else      
+#else
       numberOfUsedConstraints = 0;
 #endif
-      PrintWarningID(theEnv,"CSTRNBIN",1,FALSE);
-      EnvPrintRouter(theEnv,WWARNING,"Constraints are not saved with a binary image\n");
-      EnvPrintRouter(theEnv,WWARNING,"  when dynamic constraint checking is disabled.\n");
+      PrintWarningID(theEnv,"CSTRNBIN",1,false);
+      WriteString(theEnv,STDWRN,"Constraints are not saved with a binary image\n");
+      WriteString(theEnv,STDWRN,"  when dynamic constraint checking is disabled.\n");
 #if FUZZY_DEFTEMPLATES
-      EnvPrintRouter(theEnv,WWARNING,"  (except Fuzzy Value constraints are always saved)\n");
+      WriteString(theEnv,STDWRN,"  (except Fuzzy Value constraints are always saved)\n");
 #endif
      }
 
@@ -171,7 +181,7 @@ globle void WriteNeededConstraints(
    /* constraints in the constraint table.       */
    /*============================================*/
 
-   GenWrite(&numberOfUsedConstraints,sizeof(unsigned long int),fp);
+   GenWrite(&numberOfUsedConstraints,sizeof(unsigned long),fp);
    if (numberOfUsedConstraints == 0) return;
 
    for (i = 0 ; i < SIZE_CONSTRAINT_HASH; i++)
@@ -186,7 +196,6 @@ globle void WriteNeededConstraints(
             )
            {
 #endif
-
          CopyToBsaveConstraintRecord(theEnv,tmpPtr,&bsaveConstraints);
          GenWrite(&bsaveConstraints,sizeof(BSAVE_CONSTRAINT_RECORD),fp);
 #if FUZZY_DEFTEMPLATES
@@ -202,7 +211,7 @@ globle void WriteNeededConstraints(
 /*   constraints in a binary image.                 */
 /****************************************************/
 static void CopyToBsaveConstraintRecord(
-  void *theEnv,
+  Environment *theEnv,
   CONSTRAINT_RECORD *constraints,
   BSAVE_CONSTRAINT_RECORD *bsaveConstraints)
   {
@@ -243,10 +252,10 @@ static void CopyToBsaveConstraintRecord(
 /* ReadNeededConstraints: Reads in the constraints used */
 /*   by the binary image currently being loaded.        */
 /********************************************************/
-globle void ReadNeededConstraints(
-  void *theEnv)
+void ReadNeededConstraints(
+  Environment *theEnv)
   {
-   GenReadBinary(theEnv,(void *) &ConstraintData(theEnv)->NumberOfConstraints,sizeof(unsigned long int));
+   GenReadBinary(theEnv,&ConstraintData(theEnv)->NumberOfConstraints,sizeof(unsigned long));
    if (ConstraintData(theEnv)->NumberOfConstraints == 0) return;
 
    ConstraintData(theEnv)->ConstraintArray = (CONSTRAINT_RECORD *)
@@ -262,9 +271,9 @@ globle void ReadNeededConstraints(
 /*   for storing constraints in a binary image.      */
 /*****************************************************/
 static void CopyFromBsaveConstraintRecord(
-  void *theEnv,
+  Environment *theEnv,
   void *buf,
-  long theIndex)
+  unsigned long theIndex)
   {
    BSAVE_CONSTRAINT_RECORD *bsaveConstraints;
    CONSTRAINT_RECORD *constraints;
@@ -280,7 +289,7 @@ static void CopyFromBsaveConstraintRecord(
    constraints->instanceNamesAllowed = bsaveConstraints->instanceNamesAllowed;
    constraints->instanceAddressesAllowed = bsaveConstraints->instanceAddressesAllowed;
    constraints->externalAddressesAllowed = bsaveConstraints->externalAddressesAllowed;
-   constraints->voidAllowed = FALSE;
+   constraints->voidAllowed = false;
    constraints->multifieldsAllowed = bsaveConstraints->multifieldsAllowed;
    constraints->singlefieldsAllowed = bsaveConstraints->singlefieldsAllowed;
    constraints->factAddressesAllowed = bsaveConstraints->factAddressesAllowed;
@@ -309,12 +318,12 @@ static void CopyFromBsaveConstraintRecord(
 /* ClearBloadedConstraints: Releases memory associated  */
 /*   with constraints loaded from binary image          */
 /********************************************************/
-globle void ClearBloadedConstraints(
-  void *theEnv)
+void ClearBloadedConstraints(
+  Environment *theEnv)
   {
    if (ConstraintData(theEnv)->NumberOfConstraints != 0)
      {
-      genfree(theEnv,(void *) ConstraintData(theEnv)->ConstraintArray,
+      genfree(theEnv,ConstraintData(theEnv)->ConstraintArray,
                      (sizeof(CONSTRAINT_RECORD) * ConstraintData(theEnv)->NumberOfConstraints));
       ConstraintData(theEnv)->NumberOfConstraints = 0;
      }

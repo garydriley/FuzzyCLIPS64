@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -22,41 +22,41 @@
 /*                                                           */
 /*            Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_dffnxbin
+
+#pragma once
+
 #define _H_dffnxbin
 
 #if DEFFUNCTION_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE)
 
 #include "dffnxfun.h"
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _DFFNXBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           SetupDeffunctionsBload(void *);
-   LOCALE void                          *BloadDeffunctionModuleReference(void *,int);
+   void                           SetupDeffunctionsBload(Environment *);
+   void                          *BloadDeffunctionModuleReference(Environment *,unsigned long);
 
 #define DFFNXBIN_DATA 24
 
 struct deffunctionBinaryData
-  { 
-   DEFFUNCTION *DeffunctionArray;
-   long DeffunctionCount;
-   long ModuleCount;
-   DEFFUNCTION_MODULE *ModuleArray;
+  {
+   Deffunction *DeffunctionArray;
+   unsigned long DeffunctionCount;
+   unsigned long ModuleCount;
+   DeffunctionModuleData *ModuleArray;
   };
-  
+
 #define DeffunctionBinaryData(theEnv) ((struct deffunctionBinaryData *) GetEnvironmentData(theEnv,DFFNXBIN_DATA))
 
-#define DeffunctionPointer(i) (((i) == -1L) ? NULL : (DEFFUNCTION *) &DeffunctionBinaryData(theEnv)->DeffunctionArray[i])
+#define DeffunctionPointer(i) (((i) == ULONG_MAX) ? NULL : &DeffunctionBinaryData(theEnv)->DeffunctionArray[i])
 
 #endif /* DEFFUNCTION_CONSTRUCT && (BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE) */
 

@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  10/18/16            */
    /*                                                     */
-   /*                                                     */
+   /*               CLASS PARSER HEADER FILE              */
    /*******************************************************/
 
 /*************************************************************/
@@ -35,32 +35,39 @@
 /*                                                            */
 /*            Converted API macros to function calls.         */
 /*                                                            */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Eval support for run time and bload only.      */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_classpsr
+
+#pragma once
+
 #define _H_classpsr
 
-#if OBJECT_SYSTEM && (! BLOAD_ONLY) && (! RUN_TIME)
+#if OBJECT_SYSTEM
 
-#ifdef LOCALE
-#undef LOCALE
+#if (! BLOAD_ONLY) && (! RUN_TIME)
+   bool                    ParseDefclass(Environment *,const char *);
+
 #endif
-
-#ifdef _CLASSPSR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-LOCALE int ParseDefclass(void *,const char *);
 
 #if DEFMODULE_CONSTRUCT
-LOCALE void *CreateClassScopeMap(void *,DEFCLASS *);
+   void                   *CreateClassScopeMap(Environment *,Defclass *);
 #endif
 
-#endif
+#endif /* OBJECT_SYSTEM */
 
-#endif
+#endif /* _H_classpsr */
 
 
 

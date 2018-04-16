@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*    CONSTRAINT BLOAD/BSAVE/CONSTRUCTS-TO-C HEADER    */
    /*******************************************************/
@@ -14,6 +14,10 @@
 /*      Gary D. Riley                                        */
 /*                                                           */
 /* Contributing Programmer(s):                               */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -21,45 +25,38 @@
 /*                                                           */
 /*      6.30: Changed integer type/precision.                */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_cstrnbin
+
+#pragma once
+
 #define _H_cstrnbin
 
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrnt
-#include "constrnt.h"
-#endif
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _CSTRNBIN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
+
+#include "evaluatn.h"
+#include "constrnt.h"
 
 #if FUZZY_DEFTEMPLATES 
-#define ConstraintIndex(theConstraint) ((theConstraint == NULL) ? -1L : ((long) theConstraint->bsaveIndex))
+#define ConstraintIndex(theConstraint) ((theConstraint == NULL) ? ULONG_MAX : theConstraint->bsaveIndex)
 #else
-#define ConstraintIndex(theConstraint) (((! EnvGetDynamicConstraintChecking(theEnv)) || (theConstraint == NULL)) ? -1L : ((long) theConstraint->bsaveIndex))
+#define ConstraintIndex(theConstraint) (((! GetDynamicConstraintChecking(theEnv)) || (theConstraint == NULL)) ? ULONG_MAX : (theConstraint->bsaveIndex))
 #endif
-#define ConstraintPointer(i) (((i) == -1L) ? NULL : (CONSTRAINT_RECORD *) &ConstraintData(theEnv)->ConstraintArray[i])
+#define ConstraintPointer(i) (((i) == ULONG_MAX) ? NULL : (CONSTRAINT_RECORD *) &ConstraintData(theEnv)->ConstraintArray[i])
 
 #if BLOAD_AND_BSAVE
-   LOCALE void                           WriteNeededConstraints(void *,FILE *);
+   void                           WriteNeededConstraints(Environment *,FILE *);
 #endif
-   LOCALE void                           ReadNeededConstraints(void *);
-   LOCALE void                           ClearBloadedConstraints(void *);
+   void                           ReadNeededConstraints(Environment *);
+   void                           ClearBloadedConstraints(Environment *);
 
 #endif /* _H_cstrnbin */
 

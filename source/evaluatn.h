@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  02/04/15            */
+   /*             CLIPS Version 6.40  11/17/17            */
    /*                                                     */
    /*               EVALUATION HEADER FILE                */
    /*******************************************************/
@@ -22,7 +22,7 @@
 /*                                                           */
 /*            Added EvaluateAndStoreInDataObject function.   */
 /*                                                           */
-/*      6.30: Added support for passing context information  */ 
+/*      6.30: Added support for passing context information  */
 /*            to user defined functions.                     */
 /*                                                           */
 /*            Added support for external address hash table  */
@@ -41,137 +41,77 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Added Env prefix to GetEvaluationError and     */
+/*            SetEvaluationError functions.                  */
+/*                                                           */
+/*            Added Env prefix to GetHaltExecution and       */
+/*            SetHaltExecution functions.                    */
+/*                                                           */
+/*            Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Removed DATA_OBJECT_ARRAY primitive type.      */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_evaluatn
 
+#pragma once
+
 #define _H_evaluatn
 
-struct entityRecord;
-struct dataObject;
-
-#ifndef _H_constant
 #include "constant.h"
-#endif
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
+#include "entities.h"
 
-struct dataObject
+typedef struct functionCallBuilder FunctionCallBuilder;
+
+struct functionCallBuilder
   {
-   void *supplementalInfo;
-   unsigned short type;
-   void *value;
-   long begin;
-   long end;
-   struct dataObject *next;
+   Environment *fcbEnv;
+   CLIPSValue *contents;
+   size_t bufferReset;
+   size_t length;
+   size_t bufferMaximum;
   };
 
-typedef struct dataObject DATA_OBJECT;
-typedef struct dataObject * DATA_OBJECT_PTR;
+typedef enum
+  {
+   FCBE_NO_ERROR = 0,
+   FCBE_NULL_POINTER_ERROR,
+   FCBE_FUNCTION_NOT_FOUND_ERROR,
+   FCBE_INVALID_FUNCTION_ERROR,
+   FCBE_ARGUMENT_COUNT_ERROR,
+   FCBE_ARGUMENT_TYPE_ERROR,
+   FCBE_PROCESSING_ERROR
+  } FunctionCallBuilderError;
 
-typedef struct expr FUNCTION_REFERENCE;
-
-#define DATA_OBJECT_PTR_ARG DATA_OBJECT_PTR
+#define PARAMETERS_UNBOUNDED USHRT_MAX
 
 #define C_POINTER_EXTERNAL_ADDRESS 0
-
-#include "userdata.h"
-
-struct entityRecord
-  {
-   const char *name;
-   unsigned int type : 13;
-   unsigned int copyToEvaluate : 1;
-   unsigned int bitMap : 1;
-   unsigned int addsToRuleComplexity : 1;
-   void (*shortPrintFunction)(void *,const char *,void *);
-   void (*longPrintFunction)(void *,const char *,void *);
-   intBool (*deleteFunction)(void *,void *);
-   intBool (*evaluateFunction)(void *,void *,DATA_OBJECT *);
-   void *(*getNextFunction)(void *,void *);
-   void (*decrementBusyCount)(void *,void *);
-   void (*incrementBusyCount)(void *,void *);
-   void (*propagateDepth)(void *,void *);
-   void (*markNeeded)(void *,void *);
-   void (*install)(void *,void *);
-   void (*deinstall)(void *,void *);
-   struct userData *usrData;
-  };
 
 struct externalAddressType
   {
    const  char *name;
-   void (*shortPrintFunction)(void *,const char *,void *);
-   void (*longPrintFunction)(void *,const char *,void *);
-   intBool (*discardFunction)(void *,void *);
-   void (*newFunction)(void *,DATA_OBJECT *);
-   intBool (*callFunction)(void *,DATA_OBJECT *,DATA_OBJECT *);
+   void (*shortPrintFunction)(Environment *,const char *,void *);
+   void (*longPrintFunction)(Environment *,const char *,void *);
+   bool (*discardFunction)(Environment *,void *);
+   void (*newFunction)(UDFContext *,UDFValue *);
+   bool (*callFunction)(UDFContext *,UDFValue *,UDFValue *);
   };
 
-typedef struct entityRecord ENTITY_RECORD;
-typedef struct entityRecord * ENTITY_RECORD_PTR;
-
-#define GetDOLength(target)       (((target).end - (target).begin) + 1)
-#define GetpDOLength(target)      (((target)->end - (target)->begin) + 1)
-#define GetDOBegin(target)        ((target).begin + 1)
-#define GetDOEnd(target)          ((target).end + 1)
-#define GetpDOBegin(target)       ((target)->begin + 1)
-#define GetpDOEnd(target)         ((target)->end + 1)
-#define SetDOBegin(target,val)   ((target).begin = (long) ((val) - 1))
-#define SetDOEnd(target,val)     ((target).end = (long) ((val) - 1))
-#define SetpDOBegin(target,val)   ((target)->begin = (long) ((val) - 1))
-#define SetpDOEnd(target,val)     ((target)->end = (long) ((val) - 1))
-
-#define EnvGetDOLength(theEnv,target)       (((target).end - (target).begin) + 1)
-#define EnvGetpDOLength(theEnv,target)      (((target)->end - (target)->begin) + 1)
-#define EnvGetDOBegin(theEnv,target)        ((target).begin + 1)
-#define EnvGetDOEnd(theEnv,target)          ((target).end + 1)
-#define EnvGetpDOBegin(theEnv,target)       ((target)->begin + 1)
-#define EnvGetpDOEnd(theEnv,target)         ((target)->end + 1)
-#define EnvSetDOBegin(theEnv,target,val)   ((target).begin = (long) ((val) - 1))
-#define EnvSetDOEnd(theEnv,target,val)     ((target).end = (long) ((val) - 1))
-#define EnvSetpDOBegin(theEnv,target,val)   ((target)->begin = (long) ((val) - 1))
-#define EnvSetpDOEnd(theEnv,target,val)     ((target)->end = (long) ((val) - 1))
-
-#define DOPToString(target) (((struct symbolHashNode *) ((target)->value))->contents)
-#define DOPToDouble(target) (((struct floatHashNode *) ((target)->value))->contents)
-#define DOPToFloat(target) ((float) (((struct floatHashNode *) ((target)->value))->contents))
-#define DOPToLong(target) (((struct integerHashNode *) ((target)->value))->contents)
-#define DOPToInteger(target) ((int) (((struct integerHashNode *) ((target)->value))->contents))
-#define DOPToPointer(target)       ((target)->value)
-#define DOPToExternalAddress(target) (((struct externalAddressHashNode *) ((target)->value))->externalAddress)
-
-#define EnvDOPToString(theEnv,target) (((struct symbolHashNode *) ((target)->value))->contents)
-#define EnvDOPToDouble(theEnv,target) (((struct floatHashNode *) ((target)->value))->contents)
-#define EnvDOPToFloat(theEnv,target) ((float) (((struct floatHashNode *) ((target)->value))->contents))
-#define EnvDOPToLong(theEnv,target) (((struct integerHashNode *) ((target)->value))->contents)
-#define EnvDOPToInteger(theEnv,target) ((int) (((struct integerHashNode *) ((target)->value))->contents))
-#define EnvDOPToPointer(theEnv,target)       ((target)->value)
-#define EnvDOPToExternalAddress(target) (((struct externalAddressHashNode *) ((target)->value))->externalAddress)
-
-#define DOToString(target) (((struct symbolHashNode *) ((target).value))->contents)
-#define DOToDouble(target) (((struct floatHashNode *) ((target).value))->contents)
-#define DOToFloat(target) ((float) (((struct floatHashNode *) ((target).value))->contents))
-#define DOToLong(target) (((struct integerHashNode *) ((target).value))->contents)
-#define DOToInteger(target) ((int) (((struct integerHashNode *) ((target).value))->contents))
-#define DOToPointer(target)        ((target).value)
-#define DOToExternalAddress(target) (((struct externalAddressHashNode *) ((target).value))->externalAddress)
-
-#define EnvDOToString(theEnv,target) (((struct symbolHashNode *) ((target).value))->contents)
-#define EnvDOToDouble(theEnv,target) (((struct floatHashNode *) ((target).value))->contents)
-#define EnvDOToFloat(theEnv,target) ((float) (((struct floatHashNode *) ((target).value))->contents))
-#define EnvDOToLong(theEnv,target) (((struct integerHashNode *) ((target).value))->contents)
-#define EnvDOToInteger(theEnv,target) ((int) (((struct integerHashNode *) ((target).value))->contents))
-#define EnvDOToPointer(theEnv,target)        ((target).value)
-#define EnvDOToExternalAddress(target) (((struct externalAddressHashNode *) ((target).value))->externalAddress)
-
-#define CoerceToLongInteger(t,v) ((t == INTEGER) ? ValueToLong(v) : (long int) ValueToDouble(v))
-#define CoerceToInteger(t,v) ((t == INTEGER) ? (int) ValueToLong(v) : (int) ValueToDouble(v))
-#define CoerceToDouble(t,v) ((t == INTEGER) ? (double) ValueToLong(v) : ValueToDouble(v))
+#define CoerceToLongInteger(t,v) ((t == INTEGER_TYPE) ? ValueToLong(v) : (long) ValueToDouble(v))
+#define CoerceToInteger(t,v) ((t == INTEGER_TYPE) ? (int) ValueToLong(v) : (int) ValueToDouble(v))
+#define CoerceToDouble(t,v) ((t == INTEGER_TYPE) ? (double) ValueToLong(v) : ValueToDouble(v))
 
 #define GetFirstArgument()           (EvaluationData(theEnv)->CurrentExpression->argList)
 #define GetNextArgument(ep)          (ep->nextArg)
@@ -181,10 +121,11 @@ typedef struct entityRecord * ENTITY_RECORD_PTR;
 
 #define BITS_PER_BYTE    8
 
-#define BitwiseTest(n,b)   ((n) & (char) (1 << (b)))
+#define BitwiseTest(n,b)   (((n) & (char) (1 << (b))) ? true : false)
 #define BitwiseSet(n,b)    (n |= (char) (1 << (b)))
 #define BitwiseClear(n,b)  (n &= (char) ~(1 << (b)))
 
+#define CountToBitMapSize(c) (((c) + (BITS_PER_BYTE - 1)) / BITS_PER_BYTE) 
 #define TestBitMap(map,id)  BitwiseTest(map[(id) / BITS_PER_BYTE],(id) % BITS_PER_BYTE)
 #define SetBitMap(map,id)   BitwiseSet(map[(id) / BITS_PER_BYTE],(id) % BITS_PER_BYTE)
 #define ClearBitMap(map,id) BitwiseClear(map[(id) / BITS_PER_BYTE],(id) % BITS_PER_BYTE)
@@ -192,10 +133,10 @@ typedef struct entityRecord * ENTITY_RECORD_PTR;
 #define EVALUATION_DATA 44
 
 struct evaluationData
-  { 
+  {
    struct expr *CurrentExpression;
-   int EvaluationError;
-   int HaltExecution;
+   bool EvaluationError;
+   bool HaltExecution;
    int CurrentEvaluationDepth;
    int numberOfAddressTypes;
    struct entityRecord *PrimitivesArray[MAXIMUM_PRIMITIVES];
@@ -204,49 +145,64 @@ struct evaluationData
 
 #define EvaluationData(theEnv) ((struct evaluationData *) GetEnvironmentData(theEnv,EVALUATION_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           InitializeEvaluationData(Environment *);
+   bool                           EvaluateExpression(Environment *,struct expr *,UDFValue *);
+   void                           SetEvaluationError(Environment *,bool);
+   bool                           GetEvaluationError(Environment *);
+   void                           SetHaltExecution(Environment *,bool);
+   bool                           GetHaltExecution(Environment *);
+   void                           ReturnValues(Environment *,UDFValue *,bool);
+   void                           WriteUDFValue(Environment *,const char *,UDFValue *);
+   void                           WriteCLIPSValue(Environment *,const char *,CLIPSValue *);
+   void                           SetMultifieldErrorValue(Environment *,UDFValue *);
+   void                           CopyDataObject(Environment *,UDFValue *,UDFValue *,int);
+   void                           AtomInstall(Environment *,unsigned short,void *);
+   void                           AtomDeinstall(Environment *,unsigned short,void *);
+   void                           Retain(Environment *,TypeHeader *);
+   void                           Release(Environment *,TypeHeader *);
+   void                           RetainCV(Environment *,CLIPSValue *);
+   void                           ReleaseCV(Environment *,CLIPSValue *);
+   void                           RetainUDFV(Environment *,UDFValue *);
+   void                           ReleaseUDFV(Environment *,UDFValue *);
+   struct expr                   *ConvertValueToExpression(Environment *,UDFValue *);
+   unsigned long                  GetAtomicHashValue(unsigned short,void *,unsigned short);
+   void                           InstallPrimitive(Environment *,struct entityRecord *,int);
+   int                            InstallExternalAddressType(Environment *,struct externalAddressType *);
+   void                           TransferDataObjectValues(UDFValue *,UDFValue *);
+   struct expr                   *FunctionReferenceExpression(Environment *,const char *);
+   bool                           GetFunctionReference(Environment *,const char *,Expression *);
+   bool                           DOsEqual(UDFValue *,UDFValue *);
+   bool                           EvaluateAndStoreInDataObject(Environment *,bool,Expression *,UDFValue *,bool);
+   void                           ResetErrorFlags(Environment *);
+   FunctionCallBuilder           *CreateFunctionCallBuilder(Environment *,size_t);
+   void                           FCBAppendUDFValue(FunctionCallBuilder *,UDFValue *);
+   void                           FCBAppend(FunctionCallBuilder *,CLIPSValue *);
+   void                           FCBAppendCLIPSInteger(FunctionCallBuilder *,CLIPSInteger *);
+   void                           FCBAppendInteger(FunctionCallBuilder *,long long);
+   void                           FCBAppendCLIPSFloat(FunctionCallBuilder *,CLIPSFloat *);
+   void                           FCBAppendFloat(FunctionCallBuilder *,double);
+   void                           FCBAppendCLIPSLexeme(FunctionCallBuilder *,CLIPSLexeme *);
+   void                           FCBAppendSymbol(FunctionCallBuilder *,const char *);
+   void                           FCBAppendString(FunctionCallBuilder *,const char *);
+   void                           FCBAppendInstanceName(FunctionCallBuilder *,const char *);
+   void                           FCBAppendCLIPSExternalAddress(FunctionCallBuilder *,CLIPSExternalAddress *);
+   void                           FCBAppendFact(FunctionCallBuilder *,Fact *);
+   void                           FCBAppendInstance(FunctionCallBuilder *,Instance *);
+   void                           FCBAppendMultifield(FunctionCallBuilder *,Multifield *);
+   void                           FCBDispose(FunctionCallBuilder *);
+   void                           FCBReset(FunctionCallBuilder *);
+   FunctionCallBuilderError       FCBCall(FunctionCallBuilder *,const char *,CLIPSValue *);
+   
+#define CVIsType(cv,cvType) (((1 << (((TypeHeader *) (cv)->value)->type)) & (cvType)) ? true : false)
 
-#ifdef _EVALUATN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
+#define ValueIsType(value,vType) ((1 << (((TypeHeader *) value)->type)) & (vType))
 
-   LOCALE void                           InitializeEvaluationData(void *);
-   LOCALE int                            EvaluateExpression(void *,struct expr *,struct dataObject *);
-   LOCALE void                           SetEvaluationError(void *,intBool);
-   LOCALE int                            GetEvaluationError(void *);
-   LOCALE void                           SetHaltExecution(void *,int);
-   LOCALE int                            GetHaltExecution(void *);
-   LOCALE void                           ReturnValues(void *,struct dataObject *,intBool);
-   LOCALE void                           PrintDataObject(void *,const char *,struct dataObject *);
-   LOCALE void                           EnvSetMultifieldErrorValue(void *,struct dataObject *);
-   LOCALE void                           ValueInstall(void *,struct dataObject *);
-   LOCALE void                           ValueDeinstall(void *,struct dataObject *);
-#if DEFFUNCTION_CONSTRUCT || DEFGENERIC_CONSTRUCT
-   LOCALE int                            EnvFunctionCall(void *,const char *,const char *,DATA_OBJECT *);
-   LOCALE int                            FunctionCall2(void *,FUNCTION_REFERENCE *,const char *,DATA_OBJECT *);
-#endif
-   LOCALE void                           CopyDataObject(void *,DATA_OBJECT *,DATA_OBJECT *,int);
-   LOCALE void                           AtomInstall(void *,int,void *);
-   LOCALE void                           AtomDeinstall(void *,int,void *);
-   LOCALE struct expr                   *ConvertValueToExpression(void *,DATA_OBJECT *);
-   LOCALE unsigned long                  GetAtomicHashValue(unsigned short,void *,int);
-   LOCALE void                           InstallPrimitive(void *,struct entityRecord *,int);
-   LOCALE int                            InstallExternalAddressType(void *,struct externalAddressType *);
-   LOCALE void                           TransferDataObjectValues(DATA_OBJECT *,DATA_OBJECT *);
-   LOCALE struct expr                   *FunctionReferenceExpression(void *,const char *);
-   LOCALE intBool                        GetFunctionReference(void *,const char *,FUNCTION_REFERENCE *);
-   LOCALE intBool                        DOsEqual(DATA_OBJECT_PTR,DATA_OBJECT_PTR);
-   LOCALE int                            EvaluateAndStoreInDataObject(void *,int,EXPRESSION *,DATA_OBJECT *,int);
+#define CVCoerceToFloat(cv) (((cv)->header->type == FLOAT_TYPE) ? \
+                             ((cv)->floatValue->contents) : \
+                             ((double) (cv)->integerValue->contents))
 
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                           SetMultifieldErrorValue(DATA_OBJECT_PTR);
-   LOCALE int                            FunctionCall(const char *,const char *,DATA_OBJECT *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+#define CVCoerceToInteger(cv) (((cv)->header->type == INTEGER_TYPE) ? \
+                               ((cv)->integerValue->contents) : \
+                               ((long long) (cv)->floatValue->contents))
 
 #endif /* _H_evaluatn */

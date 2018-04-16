@@ -1186,13 +1186,11 @@ cd))
 
 (defrule salience-max-value
  (declare (salience 10000))
- (initial-fact)
 =>
  (printout t crlf "TESTING CLIPS - BASIC PROGRAMMING GUIDE" crlf))
 
 (defrule salience-positive
  (declare (salience 100))
- (initial-fact)
 =>
  (printout t "common capabilities such as:" crlf
               "assert, retract, salience, fprintout" crlf
@@ -1200,9 +1198,7 @@ cd))
 
 (defrule salience-min-value
  (declare (salience -10000))
- ?f <- (initial-fact)
 =>
- (retract ?f)
  (printout t "list of facts that were not cleaned up, error if any" crlf)
  (facts)
  (printout t "file text.tmp may be deleted" crlf
@@ -1477,9 +1473,9 @@ y)))
  (assert (multifield3 ?mult3))                            ;CR0008
  (bind ?mult3.5 (create$ ?mult3 (create$ cww)  a (create$) b));CR0014
  (assert (multifield3 ?mult3.5))                                         ;CR0008 CR0014 
- (bind ?mult4 (str-explode "1 two"))             ;CR0008 DR0093
+ (bind ?mult4 (explode$ "1 two"))                         ;CR0008 DR0093
  (assert (multifield4 ?mult4))                                           ;CR0008 DR0093
- (bind ?string (str-implode ?mult4))                         ;CR0008
+ (bind ?string (implode$ ?mult4))                         ;CR0008
  (assert (multifield4 ?string))                                           ;CR0008
  (assert (multifield5 =(subseq$ ?mult3.5 3 33))))
 
@@ -1489,9 +1485,9 @@ y)))
  (close text-file)
  (data $?x)
 =>
- (assert (length =(length ?x)))
- (assert (second-element =(nth 2 ?x)))
- (assert (member-center =(member Center ?x)))
+ (assert (length =(length$ ?x)))
+ (assert (second-element =(nth$ 2 ?x)))
+ (assert (member-center =(member$ Center ?x)))
  (assert (multifield one two three)))
 
 (defrule clean-up-action-functions
@@ -1565,7 +1561,7 @@ y)))
  (data-0 $?x $?y)
  (data-1 $?z)
 =>
- (if (subset ?x ?z)
+ (if (subsetp ?x ?z)
   then
    (assert (set ?x is-a-subset-of ?z))
   else
@@ -1577,7 +1573,7 @@ y)))
  (data-2 $?x $?y)
  (data-1 $?z)
 =>
- (if (subset ?x ?z)
+ (if (subsetp ?x ?z)
   then
    (assert (set ?x is-a-subset-of ?z))
   else

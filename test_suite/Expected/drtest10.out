@@ -13,7 +13,7 @@ FuzzyCLIPS>
       (bind ?y 0)
       (bogus)))
 
-[EXPRNPSR3] Missing function declaration for bogus.
+[EXPRNPSR3] Missing function declaration for 'bogus'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
 
@@ -35,7 +35,7 @@ FuzzyCLIPS>
    (do-for-all-instances ((?x SOURCE)) (progn (bind ?y 3) (bogus) TRUE)
       (+ 3 4)))
 
-[EXPRNPSR3] Missing function declaration for bogus.
+[EXPRNPSR3] Missing function declaration for 'bogus'.
 
 ERROR:
 (deffunction MAIN::foo
@@ -56,7 +56,7 @@ FuzzyCLIPS>
       (bind ?y 0)
       (bogus)))
 
-[EXPRNPSR3] Missing function declaration for bogus.
+[EXPRNPSR3] Missing function declaration for 'bogus'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for fact-set query function.
 
@@ -78,7 +78,7 @@ FuzzyCLIPS>
    (do-for-all-facts ((?x SOURCE)) (progn (bind ?y 3) (bogus) TRUE)
       (+ 3 4)))
 
-[EXPRNPSR3] Missing function declaration for bogus.
+[EXPRNPSR3] Missing function declaration for 'bogus'.
 
 ERROR:
 (deffunction MAIN::foo
@@ -100,7 +100,7 @@ FuzzyCLIPS>
    (make-instance of FOO
       (value1 (bogus))))
 
-[EXPRNPSR3] Missing function declaration for bogus.
+[EXPRNPSR3] Missing function declaration for 'bogus'.
 
 ERROR:
 (deffunction MAIN::foo
@@ -123,8 +123,7 @@ FuzzyCLIPS>
    (printout t ?x))
 
 [RULECSTR3] Previous variable bindings of ?x caused the type restrictions
-for argument #1 of the expression (+ ?x 1)
-found in the rule's RHS to be violated.
+for argument #1 of the expression (+ ?x 1) found in the rule's RHS to be violated.
 
 ERROR:
 (defrule MAIN::foo
@@ -180,13 +179,13 @@ FuzzyCLIPS> (make-instance a of A)
 [a]
 FuzzyCLIPS> (watch all)
 FuzzyCLIPS> (modify-instance a (foo 0))
-MSG >> direct-modify ED:1 (<Instance-a> <Pointer-0x608000442070>) ;; Reference Pointer
+MSG >> direct-modify ED:1 (<Instance-a> <Pointer-C-0x60400005b6f0>) ;; Reference Pointer
 HND >> direct-modify primary in class USER
-       ED:1 (<Instance-a> <Pointer-0x608000442070>)               ;; Should be the same as above
+       ED:1 (<Instance-a> <Pointer-C-0x60400005b6f0>)               ;; Should be the same as above
 ::= local slot foo in instance a <- 0
 HND << direct-modify primary in class USER
-       ED:1 (<Instance-a> <Pointer-0x608000442070>)               ;; Should be the same as above
-MSG << direct-modify ED:1 (<Instance-a> <Pointer-0x608000442070>) ;; Should be the same as above
+       ED:1 (<Instance-a> <Pointer-C-0x60400005b6f0>)               ;; Should be the same as above
+MSG << direct-modify ED:1 (<Instance-a> <Pointer-C-0x60400005b6f0)  ;; Should be the same as above
 TRUE
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ;; CLIPSESG Bug
@@ -247,13 +246,13 @@ FuzzyCLIPS>
    (is-a USER)
    (slot _foo (default ?NONE)))
 FuzzyCLIPS> (make-instance foo1 of FOO)
-[INSMNGR14] Override required for slot _foo in instance foo1.
-[PRCCODE4] Execution halted during the actions of message-handler init primary in class USER
-[INSMNGR8] An error occurred during the initialization of instance foo1.
+[INSMNGR14] Override required for slot '_foo' in instance [foo1].
+[PRCCODE4] Execution halted during the actions of message-handler 'init' primary in class 'USER'
+[INSMNGR8] An error occurred during the initialization of instance [foo1].
 FALSE
 FuzzyCLIPS> (make-instance foo2 of FOO (_foo))
-[INSMNGR14] Override required for slot _foo in instance foo2.
-[PRCCODE4] Execution halted during the actions of message-handler put-_foo primary in class FOO
+[INSMNGR14] Override required for slot '_foo' in instance [foo2].
+[PRCCODE4] Execution halted during the actions of message-handler 'put-_foo' primary in class 'FOO'
 FALSE
 FuzzyCLIPS> (clear) ; SourceForge Assert/Clear Bug
 FuzzyCLIPS> (defrule foo (a ?x&:(progn (clear) TRUE)) =>)
@@ -261,7 +260,8 @@ FuzzyCLIPS> (assert (a 1))
 [CONSTRCT1] Some constructs are still in use. Clear cannot continue.
 <Fact-1>
 FuzzyCLIPS> (send [initial-object] delete)
-TRUE
+[MSGPASS2] No such instance [initial-object] in function 'send'.
+FALSE
 FuzzyCLIPS> (assert (a 2))
 [CONSTRCT1] Some constructs are still in use. Clear cannot continue.
 <Fact-2>
@@ -283,16 +283,14 @@ FuzzyCLIPS> (assert (foo (x (clear) 1)))
 [CONSTRCT1] Some constructs are still in use. Clear cannot continue.
 <Fact-1>
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-1     (foo (x 1)) CF 1.00 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (modify 1 (x (clear) 2))
 [CONSTRCT1] Some constructs are still in use. Clear cannot continue.
-<Fact-2>
+<Fact-1>
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
-f-2     (foo (x 2)) CF 1.00 
-For a total of 2 facts.
+f-1     (foo (x 2)) CF 1.00 
+For a total of 1 fact.
 FuzzyCLIPS> (clear) ; SourceForge Bug
 FuzzyCLIPS> 
 (defmodule FOO
@@ -372,19 +370,21 @@ FuzzyCLIPS>
 Hello, world!
 FuzzyCLIPS> (clear) ; Sourceforge bug
 FuzzyCLIPS> (funcall str-cat)
-""
+[ARGACCES1] Function 'str-cat' expected at least 1 argument.
+FALSE
 FuzzyCLIPS> 
 (deffunction bar1 (?func)
    (bind $?a (create$))
    (funcall ?func (expand$ $?a)))
 FuzzyCLIPS> (bar1 "str-cat")
-""
+[ARGACCES1] Function 'str-cat' expected at least 1 argument.
+FALSE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> 
 (defclass BOO (is-a USER)
    (multislot foo (cardinality -1 0)))
 
-[CSTRNPSR6] Minimum cardinality value must be greater than or equal to zero
+[CSTRNPSR6] Minimum 'cardinality' value must be greater than or equal to zero.
 
 ERROR:
 (defclass MAIN::BOO
@@ -395,8 +395,7 @@ FuzzyCLIPS>
 (defclass BOO (is-a USER)
    (multislot foo (cardinality 0 -3)))
 
-[CSTRNPSR2] Minimum cardinality value must be less than
-or equal to the maximum cardinality value
+[CSTRNPSR2] Minimum 'cardinality' value must be less than or equal to the maximum 'cardinality' value.
 
 ERROR:
 (defclass MAIN::BOO
@@ -751,6 +750,12 @@ FuzzyCLIPS>
    =>)
 FuzzyCLIPS> (assert (C (x 1)))
 <Fact-1>
+FuzzyCLIPS> (clear) ; Memory leak
+FuzzyCLIPS> (deftemplate TAG (multislot attributes)))
+FuzzyCLIPS> (assert (TAG))
+<Fact-1>
+FuzzyCLIPS> (modify 1 (attributes (create$)))
+<Fact-1>
 FuzzyCLIPS> (clear) ; Load Crash
 FuzzyCLIPS> 
 (defrule bug
@@ -898,8 +903,6 @@ FuzzyCLIPS> (watch facts)
 FuzzyCLIPS> (deftemplate foo (multislot x))
 FuzzyCLIPS> (deffacts start (foo (x 1 2)) (foo (x a)))
 FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
 ==> f-1     (foo (x 1 2)) CF 1.00 
 ==> f-2     (foo (x a)) CF 1.00 
 FuzzyCLIPS> 
@@ -911,9 +914,7 @@ FuzzyCLIPS>
 [PRNTUTIL12] The variable/slot reference ?f:x cannot be resolved because the referenced fact f-1 has been retracted.
 FALSE
 FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
 <== f-2     (foo (x a)) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
 ==> f-1     (foo (x 1 2)) CF 1.00 
 ==> f-2     (foo (x a)) CF 1.00 
 FuzzyCLIPS> (do-for-all-facts ((?f foo)) TRUE
@@ -933,8 +934,6 @@ FuzzyCLIPS>
    ([f1] of FOO (x 1 2))
    ([f2] of FOO (x a)))
 FuzzyCLIPS> (reset)
-<== instance [initial-object] of INITIAL-OBJECT
-==> instance [initial-object] of INITIAL-OBJECT
 ==> instance [f1] of FOO
 ::= local slot x in instance f1 <- (1 2)
 ==> instance [f2] of FOO
@@ -948,9 +947,7 @@ FuzzyCLIPS>
 [PRNTUTIL15] The variable/slot reference ?f:x cannot be resolved because the referenced instance [f1] has been deleted.
 FALSE
 FuzzyCLIPS> (reset)
-<== instance [initial-object] of INITIAL-OBJECT
 <== instance [f2] of FOO
-==> instance [initial-object] of INITIAL-OBJECT
 ==> instance [f1] of FOO
 ::= local slot x in instance f1 <- (1 2)
 ==> instance [f2] of FOO
@@ -979,5 +976,64 @@ FuzzyCLIPS> (defrule foo
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then 3)))))))))))))))))))))))))))))))))))))))))))
+FuzzyCLIPS> (clear) ; Funcall module specifier #1
+FuzzyCLIPS> 
+(defmodule M
+  (export deffunction ?ALL))
+FuzzyCLIPS> (deffunction foo (?x) (printout t ?x " in M" crlf))
+FuzzyCLIPS> (defmodule MAIN)
+FuzzyCLIPS> (deffunction foo (?x) (printout t ?x " in MAIN" crlf))
+FuzzyCLIPS> (funcall foo bar)
+bar in MAIN
+FuzzyCLIPS> (funcall M::foo baz)
+baz in M
+FuzzyCLIPS> (funcall MAIN::foo baz)
+baz in MAIN
+FuzzyCLIPS> (clear) ; Funcall module specifier #2
+FuzzyCLIPS> 
+(defmodule M
+  (export deffunction ?ALL))
+FuzzyCLIPS> (deffunction foo (?x) (funcall ?x))
+FuzzyCLIPS> (deffunction bar () (printout t "bar in M" crlf))
+FuzzyCLIPS> (defmodule MAIN (export deffunction ?ALL))
+FuzzyCLIPS> (deffunction bar () (printout t "bar in MAIN" crlf))
+FuzzyCLIPS> (M::foo bar)
+bar in M
+FuzzyCLIPS> (M::foo MAIN::bar)
+bar in MAIN
+FuzzyCLIPS> (M::foo M::bar)
+bar in M
+FuzzyCLIPS> (clear) ; Funcall module specifier #3
+FuzzyCLIPS> 
+(defmodule M
+  (export deffunction ?ALL))
+FuzzyCLIPS> (deffunction foo (?x) (funcall ?x))
+FuzzyCLIPS> (deffunction bar () (printout t "bar in M" crlf))
+FuzzyCLIPS> (defmodule MAIN)
+FuzzyCLIPS> (deffunction bar () (printout t "bar in MAIN" crlf))
+FuzzyCLIPS> (M::foo bar)
+bar in M
+FuzzyCLIPS> (M::foo MAIN::bar)
+[ARGACCES2] Function 'funcall' expected argument #1 to be of type function, deffunction, or generic function name.
+FALSE
+FuzzyCLIPS> (M::foo M::bar)
+bar in M
+FuzzyCLIPS> (clear) ; Foreach bug
+FuzzyCLIPS> (foreach ?a (create$ a b c)
+            (foreach ?b (create$ x y) (printout t ?a " " ?b crlf)))
+a x
+a y
+b x
+b y
+c x
+c y
+FuzzyCLIPS> (progn$ (?a (create$ a b c)) 
+            (progn$ (?b (create$ x y)) (printout t ?a " " ?b crlf)))
+a x
+a y
+b x
+b y
+c x
+c y
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

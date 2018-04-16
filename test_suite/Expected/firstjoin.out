@@ -94,7 +94,6 @@ FuzzyCLIPS> (assert (a))
 <== f-1     (b) CF 1.00 
 <Fact-2>
 FuzzyCLIPS> (clear)                     ; First CE is not/and
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (defrule foo (not (and (a) (b))) =>)
 ==> Activation 0      foo: *
 FuzzyCLIPS> (assert (a))
@@ -108,7 +107,6 @@ FuzzyCLIPS> (retract 2)
 <== f-2     (b) CF 1.00 
 ==> Activation 0      foo: *
 FuzzyCLIPS> (clear)                     ; First CE is test
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (defrule foo (test (> 4 3)) =>)
 ==> Activation 0      foo: *
 FuzzyCLIPS> (defrule bar (test (< 4 3)) =>)

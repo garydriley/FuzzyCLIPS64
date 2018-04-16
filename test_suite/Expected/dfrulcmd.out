@@ -10,7 +10,7 @@ FuzzyCLIPS> (defrule r5 (or (x) (y) (and (a) (b))) => (assert (a3)))
 FuzzyCLIPS> (defrule r6 (and (a) (b)) (c) => (assert (a2)))
 FuzzyCLIPS> (defrule * (not (x)) (not (y)) => (assert (x)) (assert (y)))
 FuzzyCLIPS> (list-defrules d6)
-[ARGACCES5] Function list-defrules expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'list-defrules' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (rules)
 r1
 r2
@@ -66,13 +66,13 @@ FuzzyCLIPS> (ppdefrule *)
    (assert (x))
    (assert (y)))
 FuzzyCLIPS> (undefrule)
-[ARGACCES4] Function undefrule expected exactly 1 argument(s)
+[ARGACCES1] Function 'undefrule' expected exactly 1 argument.
 FuzzyCLIPS> (undefrule 10)
-[ARGACCES5] Function undefrule expected argument #1 to be of type symbol
+[ARGACCES2] Function 'undefrule' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (undefrule bad-name)
-[PRNTUTIL1] Unable to find defrule bad-name.
+[PRNTUTIL1] Unable to find defrule 'bad-name'.
 FuzzyCLIPS> (undefrule r6 10)
-[ARGACCES4] Function undefrule expected exactly 1 argument(s)
+[ARGACCES1] Function 'undefrule' expected exactly 1 argument.
 FuzzyCLIPS> (list-defrules)
 r1
 r2
@@ -106,7 +106,7 @@ foo
 For a total of 1 defrule.
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (run)
-[PRNTUTIL4] Unable to delete defrule foo.
+[PRNTUTIL4] Unable to delete defrule 'foo'.
 FuzzyCLIPS> (rules)
 foo
 For a total of 1 defrule.
@@ -151,7 +151,7 @@ bar3
 bar4
 For a total of 4 defrules.
 -------
-[PRNTUTIL4] Unable to delete defrule bar3.
+[PRNTUTIL4] Unable to delete defrule 'bar3'.
 <== Activation 0      bar4: f-1,f-2,f-3
 bar3
 For a total of 1 defrule.
@@ -175,7 +175,7 @@ FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Test agenda command
 FuzzyCLIPS> (agenda)
 FuzzyCLIPS> (agenda 20)
-[ARGACCES5] Function agenda expected argument #1 to be of type symbol
+[ARGACCES2] Function 'agenda' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (defrule foo1 (declare (salience 2)) =>)
 FuzzyCLIPS> (defrule foo2 (declare (salience 1)) =>)
 FuzzyCLIPS> (defrule foo3 (declare (salience 0)) =>)
@@ -198,11 +198,11 @@ FuzzyCLIPS> (run 1)
 FuzzyCLIPS> (agenda)
 FuzzyCLIPS> (clear) ; Test matches command
 FuzzyCLIPS> (matches)
-[ARGACCES4] Function matches expected at least 1 argument(s)
+[ARGACCES1] Function 'matches' expected at least 1 argument.
 FuzzyCLIPS> (matches 10)
-[ARGACCES5] Function matches expected argument #1 to be of type symbol
+[ARGACCES2] Function 'matches' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (matches bad-rule)
-[PRNTUTIL1] Unable to find defrule bad-rule.
+[PRNTUTIL1] Unable to find defrule 'bad-rule'.
 FALSE
 FuzzyCLIPS> (defrule foo (or (a ?x) (b ?x)) (c ?) =>)
 FuzzyCLIPS> (defrule bar (b ?x) (c ?x) (a ?) =>)
@@ -286,19 +286,19 @@ f-5,*,f-2
 (6 2 1)
 FuzzyCLIPS> (clear) ; Test breakpoint stuff
 FuzzyCLIPS> (set-break)
-[ARGACCES4] Function set-break expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-break' expected exactly 1 argument.
 FuzzyCLIPS> (set-break 10)
-[ARGACCES5] Function set-break expected argument #1 to be of type symbol
+[ARGACCES2] Function 'set-break' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (set-break bad-rule)
-[PRNTUTIL1] Unable to find defrule bad-rule.
+[PRNTUTIL1] Unable to find defrule 'bad-rule'.
 FuzzyCLIPS> (show-breaks)
 FuzzyCLIPS> (show-breaks 10)
-[ARGACCES5] Function show-breaks expected argument #1 to be of type symbol
+[ARGACCES2] Function 'show-breaks' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (remove-break)
 FuzzyCLIPS> (remove-break 10)
-[ARGACCES5] Function remove-break expected argument #1 to be of type symbol
+[ARGACCES2] Function 'remove-break' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (remove-break bad-rule)
-[PRNTUTIL1] Unable to find defrule bad-rule.
+[PRNTUTIL1] Unable to find defrule 'bad-rule'.
 FuzzyCLIPS> (defrule foo1 (declare (salience 4)) =>)
 FuzzyCLIPS> (defrule foo2 (declare (salience 3)) =>)
 FuzzyCLIPS> (defrule foo3 (declare (salience 2)) =>)
@@ -306,9 +306,9 @@ FuzzyCLIPS> (defrule foo4 (declare (salience 1)) => (assert (a)))
 FuzzyCLIPS> (defrule foo5 (declare (salience 0)) => (assert (b)))
 FuzzyCLIPS> (defrule foo6 (declare (salience 5)) (or (a) (b)) =>)
 FuzzyCLIPS> (set-break foo5 10)
-[ARGACCES4] Function set-break expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-break' expected exactly 1 argument.
 FuzzyCLIPS> (remove-break foo5 10)
-[ARGACCES4] Function remove-break expected no more than 1 argument(s)
+[ARGACCES1] Function 'remove-break' expected no more than 1 argument.
 FuzzyCLIPS> (show-breaks)
 FuzzyCLIPS> (set-break foo2)
 FuzzyCLIPS> (set-break foo4)
@@ -363,11 +363,11 @@ FIRE    7 foo6: f-2
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Test refresh command
 FuzzyCLIPS> (refresh)
-[ARGACCES4] Function refresh expected exactly 1 argument(s)
+[ARGACCES1] Function 'refresh' expected exactly 1 argument.
 FuzzyCLIPS> (refresh 10)
-[ARGACCES5] Function refresh expected argument #1 to be of type symbol
+[ARGACCES2] Function 'refresh' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (refresh bad-rule)
-[PRNTUTIL1] Unable to find defrule bad-rule.
+[PRNTUTIL1] Unable to find defrule 'bad-rule'.
 FuzzyCLIPS> (defrule foo (a ?) (b ?) =>)
 FuzzyCLIPS> (assert (a 1) (a 2) (a 3) (b 1) (b 2))
 <Fact-5>
@@ -456,11 +456,11 @@ depth
 FuzzyCLIPS> (get-strategy)
 depth
 FuzzyCLIPS> (set-strategy)
-[ARGACCES4] Function set-strategy expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-strategy' expected exactly 1 argument.
 FuzzyCLIPS> (set-strategy depth 20)
-[ARGACCES4] Function set-strategy expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-strategy' expected exactly 1 argument.
 FuzzyCLIPS> (get-strategy 10)
-[ARGACCES4] Function get-strategy expected exactly 0 argument(s)
+[ARGACCES1] Function 'get-strategy' expected exactly 0 arguments.
 FuzzyCLIPS> (set-strategy breadth)
 depth
 FuzzyCLIPS> (get-strategy)
@@ -486,7 +486,7 @@ complexity
 FuzzyCLIPS> (get-strategy)
 random
 FuzzyCLIPS> (set-strategy bogus)
-[ARGACCES5] Function set-strategy expected argument #1 to be of type symbol with value depth, breadth, lex, mea, complexity, simplicity, or random
+[ARGACCES2] Function 'set-strategy' expected argument #1 to be of type symbol with value depth, breadth, lex, mea, complexity, simplicity, or random.
 random
 FuzzyCLIPS> (get-strategy)
 random
@@ -498,11 +498,11 @@ when-defined
 FuzzyCLIPS> (get-salience-evaluation)
 when-defined
 FuzzyCLIPS> (set-salience-evaluation)
-[ARGACCES4] Function set-salience-evaluation expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-salience-evaluation' expected exactly 1 argument.
 FuzzyCLIPS> (set-salience-evaluation when-defined 20)
-[ARGACCES4] Function set-salience-evaluation expected exactly 1 argument(s)
+[ARGACCES1] Function 'set-salience-evaluation' expected exactly 1 argument.
 FuzzyCLIPS> (get-salience-evaluation 10)
-[ARGACCES4] Function get-salience-evaluation expected exactly 0 argument(s)
+[ARGACCES1] Function 'get-salience-evaluation' expected exactly 0 arguments.
 FuzzyCLIPS> (set-salience-evaluation when-activated)
 when-defined
 FuzzyCLIPS> (get-salience-evaluation)
@@ -512,7 +512,7 @@ when-activated
 FuzzyCLIPS> (get-salience-evaluation)
 every-cycle
 FuzzyCLIPS> (set-salience-evaluation bogus)
-[ARGACCES5] Function set-salience-evaluation expected argument #1 to be of type symbol with value when-defined, when-activated, or every-cycle
+[ARGACCES2] Function 'set-salience-evaluation' expected argument #1 to be of type symbol with value when-defined, when-activated, or every-cycle.
 every-cycle
 FuzzyCLIPS> (get-salience-evaluation)
 every-cycle
@@ -520,33 +520,10 @@ FuzzyCLIPS> (set-salience-evaluation when-defined)
 every-cycle
 FuzzyCLIPS> (clear) ; refresh-agenda command
 FuzzyCLIPS> (refresh-agenda 10)
-[ARGACCES5] Function refresh-agenda expected argument #1 to be of type symbol
-FuzzyCLIPS> (clear) ; incremental-reset command
-FuzzyCLIPS> (set-incremental-reset TRUE)
-TRUE
-FuzzyCLIPS> (get-incremental-reset)
-TRUE
-FuzzyCLIPS> (set-incremental-reset)
-[ARGACCES4] Function set-incremental-reset expected exactly 1 argument(s)
-FuzzyCLIPS> (get-incremental-reset)
-TRUE
-FuzzyCLIPS> (get-incremental-reset 20)
-[ARGACCES4] Function get-incremental-reset expected exactly 0 argument(s)
-FuzzyCLIPS> (set-incremental-reset 10)
-TRUE
-FuzzyCLIPS> (get-incremental-reset)
-TRUE
-FuzzyCLIPS> (set-incremental-reset FALSE)
-TRUE
-FuzzyCLIPS> (get-incremental-reset)
-FALSE
-FuzzyCLIPS> (set-incremental-reset TRUE)
-FALSE
-FuzzyCLIPS> (get-incremental-reset)
-TRUE
+[ARGACCES2] Function 'refresh-agenda' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (clear) ; Some new 6.0 features
 FuzzyCLIPS> (defrule BOGUS::d5 =>)
-[PRNTUTIL1] Unable to find defmodule BOGUS.
+[PRNTUTIL1] Unable to find defmodule 'BOGUS'.
 
 ERROR:
 (defrule BOGUS::d5
@@ -557,9 +534,9 @@ FuzzyCLIPS> (defmodule BAR)
 FuzzyCLIPS> (defrule BAR::d2 =>)
 FuzzyCLIPS> (defrule BAR::d3 =>)
 FuzzyCLIPS> (list-defrules BOGUS)
-[ARGACCES5] Function list-defrules expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'list-defrules' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (list-defrules FOO 7)
-[ARGACCES4] Function list-defrules expected no more than 1 argument(s)
+[ARGACCES1] Function 'list-defrules' expected no more than 1 argument.
 FuzzyCLIPS> (list-defrules FOO)
 d1
 d2
@@ -582,13 +559,13 @@ BAR:
    d3
 For a total of 4 defrules.
 FuzzyCLIPS> (get-defrule-list 7)
-[ARGACCES5] Function get-defrule-list expected argument #1 to be of type symbol
+[ARGACCES2] Function 'get-defrule-list' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (get-defrule-list BOGUS 7)
-[ARGACCES4] Function get-defrule-list expected no more than 1 argument(s)
+[ARGACCES1] Function 'get-defrule-list' expected no more than 1 argument.
 FuzzyCLIPS> (get-defrule-list)
 (d2 d3)
 FuzzyCLIPS> (get-defrule-list BOGUS)
-[ARGACCES5] Function get-defrule-list expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'get-defrule-list' expected argument #1 to be of type 'defmodule name'.
 ()
 FuzzyCLIPS> (get-defrule-list FOO)
 (d1 d2)
@@ -597,7 +574,7 @@ FuzzyCLIPS> (get-defrule-list BAR)
 FuzzyCLIPS> (get-defrule-list *)
 (FOO::d1 FOO::d2 BAR::d2 BAR::d3)
 FuzzyCLIPS> (ppdefrule d1)
-[PRNTUTIL1] Unable to find defrule d1.
+[PRNTUTIL1] Unable to find defrule 'd1'.
 FuzzyCLIPS> (ppdefrule d2)
 (defrule BAR::d2
    =>)
@@ -605,7 +582,7 @@ FuzzyCLIPS> (ppdefrule d3)
 (defrule BAR::d3
    =>)
 FuzzyCLIPS> (ppdefrule BOGUS::d2)
-[PRNTUTIL1] Unable to find defrule BOGUS::d2.
+[PRNTUTIL1] Unable to find defrule 'BOGUS::d2'.
 FuzzyCLIPS> (ppdefrule FOO::d1)
 (defrule FOO::d1
    =>)
@@ -613,9 +590,9 @@ FuzzyCLIPS> (ppdefrule FOO::d2)
 (defrule FOO::d2
    =>)
 FuzzyCLIPS> (ppdefrule FOO::d3)
-[PRNTUTIL1] Unable to find defrule FOO::d3.
+[PRNTUTIL1] Unable to find defrule 'FOO::d3'.
 FuzzyCLIPS> (ppdefrule BAR::d1)
-[PRNTUTIL1] Unable to find defrule BAR::d1.
+[PRNTUTIL1] Unable to find defrule 'BAR::d1'.
 FuzzyCLIPS> (ppdefrule BAR::d2)
 (defrule BAR::d2
    =>)
@@ -623,12 +600,12 @@ FuzzyCLIPS> (ppdefrule BAR::d3)
 (defrule BAR::d3
    =>)
 FuzzyCLIPS> (defrule-module)
-[ARGACCES4] Function defrule-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defrule-module' expected exactly 1 argument.
 FuzzyCLIPS> (defrule-module bogus)
-[PRNTUTIL1] Unable to find defrule bogus.
+[PRNTUTIL1] Unable to find defrule 'bogus'.
 FALSE
 FuzzyCLIPS> (defrule-module d3 7)
-[ARGACCES4] Function defrule-module expected exactly 1 argument(s)
+[ARGACCES1] Function 'defrule-module' expected exactly 1 argument.
 FuzzyCLIPS> (defrule-module d2)
 BAR
 FuzzyCLIPS> (defrule-module d3)
@@ -642,7 +619,7 @@ BAR
 FuzzyCLIPS> (defrule-module BAR::d3)
 BAR
 FuzzyCLIPS> (undefrule BOGUS::d2)
-[PRNTUTIL1] Unable to find defrule BOGUS::d2.
+[PRNTUTIL1] Unable to find defrule 'BOGUS::d2'.
 FuzzyCLIPS> (undefrule FOO::d2)
 FuzzyCLIPS> (list-defrules *)
 MAIN:
@@ -681,11 +658,11 @@ FuzzyCLIPS> (defrule BAR::d2 (declare (salience ?*x*)) =>)
 FuzzyCLIPS> (defrule BAR::d3 (declare (salience ?*x*)) =>)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (agenda BOGUS)
-[ARGACCES5] Function agenda expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'agenda' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (agenda 7)
-[ARGACCES5] Function agenda expected argument #1 to be of type symbol
+[ARGACCES2] Function 'agenda' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (agenda FOO 7)
-[ARGACCES4] Function agenda expected no more than 1 argument(s)
+[ARGACCES1] Function 'agenda' expected no more than 1 argument.
 FuzzyCLIPS> (agenda)
 0      d0: *
 For a total of 1 activation.
@@ -713,11 +690,11 @@ For a total of 5 activations.
 FuzzyCLIPS> (bind ?*x* 1)
 1
 FuzzyCLIPS> (refresh-agenda BOGUS)
-[ARGACCES5] Function refresh-agenda expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'refresh-agenda' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (refresh-agenda 7)
-[ARGACCES5] Function refresh-agenda expected argument #1 to be of type symbol
+[ARGACCES2] Function 'refresh-agenda' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (refresh-agenda FOO 7)
-[ARGACCES4] Function refresh-agenda expected no more than 1 argument(s)
+[ARGACCES1] Function 'refresh-agenda' expected no more than 1 argument.
 FuzzyCLIPS> (refresh-agenda)
 FuzzyCLIPS> (agenda *)
 MAIN:
@@ -779,11 +756,11 @@ when-activated
 FuzzyCLIPS> (set-break FOO::d1)
 FuzzyCLIPS> (set-break BAR::d3)
 FuzzyCLIPS> (show-breaks BOGUS)
-[ARGACCES5] Function show-breaks expected argument #1 to be of type defmodule name
+[ARGACCES2] Function 'show-breaks' expected argument #1 to be of type 'defmodule name'.
 FuzzyCLIPS> (show-breaks 7)
-[ARGACCES5] Function show-breaks expected argument #1 to be of type symbol
+[ARGACCES2] Function 'show-breaks' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (show-breaks FOO 7)
-[ARGACCES4] Function show-breaks expected no more than 1 argument(s)
+[ARGACCES1] Function 'show-breaks' expected no more than 1 argument.
 FuzzyCLIPS> (show-breaks)
 FuzzyCLIPS> (show-breaks MAIN)
 FuzzyCLIPS> (show-breaks FOO)

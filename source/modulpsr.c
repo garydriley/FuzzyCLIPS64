@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  10/01/16             */
    /*                                                     */
    /*              DEFMODULE PARSER MODULE                */
    /*******************************************************/
@@ -27,9 +27,16 @@
 /*            Fixed linkage issue when DEFMODULE_CONSTRUCT   */
 /*            compiler flag is set to 0.                     */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Callbacks must be environment aware.           */
+/*                                                           */
 /*************************************************************/
-
-#define _MODULPSR_SOURCE_
 
 #include "setup.h"
 
@@ -37,18 +44,19 @@
 
 #include <stdio.h>
 #include <string.h>
-#define _STDIO_INCLUDED_
 
-#include "memalloc.h"
-#include "constant.h"
-#include "router.h"
-#include "extnfunc.h"
 #include "argacces.h"
-#include "cstrcpsr.h"
+#include "constant.h"
 #include "constrct.h"
-#include "modulutl.h"
-#include "utility.h"
+#include "cstrcpsr.h"
 #include "envrnmnt.h"
+#include "extnfunc.h"
+#include "memalloc.h"
+#include "modulutl.h"
+#include "pprint.h"
+#include "prntutil.h"
+#include "router.h"
+#include "utility.h"
 
 #if BLOAD || BLOAD_AND_BSAVE
 #include "bload.h"
@@ -60,25 +68,25 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                        ParsePortSpecifications(void *,
+   static bool                       ParsePortSpecifications(Environment *,
                                                              const char *,struct token *,
-                                                             struct defmodule *);
-   static int                        ParseImportSpec(void *,const char *,struct token *,
-                                                     struct defmodule *);
-   static int                        ParseExportSpec(void *,const char *,struct token *,
-                                                     struct defmodule *,
-                                                     struct defmodule *);
-   static intBool                    DeleteDefmodule(void *,void *);
-   static int                        FindMultiImportConflict(void *,struct defmodule *);
-   static void                       NotExportedErrorMessage(void *,const char *,const char *,const char *);
+                                                             Defmodule *);
+   static bool                       ParseImportSpec(Environment *,const char *,struct token *,
+                                                     Defmodule *);
+   static bool                       ParseExportSpec(Environment *,const char *,struct token *,
+                                                     Defmodule *,
+                                                     Defmodule *);
+   static bool                       DeleteDefmodule(Defmodule *,Environment *);
+   static bool                       FindMultiImportConflict(Environment *,Defmodule *);
+   static void                       NotExportedErrorMessage(Environment *,const char *,const char *,const char *);
 
 /******************************************/
 /* SetNumberOfDefmodules: Sets the number */
 /*   of defmodules currently defined.     */
 /******************************************/
-globle void SetNumberOfDefmodules(
-  void *theEnv,
-  long value)
+void SetNumberOfDefmodules(
+  Environment *theEnv,
+  unsigned short value)
   {
    DefmoduleData(theEnv)->NumberOfDefmodules = value;
   }
@@ -88,24 +96,25 @@ globle void SetNumberOfDefmodules(
 /*   the list of functions that are to be called    */
 /*   after a module change occurs.                  */
 /****************************************************/
-globle void AddAfterModuleDefinedFunction(
-  void *theEnv,
+void AddAfterModuleDefinedFunction(
+  Environment *theEnv,
   const char *name,
-  void (*func)(void *),
-  int priority)
+  VoidCallFunction *func,
+  int priority,
+  void *context)
   {
    DefmoduleData(theEnv)->AfterModuleDefinedFunctions =
-     AddFunctionToCallList(theEnv,name,priority,func,DefmoduleData(theEnv)->AfterModuleDefinedFunctions,TRUE);
+     AddVoidFunctionToCallList(theEnv,name,priority,func,DefmoduleData(theEnv)->AfterModuleDefinedFunctions,context);
   }
 
 /******************************************************/
 /* AddPortConstructItem: Adds an item to the list of  */
 /*   items that can be imported/exported by a module. */
 /******************************************************/
-globle void AddPortConstructItem(
-  void *theEnv,
+void AddPortConstructItem(
+  Environment *theEnv,
   const char *theName,
-  int theType)
+  TokenType theType)
   {
    struct portConstructItem *newItem;
 
@@ -121,22 +130,22 @@ globle void AddPortConstructItem(
 /*   for the parsing and creation of a defmodule into */
 /*   the current environment.                         */
 /******************************************************/
-globle int ParseDefmodule(
-  void *theEnv,
+bool ParseDefmodule(
+  Environment *theEnv,
   const char *readSource)
   {
-   SYMBOL_HN *defmoduleName;
-   struct defmodule *newDefmodule;
+   CLIPSLexeme *defmoduleName;
+   Defmodule *newDefmodule;
    struct token inputToken;
-   int i;
+   unsigned int i;
    struct moduleItem *theItem;
    struct portItem *portSpecs, *nextSpec;
    struct defmoduleItemHeader *theHeader;
-   struct callFunctionItem *defineFunctions;
-   struct defmodule *redefiningMainModule = NULL;
-   int parseError;
+   struct voidCallFunctionItem *defineFunctions;
+   Defmodule *redefiningMainModule = NULL;
+   bool parseError;
    struct portItem *oldImportList = NULL, *oldExportList = NULL;
-   short overwrite = FALSE;
+   bool overwrite = false;
 
    /*================================================*/
    /* Flush the buffer which stores the pretty print */
@@ -144,7 +153,7 @@ globle int ParseDefmodule(
    /* parsed keyword defmodule to this buffer.       */
    /*================================================*/
 
-   SetPPBufferStatus(theEnv,ON);
+   SetPPBufferStatus(theEnv,true);
    FlushPPBuffer(theEnv);
    SetIndentDepth(theEnv,3);
    SavePPBuffer(theEnv,"(defmodule ");
@@ -155,10 +164,10 @@ globle int ParseDefmodule(
    /*===============================*/
 
 #if BLOAD || BLOAD_ONLY || BLOAD_AND_BSAVE
-   if ((Bloaded(theEnv) == TRUE) && (! ConstructData(theEnv)->CheckSyntaxMode))
+   if ((Bloaded(theEnv) == true) && (! ConstructData(theEnv)->CheckSyntaxMode))
      {
       CannotLoadWithBloadMessage(theEnv,"defmodule");
-      return(TRUE);
+      return true;
      }
 #endif
 
@@ -168,12 +177,13 @@ globle int ParseDefmodule(
    /*=====================================================*/
 
    defmoduleName = GetConstructNameAndComment(theEnv,readSource,&inputToken,"defmodule",
-                                              EnvFindDefmodule,DeleteDefmodule,"+",
-                                              TRUE,TRUE,FALSE,FALSE);
-   if (defmoduleName == NULL) { return(TRUE); }
+                                              (FindConstructFunction *) FindDefmodule,
+                                              (DeleteConstructFunction *) DeleteDefmodule,"+",
+                                              true,true,false,false);
+   if (defmoduleName == NULL) { return true; }
 
-   if (strcmp(ValueToString(defmoduleName),"MAIN") == 0)
-     { redefiningMainModule = (struct defmodule *) EnvFindDefmodule(theEnv,"MAIN"); }
+   if (strcmp(defmoduleName->contents,"MAIN") == 0)
+     { redefiningMainModule = FindDefmodule(theEnv,"MAIN"); }
 
    /*==============================================*/
    /* Create the defmodule structure if necessary. */
@@ -181,20 +191,23 @@ globle int ParseDefmodule(
 
    if (redefiningMainModule == NULL)
      {
-      newDefmodule = (struct defmodule *) EnvFindDefmodule(theEnv,ValueToString(defmoduleName));
+      newDefmodule = FindDefmodule(theEnv,defmoduleName->contents);
       if (newDefmodule)
-        { overwrite = TRUE; }
+        { overwrite = true; }
       else
         {
          newDefmodule = get_struct(theEnv,defmodule);
-         newDefmodule->name = defmoduleName;
-         newDefmodule->usrData = NULL;
-         newDefmodule->next = NULL;
+         newDefmodule->header.name = defmoduleName;
+         newDefmodule->header.whichModule = NULL;
+         newDefmodule->header.usrData = NULL;
+         newDefmodule->header.constructType = DEFMODULE;
+         newDefmodule->header.env = theEnv;
+         newDefmodule->header.next = NULL;
         }
      }
    else
      {
-      overwrite = TRUE;
+      overwrite = true;
       newDefmodule = redefiningMainModule;
      }
 
@@ -252,8 +265,8 @@ globle int ParseDefmodule(
          newDefmodule->exportList = oldExportList;
         }
 
-      if (parseError) return(TRUE);
-      return(FALSE);
+      if (parseError) return true;
+      return false;
      }
 
    /*===============================================*/
@@ -262,26 +275,26 @@ globle int ParseDefmodule(
    /*===============================================*/
 
    if (redefiningMainModule == NULL)
-     { IncrementSymbolCount(newDefmodule->name); }
+     { IncrementLexemeCount(newDefmodule->header.name); }
    else
      {
       if ((newDefmodule->importList != NULL) ||
           (newDefmodule->exportList != NULL))
-        { DefmoduleData(theEnv)->MainModuleRedefinable = FALSE; }
+        { DefmoduleData(theEnv)->MainModuleRedefinable = false; }
      }
 
    for (portSpecs = newDefmodule->importList; portSpecs != NULL; portSpecs = portSpecs->next)
      {
-      if (portSpecs->moduleName != NULL) IncrementSymbolCount(portSpecs->moduleName);
-      if (portSpecs->constructType != NULL) IncrementSymbolCount(portSpecs->constructType);
-      if (portSpecs->constructName != NULL) IncrementSymbolCount(portSpecs->constructName);
+      if (portSpecs->moduleName != NULL) IncrementLexemeCount(portSpecs->moduleName);
+      if (portSpecs->constructType != NULL) IncrementLexemeCount(portSpecs->constructType);
+      if (portSpecs->constructName != NULL) IncrementLexemeCount(portSpecs->constructName);
      }
 
    for (portSpecs = newDefmodule->exportList; portSpecs != NULL; portSpecs = portSpecs->next)
      {
-      if (portSpecs->moduleName != NULL) IncrementSymbolCount(portSpecs->moduleName);
-      if (portSpecs->constructType != NULL) IncrementSymbolCount(portSpecs->constructType);
-      if (portSpecs->constructName != NULL) IncrementSymbolCount(portSpecs->constructName);
+      if (portSpecs->moduleName != NULL) IncrementLexemeCount(portSpecs->moduleName);
+      if (portSpecs->constructType != NULL) IncrementLexemeCount(portSpecs->constructType);
+      if (portSpecs->constructName != NULL) IncrementLexemeCount(portSpecs->constructName);
      }
 
    /*====================================================*/
@@ -317,10 +330,10 @@ globle int ParseDefmodule(
 
    SavePPBuffer(theEnv,"\n");
 
-   if (EnvGetConserveMemory(theEnv) == TRUE)
-     { newDefmodule->ppForm = NULL; }
+   if (GetConserveMemory(theEnv) == true)
+     { newDefmodule->header.ppForm = NULL; }
    else
-     { newDefmodule->ppForm = CopyPPBuffer(theEnv); }
+     { newDefmodule->header.ppForm = CopyPPBuffer(theEnv); }
 
    /*==============================================*/
    /* Add the defmodule to the list of defmodules. */
@@ -329,12 +342,12 @@ globle int ParseDefmodule(
    if (redefiningMainModule == NULL)
      {
       if (DefmoduleData(theEnv)->LastDefmodule == NULL) DefmoduleData(theEnv)->ListOfDefmodules = newDefmodule;
-      else DefmoduleData(theEnv)->LastDefmodule->next = newDefmodule;
+      else DefmoduleData(theEnv)->LastDefmodule->header.next = &newDefmodule->header;
       DefmoduleData(theEnv)->LastDefmodule = newDefmodule;
-      newDefmodule->bsaveID = DefmoduleData(theEnv)->NumberOfDefmodules++;
+      newDefmodule->header.bsaveID = DefmoduleData(theEnv)->NumberOfDefmodules++;
      }
 
-   EnvSetCurrentModule(theEnv,(void *) newDefmodule);
+   SetCurrentModule(theEnv,newDefmodule);
 
    /*=========================================*/
    /* Call any functions required by other    */
@@ -350,7 +363,7 @@ globle int ParseDefmodule(
    /* Defmodule successfully parsed with no errors. */
    /*===============================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /*************************************************************/
@@ -358,27 +371,34 @@ globle int ParseDefmodule(
 /*   if a module can be redefined. Only the MAIN module can  */
 /*   be redefined (and it can only be redefined once).       */
 /*************************************************************/
-static intBool DeleteDefmodule(
-  void *theEnv,
-  void *theConstruct)
+static bool DeleteDefmodule(
+  Defmodule *theDefmodule,
+  Environment *allEnv)
   {
-   if (strcmp(EnvGetDefmoduleName(theEnv,theConstruct),"MAIN") == 0)
+   Environment *theEnv;
+   
+   if (theDefmodule == NULL)
+     { theEnv = allEnv; }
+   else
+     { theEnv = theDefmodule->header.env; }
+   
+   if (strcmp(DefmoduleName(theDefmodule),"MAIN") == 0)
      { return(DefmoduleData(theEnv)->MainModuleRedefinable); }
 
-   return(FALSE);
+   return false;
   }
 
 /*********************************************************/
 /* ParsePortSpecifications: Parses the import and export */
 /*   specifications found in a defmodule construct.      */
 /*********************************************************/
-static int ParsePortSpecifications(
-  void *theEnv,
+static bool ParsePortSpecifications(
+  Environment *theEnv,
   const char *readSource,
   struct token *theToken,
-  struct defmodule *theDefmodule)
+  Defmodule *theDefmodule)
   {
-   int error;
+   bool error;
 
    /*=============================*/
    /* The import and export lists */
@@ -393,16 +413,16 @@ static int ParsePortSpecifications(
    /* a right parenthesis is encountered.      */
    /*==========================================*/
 
-   while (theToken->type != RPAREN)
+   while (theToken->tknType != RIGHT_PARENTHESIS_TOKEN)
      {
       /*========================================*/
       /* Look for the opening left parenthesis. */
       /*========================================*/
 
-      if (theToken->type != LPAREN)
+      if (theToken->tknType != LEFT_PARENTHESIS_TOKEN)
         {
          SyntaxErrorMessage(theEnv,"defmodule");
-         return(TRUE);
+         return true;
         }
 
       /*====================================*/
@@ -413,27 +433,27 @@ static int ParsePortSpecifications(
 
       GetToken(theEnv,readSource,theToken);
 
-      if (theToken->type != SYMBOL)
+      if (theToken->tknType != SYMBOL_TOKEN)
         {
          SyntaxErrorMessage(theEnv,"defmodule");
-         return(TRUE);
+         return true;
         }
 
-      if (strcmp(ValueToString(theToken->value),"import") == 0)
+      if (strcmp(theToken->lexemeValue->contents,"import") == 0)
         {
          error = ParseImportSpec(theEnv,readSource,theToken,theDefmodule);
         }
-      else if (strcmp(ValueToString(theToken->value),"export") == 0)
+      else if (strcmp(theToken->lexemeValue->contents,"export") == 0)
         {
          error = ParseExportSpec(theEnv,readSource,theToken,theDefmodule,NULL);
         }
       else
         {
          SyntaxErrorMessage(theEnv,"defmodule");
-         return(TRUE);
+         return true;
         }
 
-      if (error) return(TRUE);
+      if (error) return true;
 
       /*============================================*/
       /* Begin parsing the next port specification. */
@@ -442,7 +462,7 @@ static int ParsePortSpecifications(
       PPCRAndIndent(theEnv);
       GetToken(theEnv,readSource,theToken);
 
-      if (theToken->type == RPAREN)
+      if (theToken->tknType == RIGHT_PARENTHESIS_TOKEN)
         {
          PPBackup(theEnv);
          PPBackup(theEnv);
@@ -451,12 +471,12 @@ static int ParsePortSpecifications(
      }
 
    /*===================================*/
-   /* Return FALSE to indicate no error */
+   /* Return false to indicate no error */
    /* occurred while parsing the        */
    /* import/export specifications.     */
    /*===================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /**********************************************************/
@@ -471,15 +491,16 @@ static int ParsePortSpecifications(
 /*                   <construct-name> ?NONE |             */
 /*                   <construct-name> <names>*            */
 /**********************************************************/
-static int ParseImportSpec(
-  void *theEnv,
+static bool ParseImportSpec(
+  Environment *theEnv,
   const char *readSource,
   struct token *theToken,
-  struct defmodule *newModule)
+  Defmodule *newModule)
   {
-   struct defmodule *theModule;
+   Defmodule *theModule;
    struct portItem *thePort, *oldImportSpec;
-   int found, count;
+   bool found;
+   unsigned int count;
 
    /*===========================*/
    /* Look for the module name. */
@@ -489,21 +510,20 @@ static int ParseImportSpec(
 
    GetToken(theEnv,readSource,theToken);
 
-   if (theToken->type != SYMBOL)
+   if (theToken->tknType != SYMBOL_TOKEN)
      {
       SyntaxErrorMessage(theEnv,"defmodule import specification");
-      return(TRUE);
+      return true;
      }
 
    /*=====================================*/
    /* Verify the existence of the module. */
    /*=====================================*/
 
-   if ((theModule = (struct defmodule *)
-                    EnvFindDefmodule(theEnv,ValueToString(theToken->value))) == NULL)
+   if ((theModule = FindDefmodule(theEnv,theToken->lexemeValue->contents)) == NULL)
      {
-      CantFindItemErrorMessage(theEnv,"defmodule",ValueToString(theToken->value));
-      return(TRUE);
+      CantFindItemErrorMessage(theEnv,"defmodule",theToken->lexemeValue->contents,true);
+      return true;
      }
 
    /*========================================*/
@@ -514,8 +534,8 @@ static int ParseImportSpec(
 
    if (theModule->exportList == NULL)
      {
-      NotExportedErrorMessage(theEnv,EnvGetDefmoduleName(theEnv,theModule),NULL,NULL);
-      return(TRUE);
+      NotExportedErrorMessage(theEnv,DefmoduleName(theModule),NULL,NULL);
+      return true;
      }
 
    /*==============================================*/
@@ -524,7 +544,7 @@ static int ParseImportSpec(
    /*==============================================*/
 
    oldImportSpec = newModule->importList;
-   if (ParseExportSpec(theEnv,readSource,theToken,newModule,theModule)) return(TRUE);
+   if (ParseExportSpec(theEnv,readSource,theToken,newModule,theModule)) return true;
 
    /*========================================================*/
    /* If the ?NONE keyword was used with the import spec,    */
@@ -532,7 +552,7 @@ static int ParseImportSpec(
    /* import spec does not need to be checked for conflicts. */
    /*========================================================*/
 
-   if (newModule->importList == oldImportSpec) return(FALSE);
+   if (newModule->importList == oldImportSpec) return false;
 
    /*======================================================*/
    /* Check to see if the construct being imported can be  */
@@ -549,18 +569,18 @@ static int ParseImportSpec(
       /* the module that exports it. */
       /*=============================*/
 
-      found = FALSE;
+      found = false;
       for (thePort = theModule->exportList;
            (thePort != NULL) && (! found);
            thePort = thePort->next)
         {
-         if (thePort->constructType == NULL) found = TRUE;
+         if (thePort->constructType == NULL) found = true;
          else if (thePort->constructType == newModule->importList->constructType)
            {
-            if (newModule->importList->constructName == NULL) found = TRUE;
-            else if (thePort->constructName == NULL) found = TRUE;
+            if (newModule->importList->constructName == NULL) found = true;
+            else if (thePort->constructName == NULL) found = true;
             else if (thePort->constructName == newModule->importList->constructName)
-              { found = TRUE; }
+              { found = true; }
            }
         }
 
@@ -573,17 +593,17 @@ static int ParseImportSpec(
         {
          if (newModule->importList->constructName == NULL)
            {
-            NotExportedErrorMessage(theEnv,EnvGetDefmoduleName(theEnv,theModule),
-                                    ValueToString(newModule->importList->constructType),
+            NotExportedErrorMessage(theEnv,DefmoduleName(theModule),
+                                    newModule->importList->constructType->contents,
                                     NULL);
            }
          else
            {
-            NotExportedErrorMessage(theEnv,EnvGetDefmoduleName(theEnv,theModule),
-                                    ValueToString(newModule->importList->constructType),
-                                    ValueToString(newModule->importList->constructName));
+            NotExportedErrorMessage(theEnv,DefmoduleName(theModule),
+                                    newModule->importList->constructType->contents,
+                                    newModule->importList->constructName->contents);
            }
-         return(TRUE);
+         return true;
         }
      }
 
@@ -593,7 +613,7 @@ static int ParseImportSpec(
    /*======================================================*/
 
    SaveCurrentModule(theEnv);
-   EnvSetCurrentModule(theEnv,(void *) newModule);
+   SetCurrentModule(theEnv,newModule);
 
    for (thePort = newModule->importList;
         thePort != NULL;
@@ -602,18 +622,17 @@ static int ParseImportSpec(
       if ((thePort->constructType == NULL) || (thePort->constructName == NULL))
         { continue; }
 
-      theModule = (struct defmodule *)
-                  EnvFindDefmodule(theEnv,ValueToString(thePort->moduleName));
-      EnvSetCurrentModule(theEnv,theModule);
-      if (FindImportedConstruct(theEnv,ValueToString(thePort->constructType),NULL,
-                                ValueToString(thePort->constructName),&count,
-                                TRUE,FALSE) == NULL)
+      theModule = FindDefmodule(theEnv,thePort->moduleName->contents);
+      SetCurrentModule(theEnv,theModule);
+      if (FindImportedConstruct(theEnv,thePort->constructType->contents,NULL,
+                                thePort->constructName->contents,&count,
+                                true,NULL) == NULL)
         {
-         NotExportedErrorMessage(theEnv,EnvGetDefmoduleName(theEnv,theModule),
-                                 ValueToString(thePort->constructType),
-                                 ValueToString(thePort->constructName));
+         NotExportedErrorMessage(theEnv,DefmoduleName(theModule),
+                                 thePort->constructType->contents,
+                                 thePort->constructName->contents);
          RestoreCurrentModule(theEnv);
-         return(TRUE);
+         return true;
         }
      }
 
@@ -623,7 +642,7 @@ static int ParseImportSpec(
    /* The import list has been successfully parsed. */
    /*===============================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /**********************************************************/
@@ -632,15 +651,15 @@ static int ParseImportSpec(
 /*   remaining specification found in an import           */
 /*   specification after the module name.                 */
 /**********************************************************/
-static int ParseExportSpec(
-  void *theEnv,
+static bool ParseExportSpec(
+  Environment *theEnv,
   const char *readSource,
   struct token *theToken,
-  struct defmodule *newModule,
-  struct defmodule *importModule)
+  Defmodule *newModule,
+  Defmodule *importModule)
   {
    struct portItem *newPort;
-   SYMBOL_HN *theConstruct, *moduleName;
+   CLIPSLexeme *theConstruct, *moduleName;
    struct portConstructItem *thePortConstruct;
    const char *errorMessage;
 
@@ -651,7 +670,7 @@ static int ParseExportSpec(
    if (importModule != NULL)
      {
       errorMessage = "defmodule import specification";
-      moduleName = importModule->name;
+      moduleName = importModule->header.name;
      }
    else
      {
@@ -667,14 +686,14 @@ static int ParseExportSpec(
    SavePPBuffer(theEnv," ");
    GetToken(theEnv,readSource,theToken);
 
-   if (theToken->type == SF_VARIABLE)
+   if (theToken->tknType == SF_VARIABLE_TOKEN)
      {
       /*==============================*/
       /* Check to see if the variable */
       /* is either ?ALL or ?NONE.     */
       /*==============================*/
 
-      if (strcmp(ValueToString(theToken->value),"ALL") == 0)
+      if (strcmp(theToken->lexemeValue->contents,"ALL") == 0)
         {
          newPort = (struct portItem *) get_struct(theEnv,portItem);
          newPort->moduleName = moduleName;
@@ -682,12 +701,12 @@ static int ParseExportSpec(
          newPort->constructName = NULL;
          newPort->next = NULL;
         }
-      else if (strcmp(ValueToString(theToken->value),"NONE") == 0)
+      else if (strcmp(theToken->lexemeValue->contents,"NONE") == 0)
         { newPort = NULL; }
       else
         {
          SyntaxErrorMessage(theEnv,errorMessage);
-         return(TRUE);
+         return true;
         }
 
       /*=======================================================*/
@@ -697,14 +716,14 @@ static int ParseExportSpec(
 
       GetToken(theEnv,readSource,theToken);
 
-      if (theToken->type != RPAREN)
+      if (theToken->tknType != RIGHT_PARENTHESIS_TOKEN)
         {
          if (newPort != NULL) rtn_struct(theEnv,portItem,newPort);
          PPBackup(theEnv);
          SavePPBuffer(theEnv," ");
          SavePPBuffer(theEnv,theToken->printForm);
          SyntaxErrorMessage(theEnv,errorMessage);
-         return(TRUE);
+         return true;
         }
 
       /*=====================================*/
@@ -727,11 +746,11 @@ static int ParseExportSpec(
         }
 
       /*============================================*/
-      /* Return FALSE to indicate the import/export */
+      /* Return false to indicate the import/export */
       /* specification was successfully parsed.     */
       /*============================================*/
 
-      return(FALSE);
+      return false;
      }
 
    /*========================================================*/
@@ -739,18 +758,18 @@ static int ParseExportSpec(
    /* token must be the name of an importable construct.     */
    /*========================================================*/
 
-   if (theToken->type != SYMBOL)
+   if (theToken->tknType != SYMBOL_TOKEN)
      {
       SyntaxErrorMessage(theEnv,errorMessage);
-      return(TRUE);
+      return true;
      }
 
-   theConstruct = (SYMBOL_HN *) theToken->value;
+   theConstruct = theToken->lexemeValue;
 
-   if ((thePortConstruct = ValidPortConstructItem(theEnv,ValueToString(theConstruct))) == NULL)
+   if ((thePortConstruct = ValidPortConstructItem(theEnv,theConstruct->contents)) == NULL)
      {
       SyntaxErrorMessage(theEnv,errorMessage);
-      return(TRUE);
+      return true;
      }
 
    /*=============================================================*/
@@ -763,14 +782,14 @@ static int ParseExportSpec(
    SavePPBuffer(theEnv," ");
    GetToken(theEnv,readSource,theToken);
 
-   if (theToken->type == SF_VARIABLE)
+   if (theToken->tknType == SF_VARIABLE_TOKEN)
      {
       /*==============================*/
       /* Check to see if the variable */
       /* is either ?ALL or ?NONE.     */
       /*==============================*/
 
-      if (strcmp(ValueToString(theToken->value),"ALL") == 0)
+      if (strcmp(theToken->lexemeValue->contents,"ALL") == 0)
         {
          newPort = (struct portItem *) get_struct(theEnv,portItem);
          newPort->moduleName = moduleName;
@@ -778,12 +797,12 @@ static int ParseExportSpec(
          newPort->constructName = NULL;
          newPort->next = NULL;
         }
-      else if (strcmp(ValueToString(theToken->value),"NONE") == 0)
+      else if (strcmp(theToken->lexemeValue->contents,"NONE") == 0)
         { newPort = NULL; }
       else
         {
          SyntaxErrorMessage(theEnv,errorMessage);
-         return(TRUE);
+         return true;
         }
 
       /*=======================================================*/
@@ -793,14 +812,14 @@ static int ParseExportSpec(
 
       GetToken(theEnv,readSource,theToken);
 
-      if (theToken->type != RPAREN)
+      if (theToken->tknType != RIGHT_PARENTHESIS_TOKEN)
         {
          if (newPort != NULL) rtn_struct(theEnv,portItem,newPort);
          PPBackup(theEnv);
          SavePPBuffer(theEnv," ");
          SavePPBuffer(theEnv,theToken->printForm);
          SyntaxErrorMessage(theEnv,errorMessage);
-         return(TRUE);
+         return true;
         }
 
       /*=====================================*/
@@ -823,11 +842,11 @@ static int ParseExportSpec(
         }
 
       /*============================================*/
-      /* Return FALSE to indicate the import/export */
+      /* Return false to indicate the import/export */
       /* specification was successfully parsed.     */
       /*============================================*/
 
-      return(FALSE);
+      return false;
      }
 
    /*============================================*/
@@ -835,22 +854,22 @@ static int ParseExportSpec(
    /* in the import/export list at this point.   */
    /*============================================*/
 
-   if (theToken->type == RPAREN)
+   if (theToken->tknType == RIGHT_PARENTHESIS_TOKEN)
      {
       SyntaxErrorMessage(theEnv,errorMessage);
-      return(TRUE);
+      return true;
      }
 
    /*=====================================*/
    /* Read in the list of imported items. */
    /*=====================================*/
 
-   while (theToken->type != RPAREN)
+   while (theToken->tknType != RIGHT_PARENTHESIS_TOKEN)
      {
-      if (theToken->type != thePortConstruct->typeExpected)
+      if (theToken->tknType != thePortConstruct->typeExpected)
         {
          SyntaxErrorMessage(theEnv,errorMessage);
-         return(TRUE);
+         return true;
         }
 
       /*========================================*/
@@ -862,7 +881,7 @@ static int ParseExportSpec(
       newPort = (struct portItem *) get_struct(theEnv,portItem);
       newPort->moduleName = moduleName;
       newPort->constructType = theConstruct;
-      newPort->constructName = (SYMBOL_HN *) theToken->value;
+      newPort->constructName = theToken->lexemeValue;
 
       /*=====================================*/
       /* Add the new specification to either */
@@ -898,20 +917,20 @@ static int ParseExportSpec(
    SavePPBuffer(theEnv,")");
 
    /*============================================*/
-   /* Return FALSE to indicate the import/export */
+   /* Return false to indicate the import/export */
    /* specification was successfully parsed.     */
    /*============================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /*************************************************************/
-/* ValidPortConstructItem: Returns TRUE if a given construct */
+/* ValidPortConstructItem: Returns true if a given construct */
 /*   name is in the list of constructs which can be exported */
-/*   and imported, otherwise FALSE is returned.              */
+/*   and imported, otherwise false is returned.              */
 /*************************************************************/
-globle struct portConstructItem *ValidPortConstructItem(
-  void *theEnv,
+struct portConstructItem *ValidPortConstructItem(
+  Environment *theEnv,
   const char *theName)
   {
    struct portConstructItem *theItem;
@@ -921,7 +940,7 @@ globle struct portConstructItem *ValidPortConstructItem(
         theItem = theItem->next)
      { if (strcmp(theName,theItem->constructName) == 0) return(theItem); }
 
-   return(NULL);
+   return NULL;
   }
 
 /***********************************************************/
@@ -929,15 +948,15 @@ globle struct portConstructItem *ValidPortConstructItem(
 /*   the same named construct from more than one module    */
 /*   (i.e. an ambiguous reference which is not allowed).   */
 /***********************************************************/
-static int FindMultiImportConflict(
-  void *theEnv,
-  struct defmodule *theModule)
+static bool FindMultiImportConflict(
+  Environment *theEnv,
+  Defmodule *theModule)
   {
-   struct defmodule *testModule;
-   int count;
+   Defmodule *testModule;
+   unsigned int count;
    struct portConstructItem *thePCItem;
-   struct construct *theConstruct;
-   void *theCItem;
+   Construct *theConstruct;
+   ConstructHeader *theCItem;
 
    /*==========================*/
    /* Save the current module. */
@@ -949,9 +968,9 @@ static int FindMultiImportConflict(
    /* Loop through every module. */
    /*============================*/
 
-   for (testModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+   for (testModule = GetNextDefmodule(theEnv,NULL);
         testModule != NULL;
-        testModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,testModule))
+        testModule = GetNextDefmodule(theEnv,testModule))
      {
       /*========================================*/
       /* Loop through every construct type that */
@@ -962,7 +981,7 @@ static int FindMultiImportConflict(
            thePCItem != NULL;
            thePCItem = thePCItem->next)
         {
-         EnvSetCurrentModule(theEnv,(void *) testModule);
+         SetCurrentModule(theEnv,testModule);
 
          /*=====================================================*/
          /* Loop through every construct of the specified type. */
@@ -981,22 +1000,20 @@ static int FindMultiImportConflict(
              /* ambiguous import  specifications.             */
              /*===============================================*/
 
-             EnvSetCurrentModule(theEnv,(void *) theModule);
+             SetCurrentModule(theEnv,theModule);
              FindImportedConstruct(theEnv,thePCItem->constructName,NULL,
-                                   ValueToString((*theConstruct->getConstructNameFunction)
-                                                 ((struct constructHeader *) theCItem)),
-                                   &count,FALSE,NULL);
+                                   (*theConstruct->getConstructNameFunction)(theCItem)->contents,
+                                   &count,false,NULL);
              if (count > 1)
                {
-                ImportExportConflictMessage(theEnv,"defmodule",EnvGetDefmoduleName(theEnv,theModule),
+                ImportExportConflictMessage(theEnv,"defmodule",DefmoduleName(theModule),
                                             thePCItem->constructName,
-                                            ValueToString((*theConstruct->getConstructNameFunction)
-                                                          ((struct constructHeader *) theCItem)));
+                                            (*theConstruct->getConstructNameFunction)(theCItem)->contents);
                 RestoreCurrentModule(theEnv);
-                return(TRUE);
+                return true;
                }
 
-             EnvSetCurrentModule(theEnv,(void *) testModule);
+             SetCurrentModule(theEnv,testModule);
             }
         }
      }
@@ -1008,11 +1025,11 @@ static int FindMultiImportConflict(
    RestoreCurrentModule(theEnv);
 
    /*=======================================*/
-   /* Return FALSE to indicate no ambiguous */
+   /* Return false to indicate no ambiguous */
    /* references were found.                */
    /*=======================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /******************************************************/
@@ -1021,64 +1038,65 @@ static int FindMultiImportConflict(
 /*  named construct is not exported.                  */
 /******************************************************/
 static void NotExportedErrorMessage(
-  void *theEnv,
+  Environment *theEnv,
   const char *theModule,
   const char *theConstruct,
   const char *theName)
   {
-   PrintErrorID(theEnv,"MODULPSR",1,TRUE);
-   EnvPrintRouter(theEnv,WERROR,"Module ");
-   EnvPrintRouter(theEnv,WERROR,theModule);
-   EnvPrintRouter(theEnv,WERROR," does not export ");
+   PrintErrorID(theEnv,"MODULPSR",1,true);
+   WriteString(theEnv,STDERR,"Module '");
+   WriteString(theEnv,STDERR,theModule);
+   WriteString(theEnv,STDERR,"' does not export ");
 
-   if (theConstruct == NULL) EnvPrintRouter(theEnv,WERROR,"any constructs");
+   if (theConstruct == NULL) WriteString(theEnv,STDERR,"any constructs");
    else if (theName == NULL)
      {
-      EnvPrintRouter(theEnv,WERROR,"any ");
-      EnvPrintRouter(theEnv,WERROR,theConstruct);
-      EnvPrintRouter(theEnv,WERROR," constructs");
+      WriteString(theEnv,STDERR,"any ");
+      WriteString(theEnv,STDERR,theConstruct);
+      WriteString(theEnv,STDERR," constructs");
      }
    else
      {
-      EnvPrintRouter(theEnv,WERROR,"the ");
-      EnvPrintRouter(theEnv,WERROR,theConstruct);
-      EnvPrintRouter(theEnv,WERROR," ");
-      EnvPrintRouter(theEnv,WERROR,theName);
+      WriteString(theEnv,STDERR,"the ");
+      WriteString(theEnv,STDERR,theConstruct);
+      WriteString(theEnv,STDERR," '");
+      WriteString(theEnv,STDERR,theName);
+      WriteString(theEnv,STDERR,"'");
      }
 
-   EnvPrintRouter(theEnv,WERROR,".\n");
+   WriteString(theEnv,STDERR,".\n");
   }
 
 /*************************************************************/
 /* FindImportExportConflict: Determines if the definition of */
 /*   a construct would cause an import/export conflict. The  */
 /*   construct is not yet defined when this function is      */
-/*   called. TRUE is returned if an import/export conflicts  */
-/*   is found, otherwise FALSE is returned.                  */
+/*   called. True is returned if an import/export conflicts  */
+/*   is found, otherwise false is returned.                  */
 /*************************************************************/
-globle int FindImportExportConflict(
-  void *theEnv,
+bool FindImportExportConflict(
+  Environment *theEnv,
   const char *constructName,
-  struct defmodule *matchModule,
+  Defmodule *matchModule,
   const char *findName)
   {
-   struct defmodule *theModule;
+   Defmodule *theModule;
    struct moduleItem *theModuleItem;
-   int count;
+   unsigned int count;
 
    /*===========================================================*/
    /* If the construct type can't be imported or exported, then */
    /* it's not possible to have an import/export conflict.      */
    /*===========================================================*/
 
-   if (ValidPortConstructItem(theEnv,constructName) == NULL) return(FALSE);
+   if (ValidPortConstructItem(theEnv,constructName) == NULL) return false;
 
    /*============================================*/
    /* There module name should already have been */
    /* separated fromthe construct's name.        */
    /*============================================*/
 
-   if (FindModuleSeparator(findName)) return(FALSE);
+   if (FindModuleSeparator(findName)) return false;
 
    /*===============================================================*/
    /* The construct must be capable of being stored within a module */
@@ -1087,9 +1105,9 @@ globle int FindImportExportConflict(
    /* for import/export conflicts.                                  */
    /*===============================================================*/
 
-   if ((theModuleItem = FindModuleItem(theEnv,constructName)) == NULL) return(FALSE);
+   if ((theModuleItem = FindModuleItem(theEnv,constructName)) == NULL) return false;
 
-   if (theModuleItem->findFunction == NULL) return(FALSE);
+   if (theModuleItem->findFunction == NULL) return false;
 
    /*==========================*/
    /* Save the current module. */
@@ -1101,46 +1119,32 @@ globle int FindImportExportConflict(
    /* Look at each module and count each definition of the specified */
    /* construct which is visible to the module. If more than one     */
    /* definition is visible, then an import/export conflict exists   */
-   /* and TRUE is returned.                                          */
+   /* and true is returned.                                          */
    /*================================================================*/
 
-   for (theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,NULL);
+   for (theModule = GetNextDefmodule(theEnv,NULL);
         theModule != NULL;
-        theModule = (struct defmodule *) EnvGetNextDefmodule(theEnv,theModule))
+        theModule = GetNextDefmodule(theEnv,theModule))
      {
-      EnvSetCurrentModule(theEnv,(void *) theModule);
+      SetCurrentModule(theEnv,theModule);
 
-      FindImportedConstruct(theEnv,constructName,NULL,findName,&count,TRUE,matchModule);
+      FindImportedConstruct(theEnv,constructName,NULL,findName,&count,true,matchModule);
       if (count > 1)
         {
          RestoreCurrentModule(theEnv);
-         return(TRUE);
+         return true;
         }
      }
 
    /*==========================================*/
    /* Restore the current module. No conflicts */
-   /* were detected so FALSE is returned.      */
+   /* were detected so false is returned.      */
    /*==========================================*/
 
    RestoreCurrentModule(theEnv);
-   return(FALSE);
+   return false;
   }
 
 #endif /* DEFMODULE_CONSTRUCT && (! RUN_TIME) && (! BLOAD_ONLY) */
-
-/*********************************************/
-/* GetNumberOfDefmodules: Returns the number */
-/*   of defmodules currently defined.        */
-/*********************************************/
-globle long GetNumberOfDefmodules(
-  void *theEnv)
-  {
-#if DEFMODULE_CONSTRUCT && (! RUN_TIME) && (! BLOAD_ONLY)
-   return(DefmoduleData(theEnv)->NumberOfDefmodules);
-#else
-   return 1L;
-#endif
-  }
 
 

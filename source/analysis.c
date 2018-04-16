@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  08/11/16             */
    /*                                                     */
    /*                  ANALYSIS MODULE                    */
    /*******************************************************/
@@ -27,89 +27,84 @@
 /*                                                           */
 /*      6.30: Join network rework and optimizations.         */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Static constraint checking is always enabled.  */
+/*                                                           */
 /*************************************************************/
-
-#define _ANALYSIS_SOURCE_
 
 #include "setup.h"
 
 #if (! RUN_TIME) && (! BLOAD_ONLY) && DEFRULE_CONSTRUCT
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "constant.h"
-#include "symbol.h"
-#include "memalloc.h"
-#include "exprnpsr.h"
-#include "reorder.h"
-#include "generate.h"
-#include "pattern.h"
-#include "router.h"
-#include "ruledef.h"
 #include "cstrnchk.h"
 #include "cstrnutl.h"
 #include "cstrnops.h"
-#include "rulecstr.h"
+#include "exprnpsr.h"
+#include "generate.h"
+#include "memalloc.h"
 #include "modulutl.h"
-#include "analysis.h"
-
-#include "watch.h"
+#include "pattern.h"
+#include "prntutil.h"
+#include "reorder.h"
+#include "router.h"
+#include "rulecstr.h"
+#include "ruledef.h"
 #include "rulepsr.h"
+#include "symbol.h"
+#include "watch.h"
 
-#if DEFGLOBAL_CONSTRUCT
-#include "globldef.h"
-#endif
+#include "analysis.h"
 
 /***************************************/
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static int                     GetVariables(void *,struct lhsParseNode *,int,struct nandFrame *);
-   static intBool                 UnboundVariablesInPattern(void *,struct lhsParseNode *,int);
-   static int                     PropagateVariableToNodes(void *,
-                                                           struct lhsParseNode *,
-                                                           int,
-                                                           struct symbolHashNode *,
-                                                           struct lhsParseNode *,
-                                                           int,int,int);
-   static struct lhsParseNode    *CheckExpression(void *,
-                                                  struct lhsParseNode *,
-                                                  struct lhsParseNode *,
-                                                  int,
-                                                  struct symbolHashNode *,
-                                                  int);
-   static void                    VariableReferenceErrorMessage(void *,
-                                                                struct symbolHashNode *,
+   static bool                    GetVariables(Environment *,struct lhsParseNode *,ParseNodeType,struct nandFrame *);
+   static bool                    UnboundVariablesInPattern(Environment *,struct lhsParseNode *,unsigned short);
+   static bool                    PropagateVariableToNodes(Environment *,struct lhsParseNode *,ParseNodeType,
+                                                           CLIPSLexeme *,struct lhsParseNode *,
+                                                           int,bool,bool);
+   static struct lhsParseNode    *CheckExpression(Environment *,struct lhsParseNode *,struct lhsParseNode *,
+                                                  unsigned short,CLIPSLexeme *,unsigned short);
+   static void                    VariableReferenceErrorMessage(Environment *,
+                                                                CLIPSLexeme *,
                                                                 struct lhsParseNode *,
                                                                 int,
-                                                                struct symbolHashNode *,
+                                                                CLIPSLexeme *,
                                                                 int);
-   static int                     ProcessField(void *theEnv,
+   static bool                    ProcessField(Environment *,
                                                struct lhsParseNode *,
                                                struct lhsParseNode *,
                                                struct lhsParseNode *,
-                                               int,
+                                               ParseNodeType,
                                                struct nandFrame *);
-   static int                     ProcessVariable(void *,
+   static bool                    ProcessVariable(Environment *,
                                                struct lhsParseNode *,
                                                struct lhsParseNode *,
                                                struct lhsParseNode *,
-                                               int,
+                                               ParseNodeType,
                                                struct nandFrame *);
-   static void                    VariableMixingErrorMessage(void *,struct symbolHashNode *);
-   static int                     PropagateVariableDriver(void *,
+   static void                    VariableMixingErrorMessage(Environment *,CLIPSLexeme *);
+   static bool                    PropagateVariableDriver(Environment *,
                                                           struct lhsParseNode *,
                                                           struct lhsParseNode *,
                                                           struct lhsParseNode *,
-                                                          int,struct symbolHashNode *,
+                                                          ParseNodeType,CLIPSLexeme *,
                                                           struct lhsParseNode *,
-                                                          int,int);
-                                                          
-   static int                     TestCEAnalysis(void *,struct lhsParseNode *,struct lhsParseNode *,int,int *,struct nandFrame *);
-   static void                    ReleaseNandFrames(void *,struct nandFrame *);
+                                                          bool,ParseNodeType);
+   static bool                    TestCEAnalysis(Environment *,struct lhsParseNode *,struct lhsParseNode *,bool,bool *,struct nandFrame *);
+   static void                    ReleaseNandFrames(Environment *,struct nandFrame *);
 
-#if FUZZY_DEFTEMPLATES 
+#if FUZZY_DEFTEMPLATES
 /******************************************************************/
 /* FuzzySlotAnalysis:                                             */
 /*                                                                */
@@ -119,8 +114,8 @@
 /*                                                                */
 /* If Fuzzy Pattern (pattern->bottom->type is FUZZY_VALUE)        */
 /* then create an 'expr' of type SCALL_PN_FUZZY_VALUE with argList*/
-/* slot pointing to a FUZZY_VALUE expression slot (FUZZY_VALUE_HN)*/
-/* and 2nd arg is the slot number                                 */
+/* slot pointing to a FUZZY_VALUE expression slot                 */
+/* (CLIPSFuzzyValue) and 2nd arg is the slot number               */
 /*                                                                */
 /* NOTE: We should have an SF_WILDCARD pattern connected to the   */
 /*       FUZZY_VALUE pattern node                                 */
@@ -136,26 +131,25 @@
 /*       these fuzzy patterns and the actual facts so that the    */
 /*       conclusion can be adjusted accordingly.                  */
 /******************************************************************/
+unsigned int FuzzySlotAnalysis(
+  Environment *theEnv,
+  struct lhsParseNode *patternPtr,
+  unsigned int *numFuzzySlotsInNonNotPatterns)
+  {
+   unsigned int numFuzzySlots = 0;
+   struct lhsParseNode *lhsPNPtr, *lhsSlotPtr;
+   struct expr *fz_expr;
 
-globle unsigned int FuzzySlotAnalysis(
-void *theEnv,
-struct lhsParseNode *patternPtr,
-int *numFuzzySlotsInNonNotPatterns)
-{
-  unsigned int numFuzzySlots = 0;
-  struct lhsParseNode *lhsPNPtr, *lhsSlotPtr;
-  struct expr *fz_expr;
+   lhsPNPtr = patternPtr;
 
-  lhsPNPtr = patternPtr;
-
-  while (lhsPNPtr != NULL)
-    {
-      /* check all slots on the pattern for a FUZZY_VALUE */
-      lhsSlotPtr = lhsPNPtr->right;
-      while (lhsSlotPtr != NULL)
-        {
+    while (lhsPNPtr != NULL)
+      {
+       /* check all slots on the pattern for a FUZZY_VALUE */
+       lhsSlotPtr = lhsPNPtr->right;
+       while (lhsSlotPtr != NULL)
+         {
           if (lhsSlotPtr->bottom != NULL &&
-              lhsSlotPtr->bottom->type == FUZZY_VALUE)
+              lhsSlotPtr->bottom->pnType == FUZZY_VALUE_NODE)
             {
              /* if not a negated pattern count fuzzy slots
                 eg. not (Temperature cold)  is not a fuzzy pattern
@@ -171,11 +165,11 @@ int *numFuzzySlotsInNonNotPatterns)
              fz_expr->type = SCALL_PN_FUZZY_VALUE;
              fz_expr->value = NULL;
              fz_expr->argList = get_struct(theEnv,expr);
-             fz_expr->argList->type = FUZZY_VALUE;
+             fz_expr->argList->type = FUZZY_VALUE_TYPE;
              fz_expr->argList->argList = NULL;
              fz_expr->argList->value = (void *)lhsSlotPtr->bottom->value;
              fz_expr->argList->nextArg =
-                   GenConstant(theEnv,INTEGER,(void *)EnvAddLong(theEnv,(long) (lhsSlotPtr->slotNumber)-1));
+                   GenConstant(theEnv,INTEGER_TYPE,CreateInteger(theEnv,lhsSlotPtr->slotNumber-1));
              fz_expr->nextArg = NULL;
              lhsSlotPtr->bottom->value = NULL;
 
@@ -206,11 +200,11 @@ int *numFuzzySlotsInNonNotPatterns)
 /*   subsequent references of a variable are made to "point" back */
 /*   to the variable being propagated.                            */
 /******************************************************************/
-globle int VariableAnalysis(
-  void *theEnv,
+bool VariableAnalysis(
+  Environment *theEnv,
   struct lhsParseNode *patternPtr)
   {
-   int errorFlag = FALSE;
+   bool errorFlag = false;
    struct nandFrame *theNandFrames = NULL, *tempNandPtr;
    int currentDepth = 1;
 
@@ -245,7 +239,7 @@ globle int VariableAnalysis(
       /* other variables.                                        */
       /*=========================================================*/
 
-      if (patternPtr->type == PATTERN_CE)
+      if (patternPtr->pnType == PATTERN_CE_NODE)
         {
          /*====================================================*/
          /* Determine if the fact address associated with this */
@@ -255,24 +249,24 @@ globle int VariableAnalysis(
          if ((patternPtr->value != NULL) &&
              (patternPtr->referringNode != NULL))
            {
-            errorFlag = TRUE;
-            if (patternPtr->referringNode->index == -1)
+            errorFlag = true;
+            if (patternPtr->referringNode->index == NO_INDEX)
               {
-               PrintErrorID(theEnv,"ANALYSIS",1,TRUE);
-               EnvPrintRouter(theEnv,WERROR,"Duplicate pattern-address ?");
-               EnvPrintRouter(theEnv,WERROR,ValueToString(patternPtr->value));
-               EnvPrintRouter(theEnv,WERROR," found in CE #");
-               PrintLongInteger(theEnv,WERROR,(long) patternPtr->whichCE);
-               EnvPrintRouter(theEnv,WERROR,".\n");
+               PrintErrorID(theEnv,"ANALYSIS",1,true);
+               WriteString(theEnv,STDERR,"Duplicate pattern-address ?");
+               WriteString(theEnv,STDERR,patternPtr->lexemeValue->contents);
+               WriteString(theEnv,STDERR," found in CE #");
+               WriteInteger(theEnv,STDERR,patternPtr->whichCE);
+               WriteString(theEnv,STDERR,".\n");
               }
             else
               {
-               PrintErrorID(theEnv,"ANALYSIS",2,TRUE);
-               EnvPrintRouter(theEnv,WERROR,"Pattern-address ?");
-               EnvPrintRouter(theEnv,WERROR,ValueToString(patternPtr->value));
-               EnvPrintRouter(theEnv,WERROR," used in CE #");
-               PrintLongInteger(theEnv,WERROR,(long) patternPtr->whichCE);
-               EnvPrintRouter(theEnv,WERROR," was previously bound within a pattern CE.\n");
+               PrintErrorID(theEnv,"ANALYSIS",2,true);
+               WriteString(theEnv,STDERR,"Pattern-address ?");
+               WriteString(theEnv,STDERR,patternPtr->lexemeValue->contents);
+               WriteString(theEnv,STDERR," used in CE #");
+               WriteInteger(theEnv,STDERR,patternPtr->whichCE);
+               WriteString(theEnv,STDERR," was previously bound within a pattern CE.\n");
               }
            }
 
@@ -282,26 +276,26 @@ globle int VariableAnalysis(
          /* in the same semantic scope as the bound variable.  */
          /*====================================================*/
 
-         if (GetVariables(theEnv,patternPtr,PATTERN_CE,theNandFrames))
+         if (GetVariables(theEnv,patternPtr,PATTERN_CE_NODE,theNandFrames))
            {
             ReleaseNandFrames(theEnv,theNandFrames);
-            return(TRUE);
+            return true;
            }
- 
+
          /*==========================================================*/
          /* Analyze any test CE that's been attached to the pattern. */
          /*==========================================================*/
-         
-         if (TestCEAnalysis(theEnv,patternPtr,patternPtr->expression,FALSE,&errorFlag,theNandFrames) == TRUE)
+
+         if (TestCEAnalysis(theEnv,patternPtr,patternPtr->expression,false,&errorFlag,theNandFrames) == true)
            {
             ReleaseNandFrames(theEnv,theNandFrames);
-            return TRUE;
+            return true;
            }
- 
-         if (TestCEAnalysis(theEnv,patternPtr,patternPtr->secondaryExpression,TRUE,&errorFlag,theNandFrames) == TRUE)
+
+         if (TestCEAnalysis(theEnv,patternPtr,patternPtr->secondaryExpression,true,&errorFlag,theNandFrames) == true)
            {
             ReleaseNandFrames(theEnv,theNandFrames);
-            return TRUE;
+            return true;
            }
         }
 
@@ -312,12 +306,12 @@ globle int VariableAnalysis(
       /* to retrieve the variables.                                   */
       /*==============================================================*/
 
-      else if (patternPtr->type == TEST_CE)
+      else if (patternPtr->pnType == TEST_CE_NODE)
         {
-         if (TestCEAnalysis(theEnv,patternPtr,patternPtr->expression,FALSE,&errorFlag,theNandFrames) == TRUE)
+         if (TestCEAnalysis(theEnv,patternPtr,patternPtr->expression,false,&errorFlag,theNandFrames) == true)
            {
             ReleaseNandFrames(theEnv,theNandFrames);
-            return TRUE;
+            return true;
            }
         }
 
@@ -352,11 +346,11 @@ globle int VariableAnalysis(
 /* ReleaseNandFrames: Releases a list of nand frames. */
 /******************************************************/
 static void ReleaseNandFrames(
-  void *theEnv,
+  Environment *theEnv,
   struct nandFrame *theFrames)
   {
    struct nandFrame *tmpFrame;
-   
+
    while (theFrames != NULL)
      {
       tmpFrame = theFrames->next;
@@ -371,60 +365,60 @@ static void ReleaseNandFrames(
 /*   are bound then replace the references to variables with       */
 /*   function calls to retrieve the variables.                     */
 /*******************************************************************/
-static int TestCEAnalysis(
-  void *theEnv,
+static bool TestCEAnalysis(
+  Environment *theEnv,
   struct lhsParseNode *patternPtr,
   struct lhsParseNode *theExpression,
-  int secondary,
-  int *errorFlag,
+  bool secondary,
+  bool *errorFlag,
   struct nandFrame *theNandFrames)
   {
    struct lhsParseNode *rv, *theList, *tempList, *tempRight;
 
-   if (theExpression == NULL) return FALSE;
-   
+   if (theExpression == NULL) return false;
+
    /*=====================================================*/
    /* Verify that all variables were referenced properly. */
    /*=====================================================*/
 
-   rv = CheckExpression(theEnv,theExpression,NULL,(int) patternPtr->whichCE,NULL,0);
+   rv = CheckExpression(theEnv,theExpression,NULL,patternPtr->whichCE,NULL,0);
 
    /*====================================================================*/
    /* Temporarily disconnect the right nodes. If this is a pattern node  */
    /* with an attached test CE, we only want to propagate to following   */
    /* patterns, not to nodes of this pattern which preceded the test CE. */
    /*====================================================================*/
-   
+
    tempRight = patternPtr->right;
    patternPtr->right = NULL;
-      
+
    /*=========================================================*/
    /* Determine the type and value constraints implied by the */
    /* expression and propagate these constraints to other     */
    /* variables in the LHS. For example, the expression       */
    /* (+ ?x 1) implies that ?x is a number.                   */
    /*=========================================================*/
-   
+
    theList = GetExpressionVarConstraints(theEnv,theExpression);
    for (tempList = theList; tempList != NULL; tempList = tempList->right)
       {
-       if (PropagateVariableDriver(theEnv,patternPtr,patternPtr,NULL,SF_VARIABLE,
-                                   (SYMBOL_HN *) tempList->value,tempList,FALSE,TEST_CE))
+       if (PropagateVariableDriver(theEnv,patternPtr,patternPtr,NULL,SF_VARIABLE_NODE,
+                                   tempList->lexemeValue,tempList,false,TEST_CE_NODE))
          {
           ReturnLHSParseNodes(theEnv,theList);
           patternPtr->right = tempRight;
-          return(TRUE);
+          return true;
          }
       }
-      
+
    ReturnLHSParseNodes(theEnv,theList);
-   
+
    /*============================*/
    /* Reconnect the right nodes. */
    /*============================*/
-   
+
    patternPtr->right = tempRight;
-   
+
    /*========================================================*/
    /* If the variables in the expression were all referenced */
    /* properly, then create the expression to use in the     */
@@ -432,13 +426,13 @@ static int TestCEAnalysis(
    /*========================================================*/
 
    if (rv != NULL)
-     { *errorFlag = TRUE; }
+     { *errorFlag = true; }
    else if (secondary)
-     { patternPtr->secondaryNetworkTest = CombineExpressions(theEnv,patternPtr->secondaryNetworkTest,GetvarReplace(theEnv,theExpression,FALSE,theNandFrames)); }
+     { patternPtr->secondaryNetworkTest = CombineExpressions(theEnv,patternPtr->secondaryNetworkTest,GetvarReplace(theEnv,theExpression,false,theNandFrames)); }
    else
-     { patternPtr->networkTest = CombineExpressions(theEnv,patternPtr->networkTest,GetvarReplace(theEnv,theExpression,FALSE,theNandFrames)); }
-     
-   return FALSE;
+     { patternPtr->networkTest = CombineExpressions(theEnv,patternPtr->networkTest,GetvarReplace(theEnv,theExpression,false,theNandFrames)); }
+
+   return false;
   }
 
 /****************************************************************/
@@ -447,10 +441,10 @@ static int TestCEAnalysis(
 /*   variables found in the pattern to other variables within   */
 /*   the same semantic scope as the bound variables.            */
 /****************************************************************/
-static int GetVariables(
-  void *theEnv,
+static bool GetVariables(
+  Environment *theEnv,
   struct lhsParseNode *thePattern,
-  int patternHeadType,
+  ParseNodeType patternHeadType,
   struct nandFrame *theNandFrames)
   {
    struct lhsParseNode *patternHead = thePattern;
@@ -478,22 +472,22 @@ static int GetVariables(
       /* Propagate the binding occurences of single field */
       /* variables, multifield variables, and fact        */
       /* addresses to other occurences of the variable.   */
-      /* If an error is encountered, return TRUE.         */
+      /* If an error is encountered, return true.         */
       /*==================================================*/
 
       if (thePattern != NULL)
         {
-         if ((thePattern->type == SF_VARIABLE) ||
-             (thePattern->type == MF_VARIABLE) ||
-             ((thePattern->type == PATTERN_CE) && (thePattern->value != NULL)))
+         if ((thePattern->pnType == SF_VARIABLE_NODE) ||
+             (thePattern->pnType == MF_VARIABLE_NODE) ||
+             ((thePattern->pnType == PATTERN_CE_NODE) && (thePattern->value != NULL)))
            {
             if (ProcessVariable(theEnv,thePattern,multifieldHeader,patternHead,patternHeadType,theNandFrames))
-              { return(TRUE); }
+              { return true; }
            }
          else
            {
             if (ProcessField(theEnv,thePattern,multifieldHeader,patternHead,patternHeadType,theNandFrames))
-              { return(TRUE); }
+              { return true; }
            }
         }
 
@@ -514,27 +508,27 @@ static int GetVariables(
      }
 
    /*===============================*/
-   /* Return FALSE to indicate that */
+   /* Return false to indicate that */
    /* no errors were detected.      */
    /*===============================*/
 
-   return(FALSE);
+   return false;
   }
 
 /******************************************************/
 /* ProcessVariable: Processes a single occurence of a */
 /*   variable by propagating references to it.        */
 /******************************************************/
-static int ProcessVariable(
-  void *theEnv,
+static bool ProcessVariable(
+  Environment *theEnv,
   struct lhsParseNode *thePattern,
   struct lhsParseNode *multifieldHeader,
   struct lhsParseNode *patternHead,
-  int patternHeadType,
+  ParseNodeType patternHeadType,
   struct nandFrame *theNandFrames)
   {
-   int theType;
-   struct symbolHashNode *theVariable;
+   ParseNodeType theType;
+   CLIPSLexeme *theVariable;
    struct constraintRecord *theConstraints;
 
    /*=============================================================*/
@@ -545,17 +539,17 @@ static int ProcessVariable(
    /* can match patterns.                                         */
    /*=============================================================*/
 
-   if (thePattern->type == PATTERN_CE)
+   if (thePattern->pnType == PATTERN_CE_NODE)
      {
-      theType = SF_VARIABLE;
-      theVariable = (struct symbolHashNode *) thePattern->value;
+      theType = SF_VARIABLE_NODE;
+      theVariable = (CLIPSLexeme *) thePattern->value;
       if (thePattern->derivedConstraints) RemoveConstraint(theEnv,thePattern->constraints);
       theConstraints = GetConstraintRecord(theEnv);
       thePattern->constraints = theConstraints;
-      thePattern->constraints->anyAllowed = FALSE;
-      thePattern->constraints->instanceAddressesAllowed = TRUE;
-      thePattern->constraints->factAddressesAllowed = TRUE;
-      thePattern->derivedConstraints = TRUE;
+      thePattern->constraints->anyAllowed = false;
+      thePattern->constraints->instanceAddressesAllowed = true;
+      thePattern->constraints->factAddressesAllowed = true;
+      thePattern->derivedConstraints = true;
      }
 
    /*===================================================*/
@@ -564,8 +558,8 @@ static int ProcessVariable(
 
    else
      {
-      theType = thePattern->type;
-      theVariable = (struct symbolHashNode *) thePattern->value;
+      theType = thePattern->pnType;
+      theVariable = (CLIPSLexeme *) thePattern->value;
      }
 
    /*===================================================*/
@@ -573,14 +567,14 @@ static int ProcessVariable(
    /* fields associated with the binding variable.      */
    /*===================================================*/
 
-   if (thePattern->type != PATTERN_CE)
+   if (thePattern->pnType != PATTERN_CE_NODE)
      {
       PropagateVariableToNodes(theEnv,thePattern->bottom,theType,theVariable,
                                thePattern,patternHead->beginNandDepth,
-                               TRUE,FALSE);
+                               true,false);
 
       if (ProcessField(theEnv,thePattern,multifieldHeader,patternHead,patternHeadType,theNandFrames))
-        { return(TRUE); }
+        { return true; }
      }
 
    /*=================================================================*/
@@ -588,23 +582,23 @@ static int ProcessVariable(
    /*=================================================================*/
 
    return(PropagateVariableDriver(theEnv,patternHead,thePattern,multifieldHeader,theType,
-                                  theVariable,thePattern,TRUE,patternHeadType));
+                                  theVariable,thePattern,true,patternHeadType));
   }
 
 /*******************************************/
 /* PropagateVariableDriver: Driver routine */
 /*   for propagating variable references.  */
 /*******************************************/
-static int PropagateVariableDriver(
-  void *theEnv,
+static bool PropagateVariableDriver(
+  Environment *theEnv,
   struct lhsParseNode *patternHead,
   struct lhsParseNode *theNode,
   struct lhsParseNode *multifieldHeader,
-  int theType,
-  struct symbolHashNode *variableName,
+  ParseNodeType theType,
+  CLIPSLexeme *variableName,
   struct lhsParseNode *theReference,
-  int assignReference,
-  int patternHeadType)
+  bool assignReference,
+  ParseNodeType patternHeadType)
   {
    /*===================================================*/
    /* Propagate the variable location to any additional */
@@ -614,10 +608,10 @@ static int PropagateVariableDriver(
    if (multifieldHeader != NULL)
      {
       if (PropagateVariableToNodes(theEnv,multifieldHeader->right,theType,variableName,
-                                   theReference,patternHead->beginNandDepth,assignReference,FALSE))
+                                   theReference,patternHead->beginNandDepth,assignReference,false))
         {
          VariableMixingErrorMessage(theEnv,variableName);
-         return(TRUE);
+         return true;
         }
      }
 
@@ -627,10 +621,10 @@ static int PropagateVariableDriver(
    /*========================================================*/
 
    if (PropagateVariableToNodes(theEnv,theNode->right,theType,variableName,theReference,
-                                patternHead->beginNandDepth,assignReference,FALSE))
+                                patternHead->beginNandDepth,assignReference,false))
      {
       VariableMixingErrorMessage(theEnv,variableName);
-      return(TRUE);
+      return true;
      }
 
    /*==============================================*/
@@ -639,25 +633,25 @@ static int PropagateVariableDriver(
    /*==============================================*/
 
    if (PropagateVariableToNodes(theEnv,patternHead->expression,theType,variableName,theReference,
-                                patternHead->beginNandDepth,assignReference,TRUE))
-     { return(TRUE); }
+                                patternHead->beginNandDepth,assignReference,true))
+     { return true; }
 
    if (PropagateVariableToNodes(theEnv,patternHead->secondaryExpression,theType,variableName,theReference,
-                                patternHead->beginNandDepth,assignReference,TRUE))
-     { return(TRUE); }
-   
+                                patternHead->beginNandDepth,assignReference,true))
+     { return true; }
+
    /*======================================================*/
    /* Propagate values to other patterns if the pattern in */
    /* which the variable is found is not a "not" CE or the */
    /* last pattern within a nand CE.                       */
    /*======================================================*/
 
-   if (((patternHead->type == PATTERN_CE) || (patternHead->type == TEST_CE)) &&
-       (patternHead->negated == FALSE) &&
-       (patternHead->exists == FALSE) &&
+   if (((patternHead->pnType == PATTERN_CE_NODE) || (patternHead->pnType == TEST_CE_NODE)) &&
+       (patternHead->negated == false) &&
+       (patternHead->exists == false) &&
        (patternHead->beginNandDepth <= patternHead->endNandDepth))
      {
-      int ignoreVariableMixing;
+      bool ignoreVariableMixing;
 
       /*============================================================*/
       /* If the variables are propagated from a test CE, then don't */
@@ -667,8 +661,8 @@ static int PropagateVariableDriver(
       /* sequence expansion is desired).                            */
       /*============================================================*/
 
-      if (patternHeadType == TEST_CE) ignoreVariableMixing = TRUE;
-      else ignoreVariableMixing = FALSE;
+      if (patternHeadType == TEST_CE_NODE) ignoreVariableMixing = true;
+      else ignoreVariableMixing = false;
 
       /*==========================*/
       /* Propagate the reference. */
@@ -679,39 +673,39 @@ static int PropagateVariableDriver(
                                    ignoreVariableMixing))
        {
          VariableMixingErrorMessage(theEnv,variableName);
-         return(TRUE);
+         return true;
         }
      }
 
    /*==============================================*/
-   /* Return FALSE to indicate that no errors were */
+   /* Return false to indicate that no errors were */
    /* generated by the variable propagation.       */
    /*==============================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /********************************************************/
 /* ProcessField: Processes a field or slot of a pattern */
 /*   which does not contain a binding variable.         */
 /********************************************************/
-static int ProcessField(
-  void *theEnv,
+static bool ProcessField(
+  Environment *theEnv,
   struct lhsParseNode *thePattern,
   struct lhsParseNode *multifieldHeader,
   struct lhsParseNode *patternHead,
-  int patternHeadType,
+  ParseNodeType patternHeadType,
   struct nandFrame *theNandFrames)
   {
    struct lhsParseNode *theList, *tempList;
 
    /*====================================================*/
    /* Nothing needs to be done for the node representing */
-   /* the entire pattern. Return FALSE to indicate that  */
+   /* the entire pattern. Return false to indicate that  */
    /* no errors were generated.                          */
    /*====================================================*/
 
-   if (thePattern->type == PATTERN_CE) return(FALSE);
+   if (thePattern->pnType == PATTERN_CE_NODE) return false;
 
    /*====================================================================*/
    /* Derive a set of constraints based on values found in the slot or   */
@@ -724,31 +718,31 @@ static int ProcessField(
    theList = DeriveVariableConstraints(theEnv,thePattern);
    for (tempList = theList; tempList != NULL; tempList = tempList->right)
      {
-      if (PropagateVariableDriver(theEnv,patternHead,thePattern,multifieldHeader,tempList->type,
-                                  (SYMBOL_HN *) tempList->value,tempList,FALSE,patternHeadType))
+      if (PropagateVariableDriver(theEnv,patternHead,thePattern,multifieldHeader,tempList->pnType,
+                                  tempList->lexemeValue,tempList,false,patternHeadType))
         {
          ReturnLHSParseNodes(theEnv,theList);
-         return(TRUE);
+         return true;
         }
      }
    ReturnLHSParseNodes(theEnv,theList);
 
    /*===========================================================*/
    /* Check for "variable referenced, but not previously bound" */
-   /* errors. Return TRUE if this type of error is detected.    */
+   /* errors. Return true if this type of error is detected.    */
    /*===========================================================*/
 
-   if (UnboundVariablesInPattern(theEnv,thePattern,(int) patternHead->whichCE))
-     { return(TRUE); }
+   if (UnboundVariablesInPattern(theEnv,thePattern,patternHead->whichCE))
+     { return true; }
 
    /*==================================================*/
    /* Check for constraint errors for this slot/field. */
    /* If the slot/field has unmatchable constraints    */
-   /* then return TRUE to indicate a semantic error.   */
+   /* then return true to indicate a semantic error.   */
    /*==================================================*/
 
    if (ProcessConnectedConstraints(theEnv,thePattern,multifieldHeader,patternHead))
-     { return(TRUE); }
+     { return true; }
 
    /*==============================================================*/
    /* Convert the slot/field constraint to a series of expressions */
@@ -758,10 +752,10 @@ static int ProcessField(
    FieldConversion(theEnv,thePattern,patternHead,theNandFrames);
 
    /*=========================================================*/
-   /* Return FALSE to indicate that no errors were generated. */
+   /* Return false to indicate that no errors were generated. */
    /*=========================================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /*************************************************************/
@@ -772,15 +766,15 @@ static int ProcessField(
 /*  restriction of propagating variables beyond an enclosing */
 /*  not CE is handled within the GetVariables function.      */
 /*************************************************************/
-static int PropagateVariableToNodes(
-  void *theEnv,
+static bool PropagateVariableToNodes(
+  Environment *theEnv,
   struct lhsParseNode *theNode,
-  int theType,
-  struct symbolHashNode *variableName,
+  ParseNodeType theType,
+  CLIPSLexeme *variableName,
   struct lhsParseNode *theReference,
   int startDepth,
-  int assignReference,
-  int ignoreVariableTypes)
+  bool assignReference,
+  bool ignoreVariableTypes)
   {
    struct constraintRecord *tempConstraints;
 
@@ -799,33 +793,33 @@ static int PropagateVariableToNodes(
       if (theNode->expression != NULL)
         {
          PropagateVariableToNodes(theEnv,theNode->expression,theType,variableName,
-                                  theReference,startDepth,assignReference,TRUE);
+                                  theReference,startDepth,assignReference,true);
         }
 
       if (theNode->secondaryExpression != NULL)
         {
          PropagateVariableToNodes(theEnv,theNode->secondaryExpression,theType,variableName,
-                                  theReference,startDepth,assignReference,TRUE);
+                                  theReference,startDepth,assignReference,true);
         }
-        
+
       /*======================================================*/
       /* If the field/slot is a single or multifield variable */
       /* with the same name as the propagated variable,       */
       /* then propagate the variable location to this node.   */
       /*======================================================*/
 
-      else if (((theNode->type == SF_VARIABLE) || (theNode->type == MF_VARIABLE)) &&
+      else if (((theNode->pnType == SF_VARIABLE_NODE) || (theNode->pnType == MF_VARIABLE_NODE)) &&
                (theNode->value == (void *) variableName))
         {
          /*======================================================*/
          /* Check for mixing of single and multifield variables. */
          /*======================================================*/
 
-         if (ignoreVariableTypes == FALSE)
+         if (ignoreVariableTypes == false)
            {
-            if (((theType == SF_VARIABLE) && (theNode->type == MF_VARIABLE)) ||
-                ((theType == MF_VARIABLE) && (theNode->type == SF_VARIABLE)))
-              { return(TRUE); }
+            if (((theType == SF_VARIABLE_NODE) && (theNode->pnType == MF_VARIABLE_NODE)) ||
+                ((theType == MF_VARIABLE_NODE) && (theNode->pnType == SF_VARIABLE_NODE)))
+              { return true; }
            }
 
          /*======================================================*/
@@ -841,7 +835,7 @@ static int PropagateVariableToNodes(
             if (theNode->derivedConstraints)
               { RemoveConstraint(theEnv,tempConstraints); }
 
-            theNode->derivedConstraints = TRUE;
+            theNode->derivedConstraints = true;
            }
 
          /*=====================================================*/
@@ -868,11 +862,11 @@ static int PropagateVariableToNodes(
       /* same variable name).                                   */
       /*========================================================*/
 
-      else if ((theNode->type == PATTERN_CE) &&
+      else if ((theNode->pnType == PATTERN_CE_NODE) &&
                (theNode->value == (void *) variableName) &&
-               (assignReference == TRUE))
+               (assignReference == true))
         {
-         if (theType == MF_VARIABLE) return(TRUE);
+         if (theType == MF_VARIABLE) return true;
 
          theNode->referringNode = theReference;
         }
@@ -886,7 +880,7 @@ static int PropagateVariableToNodes(
         {
          if (PropagateVariableToNodes(theEnv,theNode->right,theType,variableName,
                                       theReference,startDepth,assignReference,ignoreVariableTypes))
-           { return(TRUE); }
+           { return true; }
         }
 
       /*============================================================*/
@@ -895,7 +889,7 @@ static int PropagateVariableToNodes(
       /* pattern) or to the next | field constraint within a field. */
       /*============================================================*/
 
-      if ((theNode->type == PATTERN_CE) || (theNode->type == TEST_CE))
+      if ((theNode->pnType == PATTERN_CE_NODE) || (theNode->pnType == TEST_CE_NODE))
         {
          if (theNode->endNandDepth < startDepth) theNode = NULL;
          else theNode = theNode->bottom;
@@ -905,10 +899,10 @@ static int PropagateVariableToNodes(
      }
 
    /*========================================================*/
-   /* Return FALSE to indicate that no errors were detected. */
+   /* Return false to indicate that no errors were detected. */
    /*========================================================*/
 
-   return(FALSE);
+   return false;
   }
 
 /*************************************************************/
@@ -917,18 +911,18 @@ static int PropagateVariableToNodes(
 /*   variables have been previously bound if they are not a  */
 /*   binding occurrence).                                    */
 /*************************************************************/
-static intBool UnboundVariablesInPattern(
-  void *theEnv,
+static bool UnboundVariablesInPattern(
+  Environment *theEnv,
   struct lhsParseNode *theSlot,
-  int pattern)
+  unsigned short pattern)
   {
    struct lhsParseNode *andField;
    struct lhsParseNode *rv;
-   int result;
+   ConstraintViolationType result;
    struct lhsParseNode *orField;
-   struct symbolHashNode *slotName;
+   CLIPSLexeme *slotName;
    CONSTRAINT_RECORD *theConstraints;
-   int theField;
+   unsigned short theField;
 
    /*===================================================*/
    /* If a multifield slot is being checked, then check */
@@ -941,11 +935,11 @@ static intBool UnboundVariablesInPattern(
       while (theSlot != NULL)
         {
          if (UnboundVariablesInPattern(theEnv,theSlot,pattern))
-           { return(TRUE); }
+           { return true; }
          theSlot = theSlot->right;
         }
 
-      return(FALSE);
+      return false;
      }
 
    /*=======================*/
@@ -980,12 +974,12 @@ static intBool UnboundVariablesInPattern(
          /* referred to but not bound.                            */
          /*=======================================================*/
 
-         if (((andField->type == SF_VARIABLE) || (andField->type == MF_VARIABLE)) &&
+         if (((andField->pnType == SF_VARIABLE_NODE) || (andField->pnType == MF_VARIABLE_NODE)) &&
              (andField->referringNode == NULL))
            {
-            VariableReferenceErrorMessage(theEnv,(SYMBOL_HN *) andField->value,NULL,pattern,
+            VariableReferenceErrorMessage(theEnv,andField->lexemeValue,NULL,pattern,
                                           slotName,theField);
-            return(TRUE);
+            return true;
            }
 
          /*==============================================*/
@@ -994,11 +988,11 @@ static intBool UnboundVariablesInPattern(
          /* constraint have been previously bound.       */
          /*==============================================*/
 
-         else if ((andField->type == PREDICATE_CONSTRAINT) ||
-                  (andField->type == RETURN_VALUE_CONSTRAINT))
+         else if ((andField->pnType == PREDICATE_CONSTRAINT_NODE) ||
+                  (andField->pnType == RETURN_VALUE_CONSTRAINT_NODE))
            {
             rv = CheckExpression(theEnv,andField->expression,NULL,pattern,slotName,theField);
-            if (rv != NULL) return(TRUE);
+            if (rv != NULL) return true;
            }
 
          /*========================================================*/
@@ -1008,30 +1002,29 @@ static intBool UnboundVariablesInPattern(
          /* deftemplate definition and propagated constraints).    */
          /*========================================================*/
 
-         else if (((andField->type == INTEGER) || (andField->type == FLOAT) ||
-                   (andField->type == SYMBOL) || (andField->type == STRING) ||
-                   (andField->type == INSTANCE_NAME)) &&
-                  EnvGetStaticConstraintChecking(theEnv))
+         else if (((andField->pnType == INTEGER_NODE) || (andField->pnType == FLOAT_NODE) ||
+                   (andField->pnType == SYMBOL_NODE) || (andField->pnType == STRING_NODE) ||
+                   (andField->pnType == INSTANCE_NAME_NODE)))
            {
-            result = ConstraintCheckValue(theEnv,andField->type,andField->value,theConstraints);
+            result = ConstraintCheckValue(theEnv,NodeTypeToType(andField),andField->value,theConstraints);
             if (result != NO_VIOLATION)
               {
                ConstraintViolationErrorMessage(theEnv,"A literal restriction value",
-                                               NULL,FALSE,pattern,
+                                               NULL,false,pattern,
                                                slotName,theField,result,
-                                               theConstraints,TRUE);
-               return(TRUE);
+                                               theConstraints,true);
+               return true;
               }
            }
         }
      }
 
    /*===============================*/
-   /* Return FALSE to indicate that */
+   /* Return false to indicate that */
    /* no errors were detected.      */
    /*===============================*/
 
-   return(FALSE);
+   return false;
   }
 
 /******************************************************************/
@@ -1040,16 +1033,16 @@ static intBool UnboundVariablesInPattern(
 /*   expression must have been previously bound.                  */
 /******************************************************************/
 static struct lhsParseNode *CheckExpression(
-  void *theEnv,
+  Environment *theEnv,
   struct lhsParseNode *exprPtr,
   struct lhsParseNode *lastOne,
-  int whichCE,
-  struct symbolHashNode *slotName,
-  int theField)
+  unsigned short whichCE,
+  CLIPSLexeme *slotName,
+  unsigned short theField)
   {
    struct lhsParseNode *rv;
-   int i = 1;
-
+   unsigned short i = 1;
+     
    while (exprPtr != NULL)
      {
       /*===============================================================*/
@@ -1058,20 +1051,19 @@ static struct lhsParseNode *CheckExpression(
       /* variable has unmatchable constraints.                         */
       /*===============================================================*/
 
-      if (exprPtr->type == SF_VARIABLE)
+      if (exprPtr->pnType == SF_VARIABLE_NODE)
         {
          if (exprPtr->referringNode == NULL)
            {
-            VariableReferenceErrorMessage(theEnv,(SYMBOL_HN *) exprPtr->value,lastOne,
+            VariableReferenceErrorMessage(theEnv,exprPtr->lexemeValue,lastOne,
                                           whichCE,slotName,theField);
-            return(exprPtr);
+            return exprPtr;
            }
-         else if ((UnmatchableConstraint(exprPtr->constraints)) &&
-                  EnvGetStaticConstraintChecking(theEnv))
+         else if (UnmatchableConstraint(exprPtr->constraints))
            {
-            ConstraintReferenceErrorMessage(theEnv,(SYMBOL_HN *) exprPtr->value,lastOne,i,
+            ConstraintReferenceErrorMessage(theEnv,exprPtr->lexemeValue,lastOne,i,
                                             whichCE,slotName,theField);
-            return(exprPtr);
+            return exprPtr;
            }
         }
 
@@ -1080,11 +1072,11 @@ static struct lhsParseNode *CheckExpression(
       /* expression were previously defined in the LHS.   */
       /*==================================================*/
 
-      else if ((exprPtr->type == MF_VARIABLE) && (exprPtr->referringNode == NULL))
+      else if ((exprPtr->pnType == MF_VARIABLE_NODE) && (exprPtr->referringNode == NULL))
         {
-         VariableReferenceErrorMessage(theEnv,(SYMBOL_HN *) exprPtr->value,lastOne,
+         VariableReferenceErrorMessage(theEnv,exprPtr->lexemeValue,lastOne,
                                        whichCE,slotName,theField);
-         return(exprPtr);
+         return exprPtr;
         }
 
       /*=====================================================*/
@@ -1094,16 +1086,16 @@ static struct lhsParseNode *CheckExpression(
       /*=====================================================*/
 
 #if DEFGLOBAL_CONSTRUCT
-      else if (exprPtr->type == GBL_VARIABLE)
+      else if (exprPtr->pnType == GBL_VARIABLE_NODE)
         {
-         int count;
+         unsigned int count;
 
-         if (FindImportedConstruct(theEnv,"defglobal",NULL,ValueToString(exprPtr->value),
-                                   &count,TRUE,NULL) == NULL)
+         if (FindImportedConstruct(theEnv,"defglobal",NULL,exprPtr->lexemeValue->contents,
+                                   &count,true,NULL) == NULL)
            {
-            VariableReferenceErrorMessage(theEnv,(SYMBOL_HN *) exprPtr->value,lastOne,
+            VariableReferenceErrorMessage(theEnv,exprPtr->lexemeValue,lastOne,
                                           whichCE,slotName,theField);
-            return(exprPtr);
+            return exprPtr;
            }
         }
 #endif
@@ -1113,17 +1105,17 @@ static struct lhsParseNode *CheckExpression(
       /* insure variables are referenced correctly. */
       /*============================================*/
 
-      else if (((exprPtr->type == FCALL)
+      else if (((exprPtr->pnType == FCALL_NODE)
 #if DEFGENERIC_CONSTRUCT
-             || (exprPtr->type == GCALL)
+             || (exprPtr->pnType == GCALL_NODE)
 #endif
 #if DEFFUNCTION_CONSTRUCT
-             || (exprPtr->type == PCALL)
+             || (exprPtr->pnType == PCALL_NODE)
 #endif
          ) && (exprPtr->bottom != NULL))
         {
          if ((rv = CheckExpression(theEnv,exprPtr->bottom,exprPtr,whichCE,slotName,theField)) != NULL)
-           { return(rv); }
+           { return rv; }
         }
 
       /*=============================================*/
@@ -1138,7 +1130,7 @@ static struct lhsParseNode *CheckExpression(
    /* Return NULL to indicate no error was detected. */
    /*================================================*/
 
-   return(NULL);
+   return NULL;
   }
 
 /********************************************************/
@@ -1146,11 +1138,11 @@ static struct lhsParseNode *CheckExpression(
 /*   for referencing a variable before it is defined.   */
 /********************************************************/
 static void VariableReferenceErrorMessage(
-  void *theEnv,
-  struct symbolHashNode *theVariable,
+  Environment *theEnv,
+  CLIPSLexeme *theVariable,
   struct lhsParseNode *theExpression,
   int whichCE,
-  struct symbolHashNode *slotName,
+  CLIPSLexeme *slotName,
   int theField)
   {
    struct expr *temprv;
@@ -1159,15 +1151,15 @@ static void VariableReferenceErrorMessage(
    /* Print the error message ID. */
    /*=============================*/
 
-   PrintErrorID(theEnv,"ANALYSIS",4,TRUE);
+   PrintErrorID(theEnv,"ANALYSIS",4,true);
 
    /*=================================*/
    /* Print the name of the variable. */
    /*=================================*/
 
-   EnvPrintRouter(theEnv,WERROR,"Variable ?");
-   EnvPrintRouter(theEnv,WERROR,ValueToString(theVariable));
-   EnvPrintRouter(theEnv,WERROR," ");
+   WriteString(theEnv,STDERR,"Variable ?");
+   WriteString(theEnv,STDERR,theVariable->contents);
+   WriteString(theEnv,STDERR," ");
 
    /*=================================================*/
    /* If the variable was found inside an expression, */
@@ -1180,9 +1172,9 @@ static void VariableReferenceErrorMessage(
       temprv = LHSParseNodesToExpression(theEnv,theExpression);
       ReturnExpression(theEnv,temprv->nextArg);
       temprv->nextArg = NULL;
-      EnvPrintRouter(theEnv,WERROR,"found in the expression ");
-      PrintExpression(theEnv,WERROR,temprv);
-      EnvPrintRouter(theEnv,WERROR,"\n");
+      WriteString(theEnv,STDERR,"found in the expression ");
+      PrintExpression(theEnv,STDERR,temprv);
+      WriteString(theEnv,STDERR,"\n");
       ReturnExpression(theEnv,temprv);
      }
 
@@ -1190,8 +1182,8 @@ static void VariableReferenceErrorMessage(
    /* Print the CE in which the variable was referenced. */
    /*====================================================*/
 
-   EnvPrintRouter(theEnv,WERROR,"was referenced in CE #");
-   PrintLongInteger(theEnv,WERROR,(long int) whichCE);
+   WriteString(theEnv,STDERR,"was referenced in CE #");
+   WriteInteger(theEnv,STDERR,whichCE);
 
    /*=====================================*/
    /* Identify the slot or field in which */
@@ -1202,17 +1194,18 @@ static void VariableReferenceErrorMessage(
      {
       if (theField > 0)
         {
-         EnvPrintRouter(theEnv,WERROR," field #");
-         PrintLongInteger(theEnv,WERROR,(long int) theField);
+         WriteString(theEnv,STDERR," field #");
+         WriteInteger(theEnv,STDERR,theField);
         }
      }
    else
      {
-      EnvPrintRouter(theEnv,WERROR," slot ");
-      EnvPrintRouter(theEnv,WERROR,ValueToString(slotName));
+      WriteString(theEnv,STDERR," slot '");
+      WriteString(theEnv,STDERR,slotName->contents);
+      WriteString(theEnv,STDERR,"'");
      }
 
-   EnvPrintRouter(theEnv,WERROR," before being defined.\n");
+   WriteString(theEnv,STDERR," before being defined.\n");
   }
 
 /************************************************************/
@@ -1221,15 +1214,15 @@ static void VariableReferenceErrorMessage(
 /*   on the LHS of a rule.                                  */
 /************************************************************/
 static void VariableMixingErrorMessage(
-  void *theEnv,
-  struct symbolHashNode *theVariable)
+  Environment *theEnv,
+  CLIPSLexeme *theVariable)
   {
-   PrintErrorID(theEnv,"ANALYSIS",3,TRUE);
-   EnvPrintRouter(theEnv,WERROR,"Variable ?");
-   EnvPrintRouter(theEnv,WERROR,ValueToString(theVariable));
-   EnvPrintRouter(theEnv,WERROR," is used as both a single and multifield variable in the LHS\n");
+   PrintErrorID(theEnv,"ANALYSIS",3,true);
+   WriteString(theEnv,STDERR,"Variable ?");
+   WriteString(theEnv,STDERR,theVariable->contents);
+   WriteString(theEnv,STDERR," is used as both a single and multifield variable in the LHS.\n");
   }
-  
+
 #endif /* (! RUN_TIME) && (! BLOAD_ONLY) && DEFRULE_CONSTRUCT */
 
 

@@ -4,8 +4,8 @@ TRUE
 FuzzyCLIPS> (str-index "" "")                 ; DR0103 - 1
 1
 FuzzyCLIPS> (str-index "" "a")                ; DR0103 - 2
-2
-FuzzyCLIPS> (str-explode "")                  ; DR0104 - ()
+1
+FuzzyCLIPS> (explode$ "")                     ; DR0104 - ()
 ()
 FuzzyCLIPS> (sub-string 1 2 "a")              ; DR0105 - "a"
 "a"
@@ -17,8 +17,8 @@ FuzzyCLIPS> (subseq$ (create$ a) 1 2)     ; DR0106 - (a)
 (a)
 FuzzyCLIPS> (str-index "a" "aba")             ; DR0109 - 1
 1
-FuzzyCLIPS> (str-implode)                     ; DR0112 - Error
-[ARGACCES4] Function str-implode expected exactly 1 argument(s)
+FuzzyCLIPS> (implode$)                        ; DR0112 - Error
+[ARGACCES1] Function 'implode$' expected exactly 1 argument.
 FuzzyCLIPS> (sub-string 1 3 "abc")            ; DR0113 - memory loss
 "abc"
 FuzzyCLIPS> (sub-string 1 3 "abc")            ; DR0113 - memory loss
@@ -26,25 +26,25 @@ FuzzyCLIPS> (sub-string 1 3 "abc")            ; DR0113 - memory loss
 FuzzyCLIPS> (setgen 1)                        ; DR0114 - Error
 1
 FuzzyCLIPS> (setgen a)                        ; DR0114 - Error
-[ARGACCES5] Function setgen expected argument #1 to be of type integer
+[ARGACCES2] Function 'setgen' expected argument #1 to be of type integer.
 FuzzyCLIPS> (read 1 1)                        ; DR0114 - Error
-[ARGACCES4] Function read expected no more than 1 argument(s)
+[ARGACCES1] Function 'read' expected no more than 1 argument.
 FuzzyCLIPS> (readline 1 1)                    ; DR0114 - Error
-[ARGACCES4] Function readline expected no more than 1 argument(s)
+[ARGACCES1] Function 'readline' expected no more than 1 argument.
 FuzzyCLIPS> (min)                             ; DR0114 - Error
-[ARGACCES4] Function min expected at least 2 argument(s)
+[ARGACCES1] Function 'min' expected at least 1 argument.
 FuzzyCLIPS> (max)                             ; DR0114 - Error
-[ARGACCES4] Function max expected at least 2 argument(s)
+[ARGACCES1] Function 'max' expected at least 1 argument.
 FuzzyCLIPS> (pi 1)                            ; DR0114 - Error
-[ARGACCES4] Function pi expected exactly 0 argument(s)
+[ARGACCES1] Function 'pi' expected exactly 0 arguments.
 FuzzyCLIPS> (halt 1)                          ; DR0114 - Error
-[ARGACCES4] Function halt expected exactly 0 argument(s)
+[ARGACCES1] Function 'halt' expected exactly 0 arguments.
 FuzzyCLIPS> (mod x y)                         ; DR0114 - Error
-[ARGACCES5] Function mod expected argument #1 to be of type integer or float
+[ARGACCES2] Function 'mod' expected argument #1 to be of type integer or float.
 FuzzyCLIPS> (setgen 1)                        ; DR0114 - Error
 1
 FuzzyCLIPS> (gensym 10)                       ; DR0114 - Error
-[ARGACCES4] Function gensym expected exactly 0 argument(s)
+[ARGACCES1] Function 'gensym' expected exactly 0 arguments.
 FuzzyCLIPS> (if (eq 1 2) then)                ; DR0115 - Syntax
 FALSE
 FuzzyCLIPS> (if (eq 1 2) then else)           ; DR0115 - Syntax
@@ -55,13 +55,13 @@ FuzzyCLIPS> (clear)                           ; DR0120
 FuzzyCLIPS> (defrule a 
    (x ?string) 
    => 
-   (bind ?m (str-explode ?string)) 
-   (bind ?str (str-implode ?m))
+   (bind ?m (explode$ ?string)) 
+   (bind ?str (implode$ ?m))
    (printout t ?m " " ?str crlf))
 FuzzyCLIPS> (defrule b 
    => 
-   (bind ?m (str-explode "a b c 1 2 3"))
-   (bind ?s (str-implode ?m))
+   (bind ?m (explode$ "a b c 1 2 3"))
+   (bind ?s (implode$ ?m))
    (printout t ?m " " ?s crlf))
 FuzzyCLIPS> (reset)                           ; DR0120
 FuzzyCLIPS> (assert (x "a b c 1 2 3"))        ; DR0120
@@ -70,12 +70,12 @@ FuzzyCLIPS> (run)                             ; DR0120
 (a b c 1 2 3) a b c 1 2 3
 (a b c 1 2 3) a b c 1 2 3
 FuzzyCLIPS> (batch "a*a")                     ; DR0127
-[ARGACCES2] Function batch was unable to open file a*a.
+[ARGACCES3] Function 'batch' was unable to open file 'a*a'.
 FALSE
 FuzzyCLIPS> (open "a*a" a)                    ; DR0127
 FALSE
 FuzzyCLIPS> (fetch "a*a")                     ; DR0127
-[TEXTPRO1] Could not open file "a*a".
+[TEXTPRO1] Could not open file 'a*a'.
 FALSE
 FuzzyCLIPS> (clear)                           ; DR0135
 FuzzyCLIPS> (defrule rule1 ""
@@ -107,20 +107,20 @@ For a total of 4 activations.
 FuzzyCLIPS> (setgen 1)                        ; DR0156
 1
 FuzzyCLIPS> (setgen -1)                       ; DR0156
-[ARGACCES5] Function setgen expected argument #1 to be of type number (greater than or equal to 1)
+[ARGACCES2] Function 'setgen' expected argument #1 to be of type integer (greater than or equal to 1).
 1
 FuzzyCLIPS> (gensym)                          ; DR0156
 gen1
 FuzzyCLIPS> (evenp dlaj)                      ; DR0159
-[ARGACCES5] Function evenp expected argument #1 to be of type integer
+[ARGACCES2] Function 'evenp' expected argument #1 to be of type integer.
 FuzzyCLIPS> (evenp 2e1)                       ; DR0159
-[ARGACCES5] Function evenp expected argument #1 to be of type integer
+[ARGACCES2] Function 'evenp' expected argument #1 to be of type integer.
 FuzzyCLIPS> (oddp 4.3)                        ; DR0159
-[ARGACCES5] Function oddp expected argument #1 to be of type integer
+[ARGACCES2] Function 'oddp' expected argument #1 to be of type integer.
 FuzzyCLIPS> (oddp 5e1)                        ; DR0159
-[ARGACCES5] Function oddp expected argument #1 to be of type integer
+[ARGACCES2] Function 'oddp' expected argument #1 to be of type integer.
 FuzzyCLIPS> (/ d 6)                           ; DR0160
-[ARGACCES5] Function / expected argument #1 to be of type integer or float
+[ARGACCES2] Function '/' expected argument #1 to be of type integer or float.
 FuzzyCLIPS> (clear)                           ; DR0198
 FuzzyCLIPS> (deffacts bugfacts
    (base-count a 2 strand_13)
@@ -137,7 +137,6 @@ FuzzyCLIPS> (defrule total
 FuzzyCLIPS> (reset)                           ; DR0198
 FuzzyCLIPS> (run)                             ; DR0198
 FuzzyCLIPS> (facts)                           ; DR0198
-f-0     (initial-fact) CF 1.00 
 f-3     (count-bases strand_13 [ a 2 ] [ t 3 ]) CF 1.00 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (dribble-off)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  12/30/16             */
    /*                                                     */
    /*                 FACT HASHING MODULE                 */
    /*******************************************************/
@@ -34,12 +34,25 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Modify command preserves fact id and address.  */
+/*                                                           */
+/*            Assert returns duplicate fact. FALSE is now    */
+/*            returned only if an error occurs.              */
+/*                                                           */
 /*************************************************************/
 
-#define _FACTHSH_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <stdlib.h>
 
 #include "setup.h"
@@ -47,20 +60,23 @@
 #if DEFTEMPLATE_CONSTRUCT
 
 #include "constant.h"
+#include "envrnmnt.h"
+#include "factmngr.h"
 #include "memalloc.h"
+#include "multifld.h"
 #include "router.h"
 #include "sysdep.h"
-#include "envrnmnt.h"
+#include "utility.h"
 
 #if DEFRULE_CONSTRUCT
 #include "lgcldpnd.h"
 #endif
 
-#if FUZZY_DEFTEMPLATES    
+#if FUZZY_DEFTEMPLATES
 #include "fuzzyutl.h"
 #endif
 
-#if CERTAINTY_FACTORS    
+#if CERTAINTY_FACTORS
 #include "cfdef.h"
 #endif
 
@@ -70,24 +86,24 @@
 /* LOCAL INTERNAL FUNCTION DEFINITIONS */
 /***************************************/
 
-   static struct fact            *FactExists(void *,struct fact *,unsigned long);
-   static struct factHashEntry  **CreateFactHashTable(void *,unsigned long);
-   static void                    ResizeFactHashTable(void *);
-   static void                    ResetFactHashTable(void *);
-   
+   static Fact                   *FactExists(Environment *,Fact *,size_t);
+   static struct factHashEntry  **CreateFactHashTable(Environment *,size_t);
+   static void                    ResizeFactHashTable(Environment *);
+   static void                    ResetFactHashTable(Environment *);
+
 /************************************************/
 /* HashFact: Returns the hash value for a fact. */
 /************************************************/
-unsigned long HashFact(
-  struct fact *theFact)
+size_t HashFact(
+  Fact *theFact)
   {
-   unsigned long count = 0;
+   size_t count = 0;
 
    /*============================================*/
    /* Get a hash value for the deftemplate name. */
    /*============================================*/
 
-   count += (unsigned long) theFact->whichDeftemplate->header.name->bucket * 73981;
+   count += theFact->whichDeftemplate->header.name->bucket * 73981;
 
    /*=================================================*/
    /* Add in the hash value for the rest of the fact. */
@@ -100,23 +116,23 @@ unsigned long HashFact(
    /* in the appropriate range.      */
    /*================================*/
 
-   theFact->hashValue = count;
+   theFact->hashValue = (unsigned long) count;
 
    /*========================*/
    /* Return the hash value. */
    /*========================*/
 
-   return(count);
+   return count;
   }
 
 /**********************************************/
 /* FactExists: Determines if a specified fact */
 /*   already exists in the fact hash table.   */
 /**********************************************/
-static struct fact *FactExists(
-  void *theEnv,
-  struct fact *theFact,
-  unsigned long hashValue)
+static Fact *FactExists(
+  Environment *theEnv,
+  Fact *theFact,
+  size_t hashValue)
   {
    struct factHashEntry *theFactHash;
 
@@ -131,30 +147,31 @@ static struct fact *FactExists(
 
       if ((theFact->whichDeftemplate == theFactHash->theFact->whichDeftemplate) ?
           MultifieldsEqual(&theFact->theProposition,
-                           &theFactHash->theFact->theProposition) : FALSE)
-#if CERTAINTY_FACTORS 
+                           &theFactHash->theFact->theProposition) : false)
+#if CERTAINTY_FACTORS
           /* standard facts -- same templates means same fact --
              perform global contribution calculation for CF and return
              ptr to existing fact indicating fact exists
           */
-        { changeCFofExistingFact(theEnv,theFact,theFactHash->theFact);
-          return(theFactHash->theFact);
+        {
+         changeCFofExistingFact(theEnv,theFact,theFactHash->theFact);
+         return(theFactHash->theFact);
         }
 #else
         { return(theFactHash->theFact); }
 #endif
      }
 
-   return(NULL);
+   return NULL;
   }
 
 /************************************************************/
 /* AddHashedFact: Adds a fact entry to the fact hash table. */
 /************************************************************/
-globle void AddHashedFact(
-  void *theEnv,
-  struct fact *theFact,
-  unsigned long hashValue)
+void AddHashedFact(
+  Environment *theEnv,
+  Fact *theFact,
+  size_t hashValue)
   {
    struct factHashEntry *newhash, *temp;
 
@@ -165,7 +182,7 @@ globle void AddHashedFact(
    newhash->theFact = theFact;
 
    hashValue = (hashValue % FactData(theEnv)->FactHashTableSize);
-   
+
    temp = FactData(theEnv)->FactHashTable[hashValue];
    FactData(theEnv)->FactHashTable[hashValue] = newhash;
    newhash->next = temp;
@@ -175,11 +192,11 @@ globle void AddHashedFact(
 /* RemoveHashedFact: Removes a fact entry */
 /*   from the fact hash table.            */
 /******************************************/
-globle intBool RemoveHashedFact(
-  void *theEnv,
-  struct fact *theFact)
+bool RemoveHashedFact(
+  Environment *theEnv,
+  Fact *theFact)
   {
-   unsigned long hashValue;
+   size_t hashValue;
    struct factHashEntry *hptr, *prev;
 
    hashValue = HashFact(theFact);
@@ -197,7 +214,7 @@ globle intBool RemoveHashedFact(
             rtn_struct(theEnv,factHashEntry,hptr);
             if (FactData(theEnv)->NumberOfFacts == 1)
               { ResetFactHashTable(theEnv); }
-            return(1);
+            return true;
            }
          else
            {
@@ -205,36 +222,36 @@ globle intBool RemoveHashedFact(
             rtn_struct(theEnv,factHashEntry,hptr);
             if (FactData(theEnv)->NumberOfFacts == 1)
               { ResetFactHashTable(theEnv); }
-            return(1);
+            return true;
            }
         }
       prev = hptr;
      }
 
-   return(0);
+   return false;
   }
 
 /****************************************************/
 /* FactWillBeAsserted: Determines if a fact will be */
 /*   asserted based on the duplication settings.    */
 /****************************************************/
-globle intBool FactWillBeAsserted(
-  void *theEnv,
-  void *theFact)
+bool FactWillBeAsserted(
+  Environment *theEnv,
+  Fact *theFact)
   {
-   struct fact *tempPtr;
-   unsigned long hashValue;
+   Fact *tempPtr;
+   size_t hashValue;
 
-   if (FactData(theEnv)->FactDuplication) return(TRUE);
+   if (FactData(theEnv)->FactDuplication) return true;
 
-   hashValue = HashFact((struct fact *) theFact);
+   hashValue = HashFact(theFact);
 
-   tempPtr = FactExists(theEnv,(struct fact *) theFact,hashValue);
-   if (tempPtr == NULL) return(TRUE);
-   
-   return(FALSE);
+   tempPtr = FactExists(theEnv,theFact,hashValue);
+   if (tempPtr == NULL) return true;
+
+   return false;
   }
-  
+
 #if FUZZY_DEFTEMPLATES
 /*******************************************************/
 /* HandleExistingFuzzyFact: Determines if new fact to  */
@@ -249,9 +266,9 @@ globle intBool FactWillBeAsserted(
 /*       the fuzzy slots all have the same FUZZY_VALUE */
 /*       type -- i.e. both temperature deftemplates    */
 /*******************************************************/
-globle unsigned long HandleExistingFuzzyFact(
-  void *theEnv,
-  void **theFact)
+unsigned long HandleExistingFuzzyFact(
+  Environment *theEnv,
+  Fact **theFact)
   {
    struct fact *tempFact;
    struct factHashEntry *theFactHash;
@@ -297,7 +314,7 @@ globle unsigned long HandleExistingFuzzyFact(
      }
 
    if (tempFact != NULL) /* existing fact! retract it before new one gets asserted */
-       EnvRetract(theEnv,tempFact);
+       Retract(tempFact);
 
    return(hashValue);
   }
@@ -310,61 +327,71 @@ globle unsigned long HandleExistingFuzzyFact(
 /*   takes appropriate action based on the current   */
 /*   setting of the fact-duplication flag.           */
 /*****************************************************/
-globle unsigned long HandleFactDuplication(
-  void *theEnv,
-  void *theFact,
-  intBool *duplicate)
+size_t HandleFactDuplication(
+  Environment *theEnv,
+  Fact *theFact,
+  Fact **duplicate,
+  long long reuseIndex)
   {
-   struct fact *tempPtr;
-   unsigned long hashValue;
-   *duplicate = FALSE;
-   
-   hashValue = HashFact((struct fact *) theFact);
+   size_t hashValue;
+   *duplicate = NULL;
 
-   if (FactData(theEnv)->FactDuplication) return(hashValue);
+   hashValue = HashFact(theFact);
 
-   tempPtr = FactExists(theEnv,(struct fact *) theFact,hashValue);
-   if (tempPtr == NULL) return(hashValue);
+   if (FactData(theEnv)->FactDuplication)
+     { return hashValue; }
 
-   ReturnFact(theEnv,(struct fact *) theFact);
+   *duplicate = FactExists(theEnv,theFact,hashValue);
+   if (*duplicate == NULL) return hashValue;
+
+   if (reuseIndex == 0)
+     { ReturnFact(theEnv,theFact); }
+   else
+     {
+      theFact->nextFact = FactData(theEnv)->GarbageFacts;
+      FactData(theEnv)->GarbageFacts = theFact;
+      UtilityData(theEnv)->CurrentGarbageFrame->dirty = true;
+      theFact->garbage = true;
+     }
+
 #if DEFRULE_CONSTRUCT
-   AddLogicalDependencies(theEnv,(struct patternEntity *) tempPtr,TRUE);
+   AddLogicalDependencies(theEnv,(struct patternEntity *) *duplicate,true);
 #endif
-   *duplicate = TRUE;
-   return(0);
+
+   return 0;
   }
 
 /*******************************************/
-/* EnvGetFactDuplication: C access routine */
+/* GetFactDuplication: C access routine    */
 /*   for the get-fact-duplication command. */
 /*******************************************/
-globle intBool EnvGetFactDuplication(
-  void *theEnv)
-  {   
-   return(FactData(theEnv)->FactDuplication); 
+bool GetFactDuplication(
+  Environment *theEnv)
+  {
+   return FactData(theEnv)->FactDuplication;
   }
 
 /*******************************************/
-/* EnvSetFactDuplication: C access routine */
+/* SetFactDuplication: C access routine    */
 /*   for the set-fact-duplication command. */
 /*******************************************/
-globle intBool EnvSetFactDuplication(
-  void *theEnv,
-  int value)
+bool SetFactDuplication(
+  Environment *theEnv,
+  bool value)
   {
-   int ov;
+   bool ov;
 
    ov = FactData(theEnv)->FactDuplication;
    FactData(theEnv)->FactDuplication = value;
-   return(ov);
+   return ov;
   }
 
 /**************************************************/
 /* InitializeFactHashTable: Initializes the table */
 /*   entries in the fact hash table to NULL.      */
 /**************************************************/
-globle void InitializeFactHashTable(
-   void *theEnv)
+void InitializeFactHashTable(
+   Environment *theEnv)
    {
     FactData(theEnv)->FactHashTable = CreateFactHashTable(theEnv,SIZE_FACT_HASH);
     FactData(theEnv)->FactHashTableSize = SIZE_FACT_HASH;
@@ -374,70 +401,70 @@ globle void InitializeFactHashTable(
 /* CreateFactHashTable: Creates and initializes a fact hash table. */
 /*******************************************************************/
 static struct factHashEntry **CreateFactHashTable(
-   void *theEnv,
-   unsigned long tableSize)
+   Environment *theEnv,
+   size_t tableSize)
    {
     unsigned long i;
     struct factHashEntry **theTable;
 
     theTable = (struct factHashEntry **)
-               gm3(theEnv,sizeof (struct factHashEntry *) * tableSize);
+               gm2(theEnv,sizeof (struct factHashEntry *) * tableSize);
 
-    if (theTable == NULL) EnvExitRouter(theEnv,EXIT_FAILURE);
-    
+    if (theTable == NULL) ExitRouter(theEnv,EXIT_FAILURE);
+
     for (i = 0; i < tableSize; i++) theTable[i] = NULL;
-    
-    return(theTable);
+
+    return theTable;
    }
- 
-/*******************************************************************/
+
+/************************/
 /* ResizeFactHashTable: */
-/*******************************************************************/
+/************************/
 static void ResizeFactHashTable(
-   void *theEnv)
+   Environment *theEnv)
    {
     unsigned long i, newSize, newLocation;
     struct factHashEntry **theTable, **newTable;
     struct factHashEntry *theEntry, *nextEntry;
 
     theTable = FactData(theEnv)->FactHashTable;
-    
+
     newSize = (FactData(theEnv)->FactHashTableSize * 2) + 1;
     newTable = CreateFactHashTable(theEnv,newSize);
 
     /*========================================*/
     /* Copy the old entries to the new table. */
     /*========================================*/
-    
+
     for (i = 0; i < FactData(theEnv)->FactHashTableSize; i++)
       {
        theEntry = theTable[i];
        while (theEntry != NULL)
-         { 
+         {
           nextEntry = theEntry->next;
-          
+
           newLocation = theEntry->theFact->hashValue % newSize;
           theEntry->next = newTable[newLocation];
           newTable[newLocation] = theEntry;
-          
+
           theEntry = nextEntry;
          }
       }
-    
+
     /*=====================================================*/
     /* Replace the old hash table with the new hash table. */
     /*=====================================================*/
-    
-    rm3(theEnv,theTable,sizeof(struct factHashEntry *) * FactData(theEnv)->FactHashTableSize);
+
+    rm(theEnv,theTable,sizeof(struct factHashEntry *) * FactData(theEnv)->FactHashTableSize);
     FactData(theEnv)->FactHashTableSize = newSize;
     FactData(theEnv)->FactHashTable = newTable;
    }
 
-/*******************************************************************/
+/***********************/
 /* ResetFactHashTable: */
-/*******************************************************************/
+/***********************/
 static void ResetFactHashTable(
-   void *theEnv)
+   Environment *theEnv)
    {
     struct factHashEntry **newTable;
 
@@ -445,73 +472,56 @@ static void ResetFactHashTable(
     /* Don't reset the table unless the hash table */
     /* has been expanded from its original size.   */
     /*=============================================*/
-    
+
     if (FactData(theEnv)->FactHashTableSize == SIZE_FACT_HASH)
       { return; }
-          
+
     /*=======================*/
     /* Create the new table. */
     /*=======================*/
-    
+
     newTable = CreateFactHashTable(theEnv,SIZE_FACT_HASH);
-    
+
     /*=====================================================*/
     /* Replace the old hash table with the new hash table. */
     /*=====================================================*/
-    
-    rm3(theEnv,FactData(theEnv)->FactHashTable,sizeof(struct factHashEntry *) * FactData(theEnv)->FactHashTableSize);
+
+    rm(theEnv,FactData(theEnv)->FactHashTable,sizeof(struct factHashEntry *) * FactData(theEnv)->FactHashTableSize);
     FactData(theEnv)->FactHashTableSize = SIZE_FACT_HASH;
     FactData(theEnv)->FactHashTable = newTable;
    }
-      
+
 #if DEVELOPER
 
-/*****************************************************/
-/* ShowFactHashTable: Displays the number of entries */
-/*   in each slot of the fact hash table.            */
-/*****************************************************/
-globle void ShowFactHashTable(
-   void *theEnv)
-   {
-    int i, count;
-    struct factHashEntry *theEntry;
-    char buffer[20];
+/****************************************************/
+/* ShowFactHashTableCommand: Displays the number of */
+/*   entries in each slot of the fact hash table.   */
+/****************************************************/
+void ShowFactHashTableCommand(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
+  {
+   unsigned long i, count;
+   struct factHashEntry *theEntry;
+   char buffer[20];
 
-    for (i = 0; i < FactData(theEnv)->FactHashTableSize; i++)
-      {
-       for (theEntry =  FactData(theEnv)->FactHashTable[i], count = 0;
-            theEntry != NULL;
-            theEntry = theEntry->next)
-         { count++; }
+   for (i = 0; i < FactData(theEnv)->FactHashTableSize; i++)
+     {
+      for (theEntry =  FactData(theEnv)->FactHashTable[i], count = 0;
+           theEntry != NULL;
+           theEntry = theEntry->next)
+        { count++; }
 
-       if (count != 0)
-         {
-          gensprintf(buffer,"%4d: %4d\n",i,count);
-          EnvPrintRouter(theEnv,WDISPLAY,buffer);
-         }
-      }
-   }
+      if (count != 0)
+        {
+         gensprintf(buffer,"%4lu: %4d\n",i,count);
+         WriteString(theEnv,STDOUT,buffer);
+        }
+     }
+  }
 
 #endif /* DEVELOPER */
-
-/*#####################################*/
-/* ALLOW_ENVIRONMENT_GLOBALS Functions */
-/*#####################################*/
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-globle intBool GetFactDuplication()
-  {   
-   return EnvGetFactDuplication(GetCurrentEnvironment());
-  }
-
-globle intBool SetFactDuplication(
-  int value)
-  {
-   return EnvSetFactDuplication(GetCurrentEnvironment(),value);
-  }
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
 
 #endif /* DEFTEMPLATE_CONSTRUCT */
 

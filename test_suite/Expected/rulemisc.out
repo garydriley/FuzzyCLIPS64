@@ -21,12 +21,13 @@ FuzzyCLIPS> (assert (b))
 <Fact-2>
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Test Thing #3
+FuzzyCLIPS> (deffacts initial (factoid))
 FuzzyCLIPS> (reset)
-FuzzyCLIPS> (defrule foo (initial-fact) (not (a)) =>)
-FuzzyCLIPS> (defrule bar (initial-fact) =>)
+FuzzyCLIPS> (defrule foo (factoid) (not (a)) =>)
+FuzzyCLIPS> (defrule bar (factoid) =>)
 FuzzyCLIPS> (agenda)
-0      bar: f-0
-0      foo: f-0,*
+0      bar: f-1
+0      foo: f-1,*
 For a total of 2 activations.
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Test Thing #4
@@ -457,12 +458,11 @@ FuzzyCLIPS> (assert (something))
 <Fact-2>
 FuzzyCLIPS> (run) 
 <== f-1     (foo (bar 1)) CF 1.00 
-==> f-3     (foo (bar TRUE)) CF 1.00 
+==> f-1     (foo (bar TRUE)) CF 1.00 
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
+f-1     (foo (bar TRUE)) CF 1.00 
 f-2     (something) CF 1.00 
-f-3     (foo (bar TRUE)) CF 1.00 
-For a total of 3 facts.
+For a total of 2 facts.
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (watch activations) 
@@ -485,9 +485,8 @@ FuzzyCLIPS> (assert (something))
 FuzzyCLIPS> (run) 
 <== f-1     (foo (bar 1)) CF 1.00 
 FuzzyCLIPS> (facts)
-f-0     (initial-fact) CF 1.00 
 f-2     (something) CF 1.00 
-For a total of 2 facts.
+For a total of 1 fact.
 FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Test Thing #16
 FuzzyCLIPS> (watch facts)
@@ -497,8 +496,6 @@ FuzzyCLIPS> (defrule prop
    =>
    (assert (level-search (+ ?n 1))))
 FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
 FuzzyCLIPS> (assert (level-search 1))
 ==> f-1     (level-search 1) CF 1.00 
 <Fact-1>
@@ -743,8 +740,6 @@ FuzzyCLIPS>
 FuzzyCLIPS> (watch facts)
 FuzzyCLIPS> (watch activations)
 FuzzyCLIPS> (reset)
-<== f-0     (initial-fact) CF 1.00 
-==> f-0     (initial-fact) CF 1.00 
 ==> f-1     (csp (y A) (u B)) CF 1.00 
 ==> f-2     (link (z B) (y A)) CF 1.00 
 ==> f-3     (link (z C) (y A)) CF 1.00 
@@ -893,6 +888,30 @@ FuzzyCLIPS>
 FuzzyCLIPS> (agenda)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (agenda)
+FuzzyCLIPS> (clear) ; Fact duplication bug
+FuzzyCLIPS> 
+(deftemplate pay
+   (slot code)
+   (slot processed))
+FuzzyCLIPS> 
+(deffacts initial-data
+   (pay (code A) (processed 1))
+   (pay (code A) (processed 2)))
+FuzzyCLIPS>    
+(defrule Secondary ""
+   ?p <- (pay (processed ~TRUE))
+   =>
+   (modify ?p (processed TRUE))) 
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (watch rules)
+FuzzyCLIPS> (run)
+FIRE    1 Secondary: f-2
+<== f-2     (pay ... (processed 2)) CF 1.00 
+==> f-2     (pay ... (processed TRUE)) CF 1.00 
+FIRE    2 Secondary: f-1
+<== f-1     (pay ... (processed 1)) CF 1.00 
+FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Class to alpha link removal
 FuzzyCLIPS> (watch activations)
 FuzzyCLIPS> (defclass A (is-a USER))

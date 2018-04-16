@@ -48,24 +48,24 @@
 #endif
 
    LOCALE void                 fcompliment( struct fuzzy_value *fv );
-   LOCALE struct fuzzy_value  *funion(void *theEnv, struct fuzzy_value *f1, struct fuzzy_value *f2 );
+   LOCALE struct fuzzy_value  *funion(Environment *theEnv, struct fuzzy_value *f1, struct fuzzy_value *f2 );
    LOCALE int                  nonintersectiontest( double *Ax, double *Ay, 
                                                     double *Bx, double *By,
                                                     int Asize, int Bsize );
-   LOCALE void                 computeFuzzyConsequence(void *theEnv, struct fact *new_fact );
-   LOCALE void                 changeValueOfFuzzySlots(void *theEnv, struct fact *fact1, struct fact *fact2 );
-   LOCALE void                 PrintFuzzyTemplateFact(void *theEnv,const char *logName, struct fuzzy_value *fv
+   LOCALE void                 computeFuzzyConsequence(Environment *theEnv, struct fact *new_fact );
+   LOCALE void                 changeValueOfFuzzySlots(Environment *theEnv,Fact *fact1,Fact *fact2 );
+   LOCALE void                 PrintFuzzyTemplateFact(Environment *theEnv,const char *logName, struct fuzzy_value *fv
 #if CERTAINTY_FACTORS
                                                      ,double CF
 #endif
                                                      );
-   LOCALE void                 PrintFuzzySet(void *theEnv,const char *logName, struct fuzzy_value *fv);
-   LOCALE double               maxmin_intersect(void *theEnv,struct fuzzy_value *f1,
+   LOCALE void                 PrintFuzzySet(Environment *theEnv,const char *logName, struct fuzzy_value *fv);
+   LOCALE double               maxmin_intersect(Environment *theEnv,struct fuzzy_value *f1,
                                                 struct fuzzy_value *f2, 
                                                 int DoIntersect,
                                                 struct fuzzy_value **intersectSet);
-   LOCALE struct fuzzy_value  *fintersect(void *theEnv,struct fuzzy_value *f1, struct fuzzy_value *f2);
-   LOCALE double               max_of_min(void *theEnv,struct fuzzy_value *f1, struct fuzzy_value *f2);
+   LOCALE struct fuzzy_value  *fintersect(Environment *theEnv,struct fuzzy_value *f1, struct fuzzy_value *f2);
+   LOCALE double               max_of_min(Environment *theEnv,struct fuzzy_value *f1, struct fuzzy_value *f2);
    LOCALE int                  FZ_EQUAL(double f1, double f2);
 
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*        DEFRULE CONSTRUCT COMPILER HEADER FILE       */
    /*******************************************************/
@@ -35,15 +35,23 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_rulecmp
+
+#pragma once
+
 #define _H_rulecmp
 
 #include "conscomp.h"
-#ifndef _H_extnfunc
 #include "extnfunc.h"
-#endif
 
 #define JoinPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,2)
 #define LinkPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,3)
@@ -52,18 +60,8 @@
 #define PatternFvPrefix() ArbitraryPrefix(DefruleData(theEnv)->DefruleCodeItem,4)
 #endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _RULECMP_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                     DefruleCompilerSetup(void *);
-   LOCALE void                     DefruleCModuleReference(void *,FILE *,int,int,int);
+   void                     DefruleCompilerSetup(Environment *);
+   void                     DefruleCModuleReference(Environment *,FILE *,unsigned long,unsigned int,unsigned int);
 
 #endif /* _H_rulecmp */
 

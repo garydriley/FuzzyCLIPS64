@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*            CLIPS Version 6.40  11/01/16             */
    /*                                                     */
    /*          FACT RETE ACCESS FUNCTIONS MODULE          */
    /*******************************************************/
@@ -32,27 +32,34 @@
 /*                                                           */
 /*            Support for hashing optimizations.             */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
-#define _FACTRETE_SOURCE_
-
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 
 #include "setup.h"
 
 #if DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT
 
-#include "memalloc.h"
-#include "extnfunc.h"
-#include "router.h"
-#include "incrrset.h"
-#include "reteutil.h"
 #include "drive.h"
 #include "engine.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
 #include "factgen.h"
 #include "factmch.h"
-#include "envrnmnt.h"
+#include "incrrset.h"
+#include "memalloc.h"
+#include "multifld.h"
+#include "reteutil.h"
+#include "router.h"
 
 #if FUZZY_DEFTEMPLATES
 #include "fuzzyutl.h"
@@ -65,24 +72,25 @@
 /* FactPNGetVar1: Fact pattern network function for extracting */
 /*   a variable's value. This is the most generalized routine. */
 /***************************************************************/
-globle intBool FactPNGetVar1(
-  void *theEnv,
+bool FactPNGetVar1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
+   size_t adjustedField;
    unsigned short theField, theSlot;
-   struct fact *factPtr;
-   struct field *fieldPtr;
+   Fact *factPtr;
+   CLIPSValue *fieldPtr;
    struct multifieldMarker *marks;
-   struct multifield *segmentPtr;
-   int extent;
+   Multifield *segmentPtr;
+   size_t extent;
    struct factGetVarPN1Call *hack;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factGetVarPN1Call *) ValueToBitMap(theValue);
+   hack = (struct factGetVarPN1Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*=====================================================*/
    /* Get the pointer to the fact from the partial match. */
@@ -98,9 +106,8 @@ globle intBool FactPNGetVar1(
 
    if (hack->factAddress)
      {
-      returnValue->type = FACT_ADDRESS;
-      returnValue->value = (void *) factPtr;
-      return(TRUE);
+      returnValue->value = factPtr;
+      return true;
      }
 
    /*=========================================================*/
@@ -110,16 +117,15 @@ globle intBool FactPNGetVar1(
    if (hack->allFields)
      {
       theSlot = hack->whichSlot;
-      fieldPtr = &factPtr->theProposition.theFields[theSlot];
-      returnValue->type = fieldPtr->type;
+      fieldPtr = &factPtr->theProposition.contents[theSlot];
       returnValue->value = fieldPtr->value;
-      if (returnValue->type == MULTIFIELD)
+      if (returnValue->header->type == MULTIFIELD_TYPE)
         {
-         SetpDOBegin(returnValue,1);
-         SetpDOEnd(returnValue,((struct multifield *) fieldPtr->value)->multifieldLength);
+         returnValue->begin = 0;
+         returnValue->range = fieldPtr->multifieldValue->length;
         }
 
-      return(TRUE);
+      return true;
      }
 
    /*====================================================*/
@@ -133,28 +139,27 @@ globle intBool FactPNGetVar1(
 
    theField = hack->whichField;
    theSlot = hack->whichSlot;
-   fieldPtr = &factPtr->theProposition.theFields[theSlot];
+   fieldPtr = &factPtr->theProposition.contents[theSlot];
 
    /*==========================================================*/
    /* Retrieve a value from a multifield slot. First determine */
    /* the range of fields for the variable being retrieved.    */
    /*==========================================================*/
 
-   extent = -1;
-   theField = AdjustFieldPosition(theEnv,marks,theField,theSlot,&extent);
+   extent = SIZE_MAX;
+   adjustedField = AdjustFieldPosition(theEnv,marks,theField,theSlot,&extent);
 
    /*=============================================================*/
    /* If a range of values are being retrieved (i.e. a multifield */
    /* variable), then return the values as a multifield.          */
    /*=============================================================*/
 
-   if (extent != -1)
+   if (extent != SIZE_MAX)
      {
-      returnValue->type = MULTIFIELD;
-      returnValue->value = (void *) fieldPtr->value;
-      returnValue->begin = theField;
-      returnValue->end = theField + extent - 1;
-      return(TRUE);
+      returnValue->value = fieldPtr->value;
+      returnValue->begin = adjustedField;
+      returnValue->range = extent;
+      return true;
      }
 
    /*========================================================*/
@@ -162,13 +167,12 @@ globle intBool FactPNGetVar1(
    /* a multifield slot. Just return the type and value.     */
    /*========================================================*/
 
-   segmentPtr = (struct multifield *) fieldPtr->value;
-   fieldPtr = &segmentPtr->theFields[theField];
+   segmentPtr = fieldPtr->multifieldValue;
+   fieldPtr = &segmentPtr->contents[adjustedField];
 
-   returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return true;
   }
 
 /**************************************************/
@@ -176,20 +180,20 @@ globle intBool FactPNGetVar1(
 /*   for extracting a variable's value. The value */
 /*   extracted is from a single field slot.       */
 /**************************************************/
-globle intBool FactPNGetVar2(
-  void *theEnv,
+bool FactPNGetVar2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
-   struct fact *factPtr;
+   Fact *factPtr;
    struct factGetVarPN2Call *hack;
-   struct field *fieldPtr;
+   CLIPSValue *fieldPtr;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factGetVarPN2Call *) ValueToBitMap(theValue);
+   hack = (struct factGetVarPN2Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*==============================*/
    /* Get the pointer to the fact. */
@@ -201,12 +205,11 @@ globle intBool FactPNGetVar2(
    /* Extract the value from the specified slot. */
    /*============================================*/
 
-   fieldPtr = &factPtr->theProposition.theFields[hack->whichSlot];
+   fieldPtr = &factPtr->theProposition.contents[hack->whichSlot];
 
-   returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return true;
   }
 
 /*****************************************************************/
@@ -214,21 +217,21 @@ globle intBool FactPNGetVar2(
 /*   variable's value. The value extracted is from a multifield  */
 /*   slot that contains at most one multifield variable.         */
 /*****************************************************************/
-globle intBool FactPNGetVar3(
-  void *theEnv,
+bool FactPNGetVar3(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
-   struct fact *factPtr;
-   struct multifield *segmentPtr;
-   struct field *fieldPtr;
+   Fact *factPtr;
+   Multifield *segmentPtr;
+   CLIPSValue *fieldPtr;
    struct factGetVarPN3Call *hack;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factGetVarPN3Call *) ValueToBitMap(theValue);
+   hack = (struct factGetVarPN3Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*==============================*/
    /* Get the pointer to the fact. */
@@ -240,7 +243,7 @@ globle intBool FactPNGetVar3(
    /* Get the multifield value from which the data is retrieved. */
    /*============================================================*/
 
-   segmentPtr = (struct multifield *) factPtr->theProposition.theFields[hack->whichSlot].value;
+   segmentPtr = factPtr->theProposition.contents[hack->whichSlot].multifieldValue;
 
    /*=========================================*/
    /* If the beginning and end flags are set, */
@@ -249,11 +252,10 @@ globle intBool FactPNGetVar3(
 
    if (hack->fromBeginning && hack->fromEnd)
      {
-      returnValue->type = MULTIFIELD;
-      returnValue->value = (void *) segmentPtr;
-      returnValue->begin = (long) hack->beginOffset;
-      returnValue->end = (long) (segmentPtr->multifieldLength - (hack->endOffset + 1));
-      return(TRUE);
+      returnValue->value = segmentPtr;
+      returnValue->begin = hack->beginOffset;
+      returnValue->range = segmentPtr->length - (hack->endOffset + hack->beginOffset);
+      return true;
      }
 
    /*=====================================================*/
@@ -261,14 +263,13 @@ globle intBool FactPNGetVar3(
    /*=====================================================*/
 
    if (hack->fromBeginning)
-     { fieldPtr = &segmentPtr->theFields[hack->beginOffset]; }
+     { fieldPtr = &segmentPtr->contents[hack->beginOffset]; }
    else
-     { fieldPtr = &segmentPtr->theFields[segmentPtr->multifieldLength - (hack->endOffset + 1)]; }
+     { fieldPtr = &segmentPtr->contents[segmentPtr->length - (hack->endOffset + 1)]; }
 
-   returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return true;
   }
 
 #if FUZZY_DEFTEMPLATES
@@ -282,28 +283,27 @@ globle intBool FactPNGetVar3(
 /*       so bundle it with the 1st arg in a struct and take it apart     */
 /*       in this routine                                                 */
 /*************************************************************************/
-globle intBool FactFuzzyValuePNFunction(
-  void *theEnv,
+bool FactFuzzyValuePNFunction(
+  Environment *theEnv,
   void *theValuePosition,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
-   struct ValPos { void *Value; int Position; };
-   struct field *fieldPtr;
+   struct ValPos { CLIPSFuzzyValue *Value; int Position; };
+   CLIPSValue *fieldPtr;
    struct fuzzy_value *fuzzyValueOfFactPtr;
    struct fuzzy_value *fuzzyValueOfPatternPtr;
 
-   void *theValue = ((struct ValPos *)theValuePosition)->Value;
-   int thePosition = ((struct ValPos *)theValuePosition)->Position;
+   CLIPSFuzzyValue *theValue = ((struct ValPos *) theValuePosition)->Value;
+   int thePosition = ((struct ValPos *) theValuePosition)->Position;
 
-   returnValue->type = SYMBOL;
-   returnValue->value = EnvFalseSymbol(theEnv);
+   returnValue->lexemeValue = FalseSymbol(theEnv);
 
    /*============================================*/
    /* Extract the value from the fuzzy slot.     */
    /*============================================*/
 
-   fieldPtr = &FactData(theEnv)->CurrentPatternFact->theProposition.theFields[thePosition];
-   fuzzyValueOfFactPtr = (struct fuzzy_value *)ValueToFuzzyValue(fieldPtr->value);
+   fieldPtr = &FactData(theEnv)->CurrentPatternFact->theProposition.contents[thePosition];
+   fuzzyValueOfFactPtr = fieldPtr->fuzzyValue->contents;
 
    /*==============================================*/
    /* Compare the fact value to the pattern value. */
@@ -319,8 +319,8 @@ globle intBool FactFuzzyValuePNFunction(
    /* must be >= to the FuzzyAlphaValue.           */
    /*==============================================*/
 
-   /* theValue points to a FUZZY_VALUE_HN struct */
-   fuzzyValueOfPatternPtr = (struct fuzzy_value *)ValueToFuzzyValue(theValue);
+   /* theValue points to a CLIPSFuzzyValue struct */
+   fuzzyValueOfPatternPtr = theValue->contents;
 
    /* a NULL ptr for fuzzy value indicates ? wildcard pattern -- always matches */
    if (fuzzyValueOfPatternPtr != NULL)
@@ -332,23 +332,23 @@ globle intBool FactFuzzyValuePNFunction(
                                   fuzzyValueOfPatternPtr->x, fuzzyValueOfPatternPtr->y,
                                   fuzzyValueOfFactPtr->n, fuzzyValueOfPatternPtr->n ) )
           )
-                return(FALSE);
+                return false;
 
        /* else must use the Alpha Value to determine a match */
        if (FuzzyData(theEnv)->FuzzyAlphaValue == 0.0)
          {
            if (max_of_min(theEnv,fuzzyValueOfPatternPtr, fuzzyValueOfFactPtr) == 0.0)
-                return(FALSE);
+                return false;
          }
        else
          {
            if (max_of_min(theEnv,fuzzyValueOfPatternPtr, fuzzyValueOfFactPtr) < FuzzyData(theEnv)->FuzzyAlphaValue)
-                return(FALSE);
+                return false;
          }
      }
 
-   returnValue->value = EnvTrueSymbol(theEnv);
-   return(TRUE);
+   returnValue->value = TrueSymbol(theEnv);
+   return true;
   }
 
 #endif
@@ -358,38 +358,47 @@ globle intBool FactFuzzyValuePNFunction(
 /*   comparing a value stored in a single field slot  */
 /*   to a constant for either equality or inequality. */
 /******************************************************/
-globle intBool FactPNConstant1(
-  void *theEnv,
+bool FactPNConstant1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
 #if MAC_XCD
 #pragma unused(returnValue)
 #endif
    struct factConstantPN1Call *hack;
-   struct field *fieldPtr;
+   CLIPSValue *fieldPtr;
    struct expr *theConstant;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factConstantPN1Call *) ValueToBitMap(theValue);
+   hack = (struct factConstantPN1Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*============================================*/
    /* Extract the value from the specified slot. */
    /*============================================*/
 
-   fieldPtr = &FactData(theEnv)->CurrentPatternFact->theProposition.theFields[hack->whichSlot];
+   fieldPtr = &FactData(theEnv)->CurrentPatternFact->theProposition.contents[hack->whichSlot];
 
    /*====================================*/
    /* Compare the value to the constant. */
    /*====================================*/
 
    theConstant = GetFirstArgument();
-   if (theConstant->type != fieldPtr->type) return(1 - hack->testForEquality);
-   if (theConstant->value != fieldPtr->value) return(1 - hack->testForEquality);
-   return(hack->testForEquality);
+   if (theConstant->value != fieldPtr->value)
+     {
+      if (1 - hack->testForEquality)
+        { return true; }
+      else
+        { return false; }
+     }
+
+   if (hack->testForEquality)
+     { return true; }
+   else
+     { return false; }
   }
 
 /****************************************************************/
@@ -399,24 +408,24 @@ globle intBool FactPNConstant1(
 /*   no multifields to its right (thus it can be retrieved      */
 /*   relative to the beginning).                                */
 /****************************************************************/
-globle intBool FactPNConstant2(
-  void *theEnv,
+bool FactPNConstant2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
 #if MAC_XCD
 #pragma unused(returnValue)
 #endif
    struct factConstantPN2Call *hack;
-   struct field *fieldPtr;
+   CLIPSValue *fieldPtr;
    struct expr *theConstant;
-   struct multifield *segmentPtr;
+   Multifield *segmentPtr;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factConstantPN2Call *) ValueToBitMap(theValue);
+   hack = (struct factConstantPN2Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*==========================================================*/
    /* Extract the value from the specified slot. Note that the */
@@ -425,17 +434,17 @@ globle intBool FactPNConstant2(
    /* multifield slots.                                        */
    /*==========================================================*/
 
-   fieldPtr = &FactData(theEnv)->CurrentPatternFact->theProposition.theFields[hack->whichSlot];
+   fieldPtr = &FactData(theEnv)->CurrentPatternFact->theProposition.contents[hack->whichSlot];
 
-   if (fieldPtr->type == MULTIFIELD)
+   if (fieldPtr->header->type == MULTIFIELD_TYPE)
      {
-      segmentPtr = (struct multifield *) fieldPtr->value;
+      segmentPtr = fieldPtr->multifieldValue;
 
       if (hack->fromBeginning)
-        { fieldPtr = &segmentPtr->theFields[hack->offset]; }
+        { fieldPtr = &segmentPtr->contents[hack->offset]; }
       else
         {
-         fieldPtr = &segmentPtr->theFields[segmentPtr->multifieldLength -
+         fieldPtr = &segmentPtr->contents[segmentPtr->length -
                     (hack->offset + 1)];
         }
      }
@@ -445,33 +454,44 @@ globle intBool FactPNConstant2(
    /*====================================*/
 
    theConstant = GetFirstArgument();
-   if (theConstant->type != fieldPtr->type) return(1 - hack->testForEquality);
-   if (theConstant->value != fieldPtr->value) return(1 - hack->testForEquality);
-   return(hack->testForEquality);
+   if (theConstant->value != fieldPtr->value)
+     {
+      if (1 - hack->testForEquality)
+        { return true; }
+      else
+        { return false; }
+     }
+   
+   if (hack->testForEquality)
+     { return true; }
+   else
+     { return false; }
   }
 
 /**************************************************************/
 /* FactJNGetVar1: Fact join network function for extracting a */
 /*   variable's value. This is the most generalized routine.  */
 /**************************************************************/
-globle intBool FactJNGetVar1(
-  void *theEnv,
+bool FactJNGetVar1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
+   size_t adjustedField;
    unsigned short theField, theSlot;
-   struct fact *factPtr;
-   struct field *fieldPtr;
+   Fact *factPtr;
+   CLIPSValue *fieldPtr;
    struct multifieldMarker *marks;
-   struct multifield *segmentPtr;
-   int extent;
+   Multifield *segmentPtr;
+   size_t extent;
    struct factGetVarJN1Call *hack;
+   Multifield *theSlots = NULL;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factGetVarJN1Call *) ValueToBitMap(theValue);
+   hack = (struct factGetVarJN1Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*=====================================================*/
    /* Get the pointer to the fact from the partial match. */
@@ -479,27 +499,27 @@ globle intBool FactJNGetVar1(
 
    if (hack->lhs)
      {
-      factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem;
+      factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem;
       marks = get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->markers;
      }
    else if (hack->rhs)
      {
-      factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,hack->whichPattern)->matchingItem;
+      factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,hack->whichPattern)->matchingItem;
       marks = get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,hack->whichPattern)->markers;
      }
    else if (EngineData(theEnv)->GlobalRHSBinds == NULL)
      {
-      factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem;
+      factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem;
       marks = get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->markers;
      }
-   else if ((((unsigned short) (EngineData(theEnv)->GlobalJoin->depth - 1))) == hack->whichPattern)
+   else if ((EngineData(theEnv)->GlobalJoin->depth - 1) == hack->whichPattern)
      {
-      factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->matchingItem;
+      factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->matchingItem;
       marks = get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->markers;
      }
    else
      {
-      factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem;
+      factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem;
       marks = get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->markers;
      }
 
@@ -510,10 +530,15 @@ globle intBool FactJNGetVar1(
 
    if (hack->factAddress)
      {
-      returnValue->type = FACT_ADDRESS;
-      returnValue->value = (void *) factPtr;
-      return(TRUE);
+      returnValue->value = factPtr;
+      return true;
      }
+
+   if ((factPtr->basisSlots != NULL) &&
+       (! EngineData(theEnv)->JoinOperationInProgress))
+     { theSlots = factPtr->basisSlots; }
+   else
+     { theSlots = &factPtr->theProposition; }
 
    /*=========================================================*/
    /* Determine if we want to retrieve the entire slot value. */
@@ -522,16 +547,15 @@ globle intBool FactJNGetVar1(
    if (hack->allFields)
      {
       theSlot = hack->whichSlot;
-      fieldPtr = &factPtr->theProposition.theFields[theSlot];
-      returnValue->type = fieldPtr->type;
+      fieldPtr = &theSlots->contents[theSlot];
       returnValue->value = fieldPtr->value;
-      if (returnValue->type == MULTIFIELD)
+      if (returnValue->header->type == MULTIFIELD_TYPE)
         {
-         SetpDOBegin(returnValue,1);
-         SetpDOEnd(returnValue,((struct multifield *) fieldPtr->value)->multifieldLength);
+         returnValue->begin = 0;
+         returnValue->range = fieldPtr->multifieldValue->length;
         }
 
-      return(TRUE);
+      return true;
      }
 
    /*====================================================*/
@@ -545,13 +569,12 @@ globle intBool FactJNGetVar1(
 
    theField = hack->whichField;
    theSlot = hack->whichSlot;
-   fieldPtr = &factPtr->theProposition.theFields[theSlot];
+   fieldPtr = &theSlots->contents[theSlot];
 
-   if (fieldPtr->type != MULTIFIELD)
+   if (fieldPtr->header->type != MULTIFIELD_TYPE)
      {
-      returnValue->type = fieldPtr->type;
       returnValue->value = fieldPtr->value;
-      return(TRUE);
+      return true;
      }
 
    /*==========================================================*/
@@ -559,21 +582,20 @@ globle intBool FactJNGetVar1(
    /* the range of fields for the variable being retrieved.    */
    /*==========================================================*/
 
-   extent = -1;
-   theField = AdjustFieldPosition(theEnv,marks,theField,theSlot,&extent);
+   extent = SIZE_MAX;
+   adjustedField = AdjustFieldPosition(theEnv,marks,theField,theSlot,&extent);
 
    /*=============================================================*/
    /* If a range of values are being retrieved (i.e. a multifield */
    /* variable), then return the values as a multifield.          */
    /*=============================================================*/
 
-   if (extent != -1)
+   if (extent != SIZE_MAX)
      {
-      returnValue->type = MULTIFIELD;
-      returnValue->value = (void *) fieldPtr->value;
-      returnValue->begin = theField;
-      returnValue->end = theField + extent - 1;
-      return(TRUE);
+      returnValue->value = fieldPtr->value;
+      returnValue->begin = adjustedField;
+      returnValue->range = extent;
+      return true;
      }
 
    /*========================================================*/
@@ -581,13 +603,12 @@ globle intBool FactJNGetVar1(
    /* a multifield slot. Just return the type and value.     */
    /*========================================================*/
 
-   segmentPtr = (struct multifield *) factPtr->theProposition.theFields[theSlot].value;
-   fieldPtr = &segmentPtr->theFields[theField];
+   segmentPtr = theSlots->contents[theSlot].multifieldValue;
+   fieldPtr = &segmentPtr->contents[adjustedField];
 
-   returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return true;
   }
 
 /*************************************************/
@@ -595,46 +616,49 @@ globle intBool FactJNGetVar1(
 /*   extracting a variable's value. The value    */
 /*   extracted is from a single field slot.      */
 /*************************************************/
-globle intBool FactJNGetVar2(
-  void *theEnv,
+bool FactJNGetVar2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
-   struct fact *factPtr;
+   Fact *factPtr;
    struct factGetVarJN2Call *hack;
-   struct field *fieldPtr;
+   CLIPSValue *fieldPtr;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factGetVarJN2Call *) ValueToBitMap(theValue);
+   hack = (struct factGetVarJN2Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*=====================================================*/
    /* Get the pointer to the fact from the partial match. */
    /*=====================================================*/
 
    if (hack->lhs)
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
    else if (hack->rhs)
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,hack->whichPattern)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,hack->whichPattern)->matchingItem; }
    else if (EngineData(theEnv)->GlobalRHSBinds == NULL)
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
-   else if (((unsigned short) (EngineData(theEnv)->GlobalJoin->depth - 1)) == hack->whichPattern)
-	 { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
+   else if ((EngineData(theEnv)->GlobalJoin->depth - 1) == hack->whichPattern)
+	 { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->matchingItem; }
    else
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
 
    /*============================================*/
    /* Extract the value from the specified slot. */
    /*============================================*/
 
-   fieldPtr = &factPtr->theProposition.theFields[hack->whichSlot];
+   if ((factPtr->basisSlots != NULL) &&
+       (! EngineData(theEnv)->JoinOperationInProgress))
+     { fieldPtr = &factPtr->basisSlots->contents[hack->whichSlot]; }
+   else
+     { fieldPtr = &factPtr->theProposition.contents[hack->whichSlot]; }
 
-   returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return true;
   }
 
 /****************************************************************/
@@ -642,42 +666,46 @@ globle intBool FactJNGetVar2(
 /*   variable's value. The value extracted is from a multifield */
 /*   slot that contains at most one multifield variable.        */
 /****************************************************************/
-globle intBool FactJNGetVar3(
-  void *theEnv,
+bool FactJNGetVar3(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
-   struct fact *factPtr;
-   struct multifield *segmentPtr;
-   struct field *fieldPtr;
+   Fact *factPtr;
+   Multifield *segmentPtr;
+   CLIPSValue *fieldPtr;
    struct factGetVarJN3Call *hack;
 
    /*==========================================*/
    /* Retrieve the arguments for the function. */
    /*==========================================*/
 
-   hack = (struct factGetVarJN3Call *) ValueToBitMap(theValue);
+   hack = (struct factGetVarJN3Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*=====================================================*/
    /* Get the pointer to the fact from the partial match. */
    /*=====================================================*/
 
    if (hack->lhs)
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
    else if (hack->rhs)
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,hack->whichPattern)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,hack->whichPattern)->matchingItem; }
    else if (EngineData(theEnv)->GlobalRHSBinds == NULL)
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
-   else if (((unsigned short) (EngineData(theEnv)->GlobalJoin->depth - 1)) == hack->whichPattern)
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
+   else if ((EngineData(theEnv)->GlobalJoin->depth - 1) == hack->whichPattern)
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->matchingItem; }
    else
-     { factPtr = (struct fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
+     { factPtr = (Fact *) get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,hack->whichPattern)->matchingItem; }
 
    /*============================================================*/
    /* Get the multifield value from which the data is retrieved. */
    /*============================================================*/
 
-   segmentPtr = (struct multifield *) factPtr->theProposition.theFields[hack->whichSlot].value;
+   if ((factPtr->basisSlots != NULL) &&
+       (! EngineData(theEnv)->JoinOperationInProgress))
+     { segmentPtr = factPtr->basisSlots->contents[hack->whichSlot].multifieldValue; }
+   else
+     { segmentPtr = factPtr->theProposition.contents[hack->whichSlot].multifieldValue; }
 
    /*=========================================*/
    /* If the beginning and end flags are set, */
@@ -686,11 +714,10 @@ globle intBool FactJNGetVar3(
 
    if (hack->fromBeginning && hack->fromEnd)
      {
-      returnValue->type = MULTIFIELD;
-      returnValue->value = (void *) segmentPtr;
+      returnValue->value = segmentPtr;
       returnValue->begin = hack->beginOffset;
-      returnValue->end = (long) (segmentPtr->multifieldLength - (hack->endOffset + 1));
-      return(TRUE);
+      returnValue->range = segmentPtr->length - (hack->endOffset + hack->beginOffset);
+      return true;
      }
 
    /*=====================================================*/
@@ -698,107 +725,101 @@ globle intBool FactJNGetVar3(
    /*=====================================================*/
 
    if (hack->fromBeginning)
-     { fieldPtr = &segmentPtr->theFields[hack->beginOffset]; }
+     { fieldPtr = &segmentPtr->contents[hack->beginOffset]; }
    else
-     { fieldPtr = &segmentPtr->theFields[segmentPtr->multifieldLength - (hack->endOffset + 1)]; }
+     { fieldPtr = &segmentPtr->contents[segmentPtr->length - (hack->endOffset + 1)]; }
 
-   returnValue->type = fieldPtr->type;
    returnValue->value = fieldPtr->value;
 
-   return(TRUE);
+   return true;
   }
 
 /****************************************************/
 /* FactSlotLength: Determines if the length of a    */
 /*  multifield slot falls within a specified range. */
 /****************************************************/
-globle intBool FactSlotLength(
-  void *theEnv,
+bool FactSlotLength(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT_PTR returnValue)
+  UDFValue *returnValue)
   {
    struct factCheckLengthPNCall *hack;
-   struct multifield *segmentPtr;
-   long extraOffset = 0;
+   Multifield *segmentPtr;
+   size_t extraOffset = 0;
    struct multifieldMarker *tempMark;
 
-   returnValue->type = SYMBOL;
-   returnValue->value = EnvFalseSymbol(theEnv);
+   returnValue->value = FalseSymbol(theEnv);
 
-   hack = (struct factCheckLengthPNCall *) ValueToBitMap(theValue);
+   hack = (struct factCheckLengthPNCall *) ((CLIPSBitMap *) theValue)->contents;
 
    for (tempMark = FactData(theEnv)->CurrentPatternMarks;
         tempMark != NULL;
         tempMark = tempMark->next)
      {
       if (tempMark->where.whichSlotNumber != hack->whichSlot) continue;
-      extraOffset += ((tempMark->endPosition - tempMark->startPosition) + 1);
+      extraOffset += tempMark->range;
      }
 
-   segmentPtr = (struct multifield *) FactData(theEnv)->CurrentPatternFact->theProposition.theFields[hack->whichSlot].value;
+   segmentPtr = FactData(theEnv)->CurrentPatternFact->theProposition.contents[hack->whichSlot].multifieldValue;
 
-   if (segmentPtr->multifieldLength < (hack->minLength + extraOffset))
-     { return(FALSE); }
+   if (segmentPtr->length < (hack->minLength + extraOffset))
+     { return false; }
 
-   if (hack->exactly && (segmentPtr->multifieldLength > (hack->minLength + extraOffset)))
-     { return(FALSE); }
+   if (hack->exactly && (segmentPtr->length > (hack->minLength + extraOffset)))
+     { return false; }
 
-   returnValue->value = EnvTrueSymbol(theEnv);
-   return(TRUE);
+   returnValue->value = TrueSymbol(theEnv);
+   return true;
   }
 
 /************************************************************/
 /* FactJNCompVars1: Fact join network routine for comparing */
 /*   the values of two single field slots.                  */
 /************************************************************/
-globle int FactJNCompVars1(
-  void *theEnv,
+bool FactJNCompVars1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
 #if MAC_XCD
 #pragma unused(theResult)
 #endif
-   int p1, e1, p2, e2;
-   struct fact *fact1, *fact2;
+   unsigned short p1, e1, p2, e2;
+   Fact *fact1, *fact2;
    struct factCompVarsJN1Call *hack;
 
    /*=========================================*/
    /* Retrieve the arguments to the function. */
    /*=========================================*/
 
-   hack = (struct factCompVarsJN1Call *) ValueToBitMap(theValue);
+   hack = (struct factCompVarsJN1Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*=================================================*/
    /* Extract the fact pointers for the two patterns. */
    /*=================================================*/
 
-   p1 = (int) hack->pattern1;
-   p2 = (int) hack->pattern2;
+   p1 = hack->pattern1;
+   p2 = hack->pattern2;
 
-   fact1 = (struct fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p1].gm.theMatch->matchingItem;
+   fact1 = (Fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p1].gm.theMatch->matchingItem;
 
    if (hack->p2rhs)
-     { fact2 = (struct fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p2].gm.theMatch->matchingItem; }
-   else 
-     { fact2 = (struct fact *) EngineData(theEnv)->GlobalLHSBinds->binds[p2].gm.theMatch->matchingItem; }
+     { fact2 = (Fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p2].gm.theMatch->matchingItem; }
+   else
+     { fact2 = (Fact *) EngineData(theEnv)->GlobalLHSBinds->binds[p2].gm.theMatch->matchingItem; }
 
    /*=====================*/
    /* Compare the values. */
    /*=====================*/
 
-   e1 = (int) hack->slot1;
-   e2 = (int) hack->slot2;
+   e1 = hack->slot1;
+   e2 = hack->slot2;
 
-   if (fact1->theProposition.theFields[e1].type !=
-       fact2->theProposition.theFields[e2].type)
-     { return((int) hack->fail); }
+   if (fact1->theProposition.contents[e1].value !=
+       fact2->theProposition.contents[e2].value)
+     { return hack->fail; }
 
-   if (fact1->theProposition.theFields[e1].value !=
-       fact2->theProposition.theFields[e2].value)
-     { return((int) hack->fail); }
-
-   return((int) hack->pass);
+   return hack->pass;
   }
 
 /*****************************************************************/
@@ -808,117 +829,112 @@ globle int FactJNCompVars1(
 /*   This function is provided so that variable comparisons of   */
 /*   implied deftemplates will be faster.                        */
 /*****************************************************************/
-globle int FactJNCompVars2(
-  void *theEnv,
+bool FactJNCompVars2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
 #if MAC_XCD
 #pragma unused(theResult)
 #endif
-   int p1, s1, p2, s2;
-   struct fact *fact1, *fact2;
+   unsigned short p1, s1, p2, s2;
+   Fact *fact1, *fact2;
    struct factCompVarsJN2Call *hack;
-   struct multifield *segment;
-   struct field *fieldPtr1, *fieldPtr2;
+   Multifield *segment;
+   CLIPSValue *fieldPtr1, *fieldPtr2;
 
    /*=========================================*/
    /* Retrieve the arguments to the function. */
    /*=========================================*/
 
-   hack = (struct factCompVarsJN2Call *) ValueToBitMap(theValue);
+   hack = (struct factCompVarsJN2Call *) ((CLIPSBitMap *) theValue)->contents;
 
    /*=================================================*/
    /* Extract the fact pointers for the two patterns. */
    /*=================================================*/
 
-   p1 = (int) hack->pattern1;
-   p2 = (int) hack->pattern2;
-   s1 = (int) hack->slot1;
-   s2 = (int) hack->slot2;
+   p1 = hack->pattern1;
+   p2 = hack->pattern2;
+   s1 = hack->slot1;
+   s2 = hack->slot2;
 
-   fact1 = (struct fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p1].gm.theMatch->matchingItem;
-     
+   fact1 = (Fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p1].gm.theMatch->matchingItem;
+
    if (hack->p2rhs)
-     { fact2 = (struct fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p2].gm.theMatch->matchingItem; }
-   else 
-     { fact2 = (struct fact *) EngineData(theEnv)->GlobalLHSBinds->binds[p2].gm.theMatch->matchingItem; }
+     { fact2 = (Fact *) EngineData(theEnv)->GlobalRHSBinds->binds[p2].gm.theMatch->matchingItem; }
+   else
+     { fact2 = (Fact *) EngineData(theEnv)->GlobalLHSBinds->binds[p2].gm.theMatch->matchingItem; }
 
    /*======================*/
    /* Retrieve the values. */
    /*======================*/
 
-   if (fact1->theProposition.theFields[s1].type != MULTIFIELD)
-     { fieldPtr1 = &fact1->theProposition.theFields[s1]; }
+   if (fact1->theProposition.contents[s1].header->type != MULTIFIELD_TYPE)
+     { fieldPtr1 = &fact1->theProposition.contents[s1]; }
    else
      {
-      segment = (struct multifield *) fact1->theProposition.theFields[s1].value;
+      segment = fact1->theProposition.contents[s1].multifieldValue;
 
       if (hack->fromBeginning1)
-        { fieldPtr1 = &segment->theFields[hack->offset1]; }
+        { fieldPtr1 = &segment->contents[hack->offset1]; }
       else
-        { fieldPtr1 = &segment->theFields[segment->multifieldLength - (hack->offset1 + 1)]; }
+        { fieldPtr1 = &segment->contents[segment->length - (hack->offset1 + 1)]; }
      }
 
-   if (fact2->theProposition.theFields[s2].type != MULTIFIELD)
-     { fieldPtr2 = &fact2->theProposition.theFields[s2]; }
+   if (fact2->theProposition.contents[s2].header->type != MULTIFIELD_TYPE)
+     { fieldPtr2 = &fact2->theProposition.contents[s2]; }
    else
      {
-      segment = (struct multifield *) fact2->theProposition.theFields[s2].value;
+      segment = fact2->theProposition.contents[s2].multifieldValue;
 
       if (hack->fromBeginning2)
-        { fieldPtr2 = &segment->theFields[hack->offset2]; }
+        { fieldPtr2 = &segment->contents[hack->offset2]; }
       else
-        { fieldPtr2 = &segment->theFields[segment->multifieldLength - (hack->offset2 + 1)]; }
+        { fieldPtr2 = &segment->contents[segment->length - (hack->offset2 + 1)]; }
      }
 
    /*=====================*/
    /* Compare the values. */
    /*=====================*/
 
-   if (fieldPtr1->type != fieldPtr2->type)
-     { return((int) hack->fail); }
-
    if (fieldPtr1->value != fieldPtr2->value)
-     { return((int) hack->fail); }
+     { return hack->fail; }
 
-   return((int) hack->pass);
+   return hack->pass;
   }
 
 /*****************************************************/
 /* FactPNCompVars1: Fact pattern network routine for */
 /*   comparing the values of two single field slots. */
 /*****************************************************/
-globle int FactPNCompVars1(
-  void *theEnv,
+bool FactPNCompVars1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
-   int rv;
-   struct field *fieldPtr1, *fieldPtr2;
+   bool rv;
+   CLIPSValue *fieldPtr1, *fieldPtr2;
    struct factCompVarsPN1Call *hack;
 
    /*========================================*/
    /* Extract the arguments to the function. */
    /*========================================*/
 
-   hack = (struct factCompVarsPN1Call *) ValueToBitMap(theValue);
-   fieldPtr1 = &FactData(theEnv)->CurrentPatternFact->theProposition.theFields[hack->field1];
-   fieldPtr2 = &FactData(theEnv)->CurrentPatternFact->theProposition.theFields[hack->field2];
+   hack = (struct factCompVarsPN1Call *) ((CLIPSBitMap *) theValue)->contents;
+   fieldPtr1 = &FactData(theEnv)->CurrentPatternFact->theProposition.contents[hack->field1];
+   fieldPtr2 = &FactData(theEnv)->CurrentPatternFact->theProposition.contents[hack->field2];
 
    /*=====================*/
    /* Compare the values. */
    /*=====================*/
 
-   if (fieldPtr1->type != fieldPtr2->type) rv = (int) hack->fail;
-   else if (fieldPtr1->value != fieldPtr2->value) rv = (int) hack->fail;
-   else rv = (int) hack->pass;
+   if (fieldPtr1->value != fieldPtr2->value) rv = (bool) hack->fail;
+   else rv = (bool) hack->pass;
 
-   theResult->type = SYMBOL;
-   if (rv) theResult->value = EnvTrueSymbol(theEnv);
-   else theResult->value = EnvFalseSymbol(theEnv);
+   if (rv) theResult->value = TrueSymbol(theEnv);
+   else theResult->value = FalseSymbol(theEnv);
 
-   return(rv);
+   return rv;
   }
 
 /*************************************************************************/
@@ -937,14 +953,14 @@ globle int FactPNCompVars1(
 /*   variable ?z) would be 8 since $?x binds to 2 fields and $?y binds   */
 /*   to 3 fields.                                                        */
 /*************************************************************************/
-globle unsigned short AdjustFieldPosition(
-  void *theEnv,
+size_t AdjustFieldPosition(
+  Environment *theEnv,
   struct multifieldMarker *markList,
   unsigned short whichField,
   unsigned short whichSlot,
-  int *extent)
+  size_t *extent)
   {
-   unsigned short actualIndex;
+   size_t actualIndex;
 #if MAC_XCD
 #pragma unused(theEnv)
 #endif
@@ -969,8 +985,8 @@ globle unsigned short AdjustFieldPosition(
 
       if (markList->whichField == whichField)
         {
-         *extent = (markList->endPosition - markList->startPosition) + 1;
-         return(actualIndex);
+         *extent = markList->range;
+         return actualIndex;
         }
 
       /*=====================================================*/
@@ -980,21 +996,21 @@ globle unsigned short AdjustFieldPosition(
       /*=====================================================*/
 
       else if (markList->whichField > whichField)
-        { return(actualIndex); }
+        { return actualIndex; }
 
       /*==========================================================*/
       /* Adjust the actual index to the field based on the number */
       /* of fields taken up by the preceding multifield variable. */
       /*==========================================================*/
 
-      actualIndex += (unsigned short) (markList->endPosition - markList->startPosition);
+      actualIndex = actualIndex + markList->range - 1;
      }
 
    /*=======================================*/
    /* Return the actual index to the field. */
    /*=======================================*/
 
-   return(actualIndex);
+   return actualIndex;
   }
 
 /*****************************************************/
@@ -1002,17 +1018,17 @@ globle unsigned short AdjustFieldPosition(
 /*   number of multifield functions for grouping a   */
 /*   series of valuesinto a single multifield value. */
 /*****************************************************/
-globle int FactStoreMultifield(
-  void *theEnv,
+bool FactStoreMultifield(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
 #if MAC_XCD
 #pragma unused(theValue)
 #endif
 
-   StoreInMultifield(theEnv,theResult,GetFirstArgument(),FALSE);
-   return(TRUE);
+   StoreInMultifield(theEnv,theResult,GetFirstArgument(),false);
+   return true;
   }
 
 #endif /* DEFTEMPLATE_CONSTRUCT && DEFRULE_CONSTRUCT */

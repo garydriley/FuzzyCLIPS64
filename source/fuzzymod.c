@@ -38,12 +38,24 @@
 
 #if FUZZY_DEFTEMPLATES
 
+#include "entities.h"
+
+#include "evaluatn.h" // TBD Needed up/down
+#include "expressn.h"
+#include "symbol.h"
+#include "userdata.h"
+
+#include "constant.h"
+#include "envrnmnt.h"
+#include "extnfunc.h"
+
 #include "fuzzydef.h"
 #include "fuzzyrhs.h"
 #include "fuzzyutl.h"
 #include "fuzzymod.h"
 #include "fuzzypsr.h"
 #include "memalloc.h"
+#include "prntutil.h"
 #include "router.h"
 
 
@@ -59,25 +71,22 @@
     Local Internal Function Declarations
  ******************************************************************/
  
-  static void                  Yexpand_set(void *theEnv,struct fuzzy_value *fv);
-  static void                  GenericModFunction(void *theEnv,struct fuzzy_value *fv, 
-                                     struct FunctionDefinition *,
-                                     DEFFUNCTION *);
-  static void                  veryModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  notModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  more_or_lessModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  somewhatModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  normModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  intensifyModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  plusModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  slightlyModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  extremelyModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  belowModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  aboveModFunction(void *theEnv,struct fuzzy_value *fv);
-  static void                  concentrate_dilute(void *theEnv,struct fuzzy_value *fv, double con);
-  static void                  ClearModifiers(void *theEnv);
-
-
+  static void                  Yexpand_set(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  GenericModFunction(Environment *theEnv,struct fuzzy_value *fv,
+                                                  FunctionDefinition *,Deffunction *);
+  static void                  veryModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  notModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  more_or_lessModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  somewhatModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  normModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  intensifyModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  plusModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  slightlyModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  extremelyModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  belowModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  aboveModFunction(Environment *theEnv,struct fuzzy_value *fv);
+  static void                  concentrate_dilute(Environment *theEnv,struct fuzzy_value *fv, double con);
+  static void                  ClearModifiers(Environment *theEnv,void *context);
 
 /******************************************************************
     Local Internal Variable Definitions
@@ -88,9 +97,9 @@
 /*                                                           */
 /* initialize the list of available fuzzy modifiers          */
 /*************************************************************/
-globle void initFuzzyModifierList(
-void *theEnv)
-{
+void initFuzzyModifierList(
+  Environment *theEnv)
+  {
    AddFuzzyModifier(theEnv,"not", notModFunction, NULL
 #if DEFFUNCTION_CONSTRUCT
                     , NULL
@@ -161,8 +170,8 @@ void *theEnv)
   /* Also add the function to do the clear of the user defined
      modifiers 
   */
-  EnvAddClearFunction(theEnv,"FuzzyModifiers", ClearModifiers, 2001);
-}
+   AddClearFunction(theEnv,"FuzzyModifiers", ClearModifiers, 2001,NULL);
+  }
 
 
 /******************************************************************
@@ -200,21 +209,21 @@ void *theEnv)
 /*                                                           */
 /*************************************************************/
 static void GenericModFunction(
-    void *theEnv,
-    struct fuzzy_value *fv,
+  Environment *theEnv,
+  struct fuzzy_value *fv,
 #if DEFFUNCTION_CONSTRUCT
-    struct FunctionDefinition *clipsfun,
-    DEFFUNCTION *deffun)
+  FunctionDefinition *clipsfun,
+  Deffunction *deffun)
 #else
-    struct FunctionDefinition *clipsfun)
+  FunctionDefinition *clipsfun)
 #endif
 {
  int i;
  int num;
- double (*fp)(VOID_ARG);
+ void (*fp)(Environment *,UDFContext *,UDFValue *) = NULL;
  struct expr *tmpExpr;
- DATA_OBJECT result;
- intBool IsStandardFunction, res;
+ UDFValue result;
+ bool IsStandardFunction, res;
 
  Yexpand_set(theEnv,fv);  /* expands the set without making copy of the fuzzy value */
 
@@ -229,11 +238,11 @@ static void GenericModFunction(
  /* this expr is where the FCALL/PCALL would normally be */
  EvaluationData(theEnv)->CurrentExpression = get_struct(theEnv,expr); 
 
- IsStandardFunction = (clipsfun == NULL) ? FALSE : TRUE;
+ IsStandardFunction = (clipsfun == NULL) ? false : true;
     
  if (IsStandardFunction)
     { /* system defined or user defined internal function */
-      fp = (double (*) (VOID_ARG)) (clipsfun->functionPointer);
+      fp = clipsfun->functionPointer;
     }
 
  for (i=0; i<num; i++)
@@ -241,20 +250,23 @@ static void GenericModFunction(
 
         double newval;
         
-        EvaluationData(theEnv)->CurrentExpression->argList = GenConstant(theEnv,FLOAT, (void *)EnvAddDouble(theEnv,fv->y[i]));
+        EvaluationData(theEnv)->CurrentExpression->argList = GenConstant(theEnv,FLOAT_TYPE, CreateFloat(theEnv,fv->y[i]));
         
         if (IsStandardFunction)
-           newval = (*fp) ();
+          {
+           (*fp)(theEnv,NULL,&result); // TBD Use EvaluateExpression for UDFContext;
+           newval = result.floatValue->contents;
+          }
         else
           {
 #if DEFFUNCTION_CONSTRUCT
             res = (*EvaluationData(theEnv)->PrimitivesArray[PCALL]->evaluateFunction)(theEnv,deffun,&result);
-            if (!res || (result.type != FLOAT))
+            if (!res || (result.header->type != FLOAT_TYPE))
               {
                 SyntaxErrorMessage(theEnv,"Fuzzy Modifier function must accept FLOAT arg and return FLOAT)");
                 break;               
               }
-            newval = ValueToDouble(result.value);
+            newval = result.floatValue->contents;
 #else
             newval = fv->y[i];
 #endif
@@ -275,8 +287,6 @@ static void GenericModFunction(
  EvaluationData(theEnv)->CurrentExpression = tmpExpr;
 }
 
-
-
 /*************************************************************/ 
 /* notModFunction:                                           */ 
 /*                                                           */
@@ -286,23 +296,19 @@ static void GenericModFunction(
 /*                                                           */
 /*************************************************************/
 static void notModFunction(
-  void *theEnv,
-    struct fuzzy_value *fv)
-{
- int i;
- int num;
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   int i;
+   int num;
 
- num=fv->n;
+   num=fv->n;
 
- for (i=0; i<num; i++)
+   for (i = 0; i < num; i++)
      {  /* note: assume y values all in range 0 to 1 */
-
-        fv->y[i] = 1.0 - fv->y[i];
+      fv->y[i] = 1.0 - fv->y[i];
      }
-}
-
-
-
+  }
 
 /*************************************************************/ 
 /* concentrate_dilute:                                       */ 
@@ -317,26 +323,22 @@ static void notModFunction(
 /*                                                           */
 /*************************************************************/
 static void concentrate_dilute(
-    void *theEnv,
-    struct fuzzy_value *fv,
-    double power)
-{
- int i;
- int num;
+  Environment *theEnv,
+  struct fuzzy_value *fv,
+  double power)
+  {
+   int i;
+   int num;
 
- Yexpand_set(theEnv,fv);  /* expands the set without making copy of the fuzzy value */
+   Yexpand_set(theEnv,fv);  /* expands the set without making copy of the fuzzy value */
 
- num=fv->n;  /* do this AFTER expanding set!!! */
+   num=fv->n;  /* do this AFTER expanding set!!! */
 
- for (i=0; i<num; i++)
+   for (i = 0; i < num; i++)
      {  /* note: assume y values all in range 0 to 1 */
-
-        fv->y[i] = pow(fv->y[i], power);
+      fv->y[i] = pow(fv->y[i], power);
      }
-}
-
-
-
+  }
 
 /*************************************************************/ 
 /* veryModFunction:                                          */ 
@@ -347,13 +349,11 @@ static void concentrate_dilute(
 /*                                                           */
 /*************************************************************/
 static void veryModFunction(
-    void *theEnv,
-    struct fuzzy_value *fv)
-{
-  concentrate_dilute(theEnv,fv, 2.0);
-}
-
-
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   concentrate_dilute(theEnv,fv, 2.0);
+  }
 
 /*************************************************************/ 
 /* extremelyModFunction:                                     */ 
@@ -364,13 +364,11 @@ static void veryModFunction(
 /*                                                           */
 /*************************************************************/
 static void extremelyModFunction(
-    void *theEnv,
-    struct fuzzy_value *fv)
-{
-  concentrate_dilute(theEnv,fv, 3.0);
-}
-
-
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   concentrate_dilute(theEnv,fv, 3.0);
+  }
 
 /*************************************************************/ 
 /* more_or_lessModFunction:                                  */ 
@@ -381,13 +379,11 @@ static void extremelyModFunction(
 /*                                                           */
 /*************************************************************/
 static void more_or_lessModFunction(
-    void *theEnv,
-    struct fuzzy_value *fv)
-{
-  concentrate_dilute(theEnv,fv, 1.0/3.0);
-}
-
-
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   concentrate_dilute(theEnv,fv, 1.0/3.0);
+  }
 
 /*************************************************************/ 
 /* somewhatModFunction:                                      */ 
@@ -398,12 +394,11 @@ static void more_or_lessModFunction(
 /*                                                           */
 /*************************************************************/
 static void somewhatModFunction(
-    void *theEnv,
-    struct fuzzy_value *fv)
-{
-  concentrate_dilute(theEnv,fv, 0.5);
-}
-
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   concentrate_dilute(theEnv,fv, 0.5);
+  }
 
 /*************************************************************/ 
 /* normModFunction:                                          */ 
@@ -418,35 +413,34 @@ static void somewhatModFunction(
 /*                                                           */
 /*************************************************************/
 static void normModFunction(
-    void *theEnv,
-    struct fuzzy_value *fv)
-{
- int i;
- int num=fv->n;
- double scale;
- double highy = 0.0;
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   int i;
+   int num=fv->n;
+   double scale;
+   double highy = 0.0;
 
- /* find the maximum value */
- for (i=0; i<num; i++)
+   /* find the maximum value */
+   for (i=0; i<num; i++)
      { 
-       if (highy < fv->y[i])
-          highy = fv->y[i];
+      if (highy < fv->y[i])
+        highy = fv->y[i];
      }
 
- /* if not all membership values 0.0 and largest value
-    is not 1.0 then do scaling 
- */
- if (highy < 1.0 && highy > 0.0) 
-    {
+   /* if not all membership values 0.0 and largest value
+      is not 1.0 then do scaling
+   */
+   if (highy < 1.0 && highy > 0.0)
+     {
       scale = 1.0 / highy;
 
       for (i=0; i<num; i++)
         { 
           fv->y[i] = fv->y[i] * scale;
         }
-    }
-}
-
+     }
+  }
 
 /*************************************************************/ 
 /* intensifyModFunction:                                     */ 
@@ -458,30 +452,27 @@ static void normModFunction(
 /*                                                           */
 /*************************************************************/
 static void intensifyModFunction(
-    void *theEnv,
-    struct fuzzy_value *fv)
-{
- int i;
- int num;
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   int i;
+   int num;
 
- Yexpand_set(theEnv,fv);  /* expands the set without making copy of the fuzzy value */
+   Yexpand_set(theEnv,fv);  /* expands the set without making copy of the fuzzy value */
 
- num=fv->n;  /* do this AFTER expanding set!!! */
+   num=fv->n;  /* do this AFTER expanding set!!! */
 
- for (i=0; i<num; i++)
+   for (i=0; i<num; i++)
      {  /* note: assume y values all in range 0 to 1 */
-      
-       if (fv->y[i] <= 0.5)
-          fv->y[i] = 2.0 * (fv->y[i] * fv->y[i]);
-       else
-          {
-            double temp = 1.0 - fv->y[i];
-            fv->y[i] = 1.0 - (2.0 * (temp * temp));
-          }
+      if (fv->y[i] <= 0.5)
+        { fv->y[i] = 2.0 * (fv->y[i] * fv->y[i]); }
+      else
+        {
+         double temp = 1.0 - fv->y[i];
+         fv->y[i] = 1.0 - (2.0 * (temp * temp));
+        }
      }
-}
-
-
+  }
 
 /*************************************************************/ 
 /* plusModFunction:                                          */ 
@@ -492,16 +483,11 @@ static void intensifyModFunction(
 /*                                                           */
 /*************************************************************/
 static void plusModFunction(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv)
-{
-  concentrate_dilute(theEnv,fv, 1.25);
-}
-
-
-
-
-
+  {
+   concentrate_dilute(theEnv,fv, 1.25);
+  }
 
 /*************************************************************/ 
 /* aboveModFunction:                                         */ 
@@ -511,40 +497,36 @@ static void plusModFunction(
 /*                                                           */
 /*************************************************************/
 static void aboveModFunction(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv)
-{
-  int i, n, maxpos;
-  double maxval;
+  {
+   int i, n, maxpos;
+   double maxval;
   
-  n = fv->n;
+   n = fv->n;
 
-  /* get position where max value occurs */
-  maxval = 0.0;
-  maxpos = 0;
+   /* get position where max value occurs */
+   maxval = 0.0;
+   maxpos = 0;
 
-  for (i=0; i<n; i++)
+   for (i=0; i<n; i++)
      {
-       if (fv->y[i] >= maxval)
-         {
-          maxpos = i;
-          maxval = fv->y[i];
-          if (maxval == 1.0) break;
-         }
+      if (fv->y[i] >= maxval)
+        {
+         maxpos = i;
+         maxval = fv->y[i];
+         if (maxval == 1.0) break;
+        }
      }
 
    for (i=0; i<n; i++)
      {
-       if (i <= maxpos)
-          fv->y[i] = 0.0;
-       else
-          fv->y[i] = 1.0 - fv->y[i];
-
+      if (i <= maxpos)
+        { fv->y[i] = 0.0; }
+      else
+        { fv->y[i] = 1.0 - fv->y[i]; }
      }
-}
-
-
-
+  }
 
 /*************************************************************/ 
 /* belowModFunction:                                         */ 
@@ -554,19 +536,19 @@ static void aboveModFunction(
 /*                                                           */
 /*************************************************************/
 static void belowModFunction(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv)
-{
-  int i, n, maxpos;
-  double maxval;
+  {
+   int i, n, maxpos;
+   double maxval;
   
-  n = fv->n;
+   n = fv->n;
 
-  /* get position where max value occurs */
-  maxval = 0.0;
-  maxpos = n-1;
+   /* get position where max value occurs */
+   maxval = 0.0;
+   maxpos = n-1;
 
-  for (i=n-1; i>=0; i--)
+   for (i=n-1; i>=0; i--)
      {
        if (fv->y[i] >= maxval)
          {
@@ -584,9 +566,7 @@ static void belowModFunction(
           fv->y[i] = 1.0 - fv->y[i];
 
      }
-}
-
-
+  }
 
 /*************************************************************/ 
 /* slightlyModFunction:                                      */ 
@@ -598,49 +578,47 @@ static void belowModFunction(
 /*   where A is the fuzzy set                                */ 
 /*                                                           */
 /*************************************************************/
-  static void slightlyModFunction(
-  void *theEnv,
-      struct fuzzy_value *fv)
-{
- struct fuzzy_value *tmpfv;
- struct fuzzy_value *andfv;
+static void slightlyModFunction(
+  Environment *theEnv,
+  struct fuzzy_value *fv)
+  {
+   struct fuzzy_value *tmpfv;
+   struct fuzzy_value *andfv;
 
-  /* get not very A */
-  tmpfv = CopyFuzzyValue(theEnv,fv);
-  veryModFunction(theEnv,tmpfv);
+   /* get not very A */
+   tmpfv = CopyFuzzyValue(theEnv,fv);
+   veryModFunction(theEnv,tmpfv);
 
-  /* get the complement (not) of very A */
-  notModFunction(theEnv,tmpfv);
+   /* get the complement (not) of very A */
+   notModFunction(theEnv,tmpfv);
 
-  /* get plus A */
-  plusModFunction(theEnv,fv);
+   /* get plus A */
+   plusModFunction(theEnv,fv);
 
-  /* perform the intersection (AND) of the 2 sets */
-  andfv = fintersect(theEnv,fv, tmpfv);
+   /* perform the intersection (AND) of the 2 sets */
+   andfv = fintersect(theEnv,fv, tmpfv);
 
-  /* normalize the AND result */
-  normModFunction(theEnv,andfv);
+   /* normalize the AND result */
+   normModFunction(theEnv,andfv);
 
-  /* finally do the 'int' of the normalized result */
-  intensifyModFunction(theEnv,andfv);
+   /* finally do the 'int' of the normalized result */
+   intensifyModFunction(theEnv,andfv);
 
-  /* NOTE WELL:  the result is expected to be pointed to by the 
-     fv pointer so we must carefully remove unecessary stuff
-     and make this so.
-  */
-  rtnFuzzyValue(theEnv,tmpfv);
-  FrtnArray(theEnv,fv->x, fv->maxn);
-  FrtnArray(theEnv,fv->y, fv->maxn);
+   /* NOTE WELL:  the result is expected to be pointed to by the
+      fv pointer so we must carefully remove unecessary stuff
+      and make this so.
+   */
+   rtnFuzzyValue(theEnv,tmpfv);
+   FrtnArray(theEnv,fv->x, fv->maxn);
+   FrtnArray(theEnv,fv->y, fv->maxn);
 
-  fv->n =    andfv->n;
-  fv->maxn = andfv->maxn;
-  fv->x =    andfv->x;
-  fv->y =    andfv->y;
-  if (andfv->name != NULL) rm(theEnv,andfv->name, strlen(andfv->name)+1);
-  rtn_struct(theEnv,fuzzy_value,andfv);
-}
-
-
+   fv->n =    andfv->n;
+   fv->maxn = andfv->maxn;
+   fv->x =    andfv->x;
+   fv->y =    andfv->y;
+   if (andfv->name != NULL) rm(theEnv,andfv->name, strlen(andfv->name)+1);
+   rtn_struct(theEnv,fuzzy_value,andfv);
+  }
 
 /*******************************************************************
   support routines for the modifier (hedge) functions follow
@@ -673,34 +651,32 @@ static void belowModFunction(
 /* YSPACING used to determine max Y difference between points when interpolating */
 #define YSPACING 0.1
 
-
-
 static void Yexpand_set(
-  void *theEnv,
+  Environment *theEnv,
   struct fuzzy_value *fv)
-{
-    int i, j, count;
-    int num=fv->n;
-    int newmaxn;
-    int subdiv;
-    double xdelta, ydelta, rise, run;
-    double lastx, lasty, nextx, nexty, newx, newy;
-    double *newxArray, *newyArray;
+  {
+   int i, j, count;
+   int num=fv->n;
+   int newmaxn;
+   int subdiv;
+   double xdelta, ydelta, rise, run;
+   double lastx, lasty, nextx, nexty, newx, newy;
+   double *newxArray, *newyArray;
 
-    newmaxn = num + ( floor(1.0/YSPACING) - 1 ) * ( num - 1 );
-    newxArray = FgetArray ( theEnv,newmaxn );
-    newyArray = FgetArray ( theEnv,newmaxn );
+   newmaxn = num + ( floor(1.0/YSPACING) - 1 ) * ( num - 1 );
+   newxArray = FgetArray ( theEnv,newmaxn );
+   newyArray = FgetArray ( theEnv,newmaxn );
     
-    newxArray[0] = fv->x[0];
-    newyArray[0] = fv->y[0];
+   newxArray[0] = fv->x[0];
+   newyArray[0] = fv->y[0];
     
-    count = 1;
+   count = 1;
     
-    lastx = fv->x[0];
-    lasty = fv->y[0];
+   lastx = fv->x[0];
+   lasty = fv->y[0];
     
-    for ( i = 1; i < num; i++ )
-    {
+   for ( i = 1; i < num; i++ )
+     {
       nextx = fv->x[i];
       nexty = fv->y[i];
 
@@ -710,106 +686,98 @@ static void Yexpand_set(
       */
       if (lastx != nextx)
         {
-          rise = fabs ( nexty - lasty );
-          /* note: ceil will move 1.0000001 to 2 -- so subtract a
-                   small value to prevent very close values from
-                   going up
-          */
-          subdiv = ceil ( rise / YSPACING - FUZZY_TOLERANCE);
+         rise = fabs ( nexty - lasty );
+         /* note: ceil will move 1.0000001 to 2 -- so subtract a
+                  small value to prevent very close values from
+                  going up
+         */
+         subdiv = ceil ( rise / YSPACING - FUZZY_TOLERANCE);
       
-          if (subdiv > 1)
-            {
-             run = nextx - lastx;
-             xdelta = run / subdiv;
-             ydelta = rise / subdiv;
-             newx = lastx;
-             newy = lasty;
-             if ( nexty < lasty )
-                ydelta = -ydelta;
+         if (subdiv > 1)
+           {
+            run = nextx - lastx;
+            xdelta = run / subdiv;
+            ydelta = rise / subdiv;
+            newx = lastx;
+            newy = lasty;
+            if ( nexty < lasty )
+              { ydelta = -ydelta; }
                 
-             for ( j = 1; j < subdiv; j++ )
-               {
-                 newx += xdelta;
-                 newy += ydelta;
-                 newxArray[count] = newx;
-                 newyArray[count] = newy;
-                 count++;
-               }
-             }
+            for ( j = 1; j < subdiv; j++ )
+              {
+               newx += xdelta;
+               newy += ydelta;
+               newxArray[count] = newx;
+               newyArray[count] = newy;
+               count++;
+              }
+           }
         }
       lastx = newxArray[count] = nextx;
       lasty = newyArray[count] = nexty;
       count++;
-    }
+     }
     
-    FrtnArray(theEnv,fv->x, fv->maxn);
-    FrtnArray(theEnv,fv->y, fv->maxn);
-    fv->n = count;
-    fv->maxn = newmaxn;
-    fv->x = newxArray;
-    fv->y = newyArray;
+   FrtnArray(theEnv,fv->x, fv->maxn);
+   FrtnArray(theEnv,fv->y, fv->maxn);
+   fv->n = count;
+   fv->maxn = newmaxn;
+   fv->x = newxArray;
+   fv->y = newyArray;
     
-    /* does compacting in place (ie. no copy) */
-    CompactFuzzyValue(theEnv,fv);
-}
-              
-        
-
-
+   /* does compacting in place (ie. no copy) */
+   CompactFuzzyValue(theEnv,fv);
+  }
 
 /*************************************************************/ 
 /* executeModifyFunction:                                    */ 
 /*                                                           */
 /* executes a modify function to change a fuzzy value        */
 /*************************************************************/
-globle void executeModifyFunction(
-   void *theEnv,
-   struct fuzzy_value *fvptr,
-   struct modifierListItem *modListItem)
-{
-  /* NOTE: only 1 of the 3 values (modfunc, modClipsfunc, or modDeffunc)
-     will have a non NULL value ... this will determine the type of
-     call that must be made to perform the modifier function
+void executeModifyFunction(
+  Environment *theEnv,
+  struct fuzzy_value *fvptr,
+  struct modifierListItem *modListItem)
+  {
+   /* NOTE: only 1 of the 3 values (modfunc, modClipsfunc, or modDeffunc)
+      will have a non NULL value ... this will determine the type of
+      call that must be made to perform the modifier function
 
-    modfunc  - indicates an internal function defined to accept the
-               fuzzy value and it operates on the fuzzy value
-               (e.g.  veryModFunction as defined avove)
-    modClipsfunc - indicates a CLIPS function that has been associated
-               with a modifier (with the add-fuzzy-modifier function); this
-               will be handled by the GenericModFunction
-    modDeffunc - indicates a user defined deffunction that has been associated
-               with a modifier (with the add-fuzzy-modifier function); this
-               will be handled by the GenericModFunction
-  */
+      modfunc  - indicates an internal function defined to accept the
+                 fuzzy value and it operates on the fuzzy value
+                 (e.g.  veryModFunction as defined avove)
+      modClipsfunc - indicates a CLIPS function that has been associated
+                 with a modifier (with the add-fuzzy-modifier function); this
+                 will be handled by the GenericModFunction
+      modDeffunc - indicates a user defined deffunction that has been associated
+                 with a modifier (with the add-fuzzy-modifier function); this
+                 will be handled by the GenericModFunction
+   */
 
-  if (modListItem->modfunc != NULL)
-    {
-      (*modListItem->modfunc)(theEnv,fvptr);
-    }
-  else
-    {
+   if (modListItem->modfunc != NULL)
+     { (*modListItem->modfunc)(theEnv,fvptr); }
+   else
+     {
       GenericModFunction(theEnv,fvptr, modListItem->modClipsfunc
 #if DEFFUNCTION_CONSTRUCT
                          , modListItem->modDeffunc
 #endif
                         );
-    }
-}
-
-
+     }
+  }
 
 /*************************************************************/ 
 /* FindModifier:                                             */ 
 /*                                                           */
 /* finds the named modifier in the list of modifiers         */
 /*************************************************************/
-globle struct modifierListItem *FindModifier(
-   void *theEnv,
-   const char *modname)
-{
+struct modifierListItem *FindModifier(
+  Environment *theEnv,
+  const char *modname)
+  {
    struct modifierListItem *currentPtr;
    char *modLowerName;
-   int i, len;
+   size_t i, len;
 
    len = strlen(modname);
 
@@ -823,40 +791,35 @@ globle struct modifierListItem *FindModifier(
 
    while (currentPtr != NULL)
      {
-        if (strcmp(modLowerName,currentPtr->name) == 0)
-           {
-             break;
-           }
-        currentPtr = currentPtr->next;
+      if (strcmp(modLowerName,currentPtr->name) == 0)
+        { break; }
+      currentPtr = currentPtr->next;
      }
 
    rm(theEnv,modLowerName, len+1);
    return(currentPtr);
-}
-
-
-
+  }
 
 /*************************************************************/ 
 /* AddFuzzyModifier:                                         */ 
 /*                                                           */
 /* Adds the named modifier to the list of modifiers          */
 /*                                                           */
-/* Returns TRUE if add was successful (could fail if trying  */
+/* Returns true if add was successful (could fail if trying  */
 /* add the same modifier as is already there).               */
 /*                                                           */
 /*************************************************************/
-globle int AddFuzzyModifier(
-   void *theEnv,
-   const char *modname,
-   void (*modfun)(void *,struct fuzzy_value *fv),
+bool AddFuzzyModifier(
+  Environment *theEnv,
+  const char *modname,
+  void (*modfun)(Environment *,struct fuzzy_value *fv),
 #if DEFFUNCTION_CONSTRUCT
-   struct FunctionDefinition *modClipsfun,
-   DEFFUNCTION *modDeffun)
+  FunctionDefinition *modClipsfun,
+  Deffunction *modDeffun)
 #else
-   struct FunctionDefinition *modClipsfun)
+  FunctionDefinition *modClipsfun)
 #endif
-{
+  {
    struct modifierListItem *newPtr, *currentPtr, *lastPtr = NULL;
    int compare;
    char *theName;
@@ -876,9 +839,9 @@ globle int AddFuzzyModifier(
       compare = strcmp(modname, currentPtr->name);
       if (compare == 0)
          { /* error -- trying to add same modifier function as is alreadty there! */
-           EnvPrintRouter(theEnv,WERROR,"add-fuzzy-modifier (modifier of same name already added\n");
+           WriteString(theEnv,STDERR,"add-fuzzy-modifier (modifier of same name already added\n");
            rtn_struct(theEnv,modifierListItem, newPtr);
-           return(FALSE);
+           return(false);
          }
 
       if (compare < 0) break;
@@ -908,12 +871,8 @@ globle int AddFuzzyModifier(
        (*EvaluationData(theEnv)->PrimitivesArray[PCALL]->incrementBusyCount)(theEnv,(void *)modDeffun);
 #endif
 
-   return(TRUE);
-
-}
-
-
-
+   return(true);
+  }
 
 /*************************************************************/ 
 /* RemoveFuzzyModifier:                                      */ 
@@ -922,10 +881,10 @@ globle int AddFuzzyModifier(
 /* (note: cannot remove a system supplied modifier)          */
 /*                                                           */
 /*************************************************************/
-globle void RemoveFuzzyModifier(
-   void *theEnv,
-   const char *modname)
-{
+void RemoveFuzzyModifier(
+  Environment *theEnv,
+  const char *modname)
+  {
    struct modifierListItem *currentPtr, *lastPtr;
 
    lastPtr = NULL;
@@ -955,12 +914,7 @@ globle void RemoveFuzzyModifier(
       lastPtr = currentPtr;
       currentPtr = currentPtr->next;
      }
-}
-
-
-
-
-
+  }
 
 /*************************************************************/ 
 /* ClearModifiers:                                           */ 
@@ -970,8 +924,9 @@ globle void RemoveFuzzyModifier(
 /*                                                           */
 /*************************************************************/
 static void ClearModifiers(
-  void *theEnv)
-{
+  Environment *theEnv,
+  void *context)
+  {
    struct modifierListItem *currentPtr, *lastPtr;
 
    lastPtr = NULL;

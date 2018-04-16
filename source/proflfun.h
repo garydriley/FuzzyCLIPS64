@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*      CONSTRUCT PROFILING FUNCTIONS HEADER FILE      */
    /*******************************************************/
@@ -37,21 +37,24 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_proflfun
 
+#pragma once
+
 #define _H_proflfun
-
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _PROFLFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
 
 #include "userdata.h"
 
@@ -72,11 +75,11 @@ struct profileFrameInfo
    double parentStartTime;
    struct constructProfileInfo *oldProfileFrame;
   };
-  
+
 #define PROFLFUN_DATA 15
 
 struct profileFunctionData
-  { 
+  {
    double ProfileStartTime;
    double ProfileEndTime;
    double ProfileTotalTime;
@@ -84,33 +87,31 @@ struct profileFunctionData
    double PercentThreshold;
    struct userDataRecord ProfileDataInfo;
    unsigned char ProfileDataID;
-   int ProfileUserFunctions;
-   int ProfileConstructs;
+   bool ProfileUserFunctions;
+   bool ProfileConstructs;
    struct constructProfileInfo *ActiveProfileFrame;
    const char *OutputString;
   };
 
 #define ProfileFunctionData(theEnv) ((struct profileFunctionData *) GetEnvironmentData(theEnv,PROFLFUN_DATA))
 
-   LOCALE void                           ConstructProfilingFunctionDefinitions(void *);
-   LOCALE void                           ProfileCommand(void *);
-   LOCALE void                           ProfileInfoCommand(void *);
-   LOCALE void                           StartProfile(void *,
-                                                      struct profileFrameInfo *,
-                                                      struct userData **,
-                                                      intBool);
-   LOCALE void                           EndProfile(void *,struct profileFrameInfo *);
-   LOCALE void                           ProfileResetCommand(void *);
-   LOCALE void                           ResetProfileInfo(struct constructProfileInfo *);
+   void                           ConstructProfilingFunctionDefinitions(Environment *);
+   void                           ProfileCommand(Environment *,UDFContext *,UDFValue *);
+   void                           ProfileInfoCommand(Environment *,UDFContext *,UDFValue *);
+   void                           StartProfile(Environment *,struct profileFrameInfo *,
+                                               struct userData **,bool);
+   void                           EndProfile(Environment *,struct profileFrameInfo *);
+   void                           ProfileResetCommand(Environment *,UDFContext *,UDFValue *);
+   void                           ResetProfileInfo(struct constructProfileInfo *);
 
-   LOCALE double                         SetProfilePercentThresholdCommand(void *);
-   LOCALE double                         SetProfilePercentThreshold(void *,double);
-   LOCALE double                         GetProfilePercentThresholdCommand(void *);
-   LOCALE double                         GetProfilePercentThreshold(void *);
-   LOCALE intBool                        Profile(void *,const char *);
-   LOCALE void                           DeleteProfileData(void *,void *);
-   LOCALE void                          *CreateProfileData(void *);
-   LOCALE const char                    *SetProfileOutputString(void *,const char *);
+   void                           SetProfilePercentThresholdCommand(Environment *,UDFContext *,UDFValue *);
+   double                         SetProfilePercentThreshold(Environment *,double);
+   void                           GetProfilePercentThresholdCommand(Environment *,UDFContext *,UDFValue *);
+   double                         GetProfilePercentThreshold(Environment *);
+   bool                           Profile(Environment *,const char *);
+   void                           DeleteProfileData(Environment *,void *);
+   void                          *CreateProfileData(Environment *);
+   const char                    *SetProfileOutputString(Environment *,const char *);
 
 #endif /* _H_proflfun */
 

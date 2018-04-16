@@ -49,7 +49,6 @@
 
 #include <math.h>
 
-
 #include "tmpltdef.h"
 
 #include "fuzzylhs.h"
@@ -99,12 +98,12 @@
 /*                                                                  */
 /********************************************************************/
 
-globle struct fuzzy_value *GetFuzzyLHSPattern(
-  void *theEnv,
+struct fuzzy_value *GetFuzzyLHSPattern(
+  Environment *theEnv,
   const char *readSource,
   struct token *theToken,
   struct  fuzzyLv *fzTemplate,
-  int *error)
+  bool *error)
 {   
       
      /* ParseLinguisticExpr is in FUZZYRHS.C 

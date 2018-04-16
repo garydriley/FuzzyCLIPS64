@@ -1,9 +1,9 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  07/30/16             */
    /*                                                     */
-   /*                                                     */
+   /*          CLASS INITIALIZATION HEADER FILE           */
    /*******************************************************/
 
 /*************************************************************/
@@ -37,40 +37,37 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_classini
+
+#pragma once
+
 #define _H_classini
 
-#ifndef _H_constrct
 #include "constrct.h"
-#endif
-#ifndef _H_object
 #include "object.h"
-#endif
 
 #if OBJECT_SYSTEM
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
+   void                           SetupObjectSystem(Environment *);
 
-#ifdef _CLASSINI_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-LOCALE void SetupObjectSystem(void *);
 #if RUN_TIME
-LOCALE void ObjectsRunTimeInitialize(void *,DEFCLASS *[],SLOT_NAME *[],DEFCLASS *[],unsigned);
+   void                           ObjectsRunTimeInitialize(Environment *,Defclass *[],SLOT_NAME *[],Defclass *[],unsigned short);
 #else
-LOCALE void CreateSystemClasses(void *);
-#endif
+   void                           CreateSystemClasses(Environment *,void *);
+#endif /* RUN_TIME */
 
-#endif
+#endif /* OBJECT_SYSTEM */
 
-#endif
+#endif /* _H_classini */
 
 
 

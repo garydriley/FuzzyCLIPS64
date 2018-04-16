@@ -4,7 +4,7 @@ TRUE
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (do-for-all-instances ((?i OBJECT)) TRUE
    (+ (eval "(gensym)") 2))
-[ARGACCES5] Function + expected argument #1 to be of type integer or float
+[ARGACCES2] Function '+' expected argument #1 to be of type integer or float.
 FALSE
 FuzzyCLIPS> (do-for-all-instances ((?mb MALE) (?wg FEMALE))
    TRUE
@@ -248,7 +248,6 @@ FuzzyCLIPS> (delayed-do-for-all-instances ((?b1 BOY))
 <== instance [Boy-1] of BOY
 TRUE
 FuzzyCLIPS> (reset)
-<== instance [initial-object] of INITIAL-OBJECT
 <== instance [Man-1] of MAN
 <== instance [Man-2] of MAN
 <== instance [Woman-1] of WOMAN
@@ -259,7 +258,6 @@ FuzzyCLIPS> (reset)
 <== instance [Boy-4] of BOY
 <== instance [Girl-1] of GIRL
 <== instance [Girl-2] of GIRL
-==> instance [initial-object] of INITIAL-OBJECT
 ==> instance [Man-1] of MAN
 ==> instance [Man-2] of MAN
 ==> instance [Woman-1] of WOMAN
@@ -359,22 +357,22 @@ FuzzyCLIPS> (any-instancep ((?b A)))
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
 FuzzyCLIPS> (any-instancep ((?b BOGUS)) TRUE)
-[PRNTUTIL1] Unable to find class BOGUS.
+[PRNTUTIL1] Unable to find class 'BOGUS'.
 FuzzyCLIPS> (any-instancep ((?b 34)) TRUE)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (any-instancep ((?b (mv-append BOGUS USER))) TRUE)
-[CLASSFUN1] Unable to find class BOGUS in function any-instancep.
+FuzzyCLIPS> (any-instancep ((?b (create$ BOGUS USER))) TRUE)
+[CLASSFUN1] Unable to find class 'BOGUS' in function 'any-instancep'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (any-instancep ((?b (mv-append USER 34))) TRUE)
+FuzzyCLIPS> (any-instancep ((?b (create$ USER 34))) TRUE)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
 FuzzyCLIPS> (any-instancep ((?b A)) (progn (bind ?b 1) TRUE))
-[INSQYPSR2] Binds are not allowed in instance-set query in function any-instancep.
+[INSQYPSR2] Binds are not allowed in instance-set query in function 'any-instancep'.
 FuzzyCLIPS> (find-instance)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
@@ -391,22 +389,22 @@ FuzzyCLIPS> (find-instance ((?b A)))
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
 FuzzyCLIPS> (find-instance ((?b BOGUS)) TRUE)
-[PRNTUTIL1] Unable to find class BOGUS.
+[PRNTUTIL1] Unable to find class 'BOGUS'.
 FuzzyCLIPS> (find-instance ((?b 34)) TRUE)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 ()
-FuzzyCLIPS> (find-instance ((?b (mv-append BOGUS USER))) TRUE)
-[CLASSFUN1] Unable to find class BOGUS in function find-instance.
+FuzzyCLIPS> (find-instance ((?b (create$ BOGUS USER))) TRUE)
+[CLASSFUN1] Unable to find class 'BOGUS' in function 'find-instance'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 ()
-FuzzyCLIPS> (find-instance ((?b (mv-append USER 34))) TRUE)
+FuzzyCLIPS> (find-instance ((?b (create$ USER 34))) TRUE)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 ()
 FuzzyCLIPS> (find-instance ((?b A)) (progn (bind ?b 1) TRUE))
-[INSQYPSR2] Binds are not allowed in instance-set query in function find-instance.
+[INSQYPSR2] Binds are not allowed in instance-set query in function 'find-instance'.
 FuzzyCLIPS> (find-all-instances)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
@@ -423,22 +421,22 @@ FuzzyCLIPS> (find-all-instances ((?b A)))
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
 FuzzyCLIPS> (find-all-instances ((?b BOGUS)) TRUE)
-[PRNTUTIL1] Unable to find class BOGUS.
+[PRNTUTIL1] Unable to find class 'BOGUS'.
 FuzzyCLIPS> (find-all-instances ((?b 34)) TRUE)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 ()
-FuzzyCLIPS> (find-all-instances ((?b (mv-append BOGUS USER))) TRUE)
-[CLASSFUN1] Unable to find class BOGUS in function find-all-instances.
+FuzzyCLIPS> (find-all-instances ((?b (create$ BOGUS USER))) TRUE)
+[CLASSFUN1] Unable to find class 'BOGUS' in function 'find-all-instances'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 ()
-FuzzyCLIPS> (find-all-instances ((?b (mv-append USER 34))) TRUE)
+FuzzyCLIPS> (find-all-instances ((?b (create$ USER 34))) TRUE)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 ()
 FuzzyCLIPS> (find-all-instances ((?b A)) (progn (bind ?b 1) TRUE))
-[INSQYPSR2] Binds are not allowed in instance-set query in function find-all-instances.
+[INSQYPSR2] Binds are not allowed in instance-set query in function 'find-all-instances'.
 FuzzyCLIPS> (do-for-instance)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
@@ -455,24 +453,24 @@ FuzzyCLIPS> (do-for-instance ((?b A)))
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
 FuzzyCLIPS> (do-for-instance ((?b BOGUS)) TRUE)
-[PRNTUTIL1] Unable to find class BOGUS.
+[PRNTUTIL1] Unable to find class 'BOGUS'.
 FuzzyCLIPS> (do-for-instance ((?b A)) (progn (bind ?b 1) TRUE))
-[INSQYPSR2] Binds are not allowed in instance-set query in function do-for-instance.
+[INSQYPSR2] Binds are not allowed in instance-set query in function 'do-for-instance'.
 FuzzyCLIPS> (do-for-instance ((?b 34)) TRUE abc)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (do-for-instance ((?b (mv-append BOGUS USER))) TRUE abc)
-[CLASSFUN1] Unable to find class BOGUS in function do-for-instance.
+FuzzyCLIPS> (do-for-instance ((?b (create$ BOGUS USER))) TRUE abc)
+[CLASSFUN1] Unable to find class 'BOGUS' in function 'do-for-instance'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (do-for-instance ((?b (mv-append USER 34))) TRUE abc)
+FuzzyCLIPS> (do-for-instance ((?b (create$ USER 34))) TRUE abc)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
 FuzzyCLIPS> (do-for-instance ((?b OBJECT)) TRUE (bind ?b 1))
-[INSQYPSR3] Cannot rebind instance-set member variable b in function do-for-instance.
+[INSQYPSR3] Cannot rebind instance-set member variable ?b in function 'do-for-instance'.
 FuzzyCLIPS> (do-for-all-instances)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
@@ -489,24 +487,24 @@ FuzzyCLIPS> (do-for-all-instances ((?b A)))
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
 FuzzyCLIPS> (do-for-all-instances ((?b BOGUS)) TRUE)
-[PRNTUTIL1] Unable to find class BOGUS.
+[PRNTUTIL1] Unable to find class 'BOGUS'.
 FuzzyCLIPS> (do-for-all-instances ((?b A)) (progn (bind ?b 1) TRUE))
-[INSQYPSR2] Binds are not allowed in instance-set query in function do-for-all-instances.
+[INSQYPSR2] Binds are not allowed in instance-set query in function 'do-for-all-instances'.
 FuzzyCLIPS> (do-for-all-instances ((?b 34)) TRUE abc)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (do-for-all-instances ((?b (mv-append BOGUS USER))) TRUE abc)
-[CLASSFUN1] Unable to find class BOGUS in function do-for-all-instances.
+FuzzyCLIPS> (do-for-all-instances ((?b (create$ BOGUS USER))) TRUE abc)
+[CLASSFUN1] Unable to find class 'BOGUS' in function 'do-for-all-instances'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (do-for-all-instances ((?b (mv-append USER 34))) TRUE abc)
+FuzzyCLIPS> (do-for-all-instances ((?b (create$ USER 34))) TRUE abc)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
 FuzzyCLIPS> (do-for-all-instances ((?b OBJECT)) TRUE (bind ?b 1))
-[INSQYPSR3] Cannot rebind instance-set member variable b in function do-for-all-instances.
+[INSQYPSR3] Cannot rebind instance-set member variable ?b in function 'do-for-all-instances'.
 FuzzyCLIPS> (delayed-do-for-all-instances)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
@@ -523,24 +521,24 @@ FuzzyCLIPS> (delayed-do-for-all-instances ((?b A)))
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query function.
 FuzzyCLIPS> (delayed-do-for-all-instances ((?b BOGUS)) TRUE)
-[PRNTUTIL1] Unable to find class BOGUS.
+[PRNTUTIL1] Unable to find class 'BOGUS'.
 FuzzyCLIPS> (delayed-do-for-all-instances ((?b A)) (progn (bind ?b 1) TRUE))
-[INSQYPSR2] Binds are not allowed in instance-set query in function delayed-do-for-all-instances.
+[INSQYPSR2] Binds are not allowed in instance-set query in function 'delayed-do-for-all-instances'.
 FuzzyCLIPS> (delayed-do-for-all-instances ((?b 34)) TRUE abc)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (delayed-do-for-all-instances ((?b (mv-append BOGUS USER))) TRUE abc)
-[CLASSFUN1] Unable to find class BOGUS in function delayed-do-for-all-instances.
+FuzzyCLIPS> (delayed-do-for-all-instances ((?b (create$ BOGUS USER))) TRUE abc)
+[CLASSFUN1] Unable to find class 'BOGUS' in function 'delayed-do-for-all-instances'.
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
-FuzzyCLIPS> (delayed-do-for-all-instances ((?b (mv-append USER 34))) TRUE abc)
+FuzzyCLIPS> (delayed-do-for-all-instances ((?b (create$ USER 34))) TRUE abc)
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for instance-set query class restrictions.
 FALSE
 FuzzyCLIPS> (delayed-do-for-all-instances ((?b OBJECT)) TRUE (bind ?b 1))
-[INSQYPSR3] Cannot rebind instance-set member variable b in function delayed-do-for-all-instances.
+[INSQYPSR3] Cannot rebind instance-set member variable ?b in function 'delayed-do-for-all-instances'.
 FuzzyCLIPS> (make-instance v of V)
 [v]
 FuzzyCLIPS> (make-instance w of W)
@@ -551,8 +549,8 @@ FuzzyCLIPS> (make-instance y of Y)
 [y]
 FuzzyCLIPS> (make-instance z of Z)
 [z]
-FuzzyCLIPS> (do-for-all-instances ((?ins1 ?*list* X (mv-append Y Z)) 
-                       (?ins2 X (mv-append Y Z) ?*list*))
+FuzzyCLIPS> (do-for-all-instances ((?ins1 ?*list* X (create$ Y Z)) 
+                       (?ins2 X (create$ Y Z) ?*list*))
   TRUE
   (printout t ?ins1 " " ?ins2 crlf))
 [v] [x]
@@ -586,26 +584,26 @@ FuzzyCLIPS> (while TRUE do
    (do-for-all-instances ((?b OBJECT)) TRUE 
      (progn (printout t DO-FOR-ALL ?b crlf) (break)))
    (break))
-DELAYED[initial-object]
-DO-FOR-ALL[initial-object]
+DELAYED[Girl-1]
+DO-FOR-ALL[Girl-1]
 FALSE
 FuzzyCLIPS> (deffunction quoxnar ()
    (do-for-all-instances ((?b OBJECT)) TRUE 
      (progn (printout t INS-RETURN ?b crlf) (return))))
 FuzzyCLIPS> (quoxnar)
-INS-RETURN[initial-object]
+INS-RETURN[Girl-1]
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (defclass POINT (is-a USER) (slot x) (slot y))
 FuzzyCLIPS> (definstances points ([p1] of POINT (x 1) (y 2)) ([p2] of POINT (x 3) (y 4)))
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (do-for-all-instances ((?f POINT)) TRUE (send ?f delete) (+ ?f:x ?f:y))
 [PRNTUTIL15] The variable/slot reference ?f:x cannot be resolved because the referenced instance [p1] has been deleted.
-[ARGACCES5] Function + expected argument #1 to be of type integer or float
+[ARGACCES2] Function '+' expected argument #1 to be of type integer or float.
 FALSE
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (do-for-all-instances ((?f POINT)) TRUE (+ ?f:x ?f:z))
 [PRNTUTIL16] The variable/slot reference ?f:z is invalid because the referenced instance [p1] does not contain the specified slot.
-[ARGACCES5] Function + expected argument #2 to be of type integer or float
+[ARGACCES2] Function '+' expected argument #2 to be of type integer or float.
 FALSE
 FuzzyCLIPS> (do-for-all-instances ((?f POINT)) TRUE (+ ?f:x ?f:78))
 [PRNTUTIL14] The variable/slot reference ?f:78 is invalid because slot names must be symbols.
@@ -752,46 +750,42 @@ FuzzyCLIPS>
   (progn (send ?a delete) (send ?b delete) (send ?c delete) FALSE))
 ()
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [c3] of C
-For a total of 2 instances.
+For a total of 1 instance.
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> 
 (find-instance ((?a A) (?b B) (?c C)) 
   (progn (send ?a delete) (send ?b delete) (send ?c delete) FALSE))
 ()
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [c3] of C
-For a total of 2 instances.
+For a total of 1 instance.
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> 
 (find-all-instances ((?a A) (?b B) (?c C)) 
   (progn (if (eq ?b:y 3) then (send ?b delete)) FALSE))
 ()
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [a1] of A
 [a2] of A
 [b2] of B
 [c1] of C
 [c2] of C
 [c3] of C
-For a total of 7 instances.
+For a total of 6 instances.
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> 
 (find-instance ((?a A) (?b B) (?c C)) 
   (progn (if (eq ?b:y 3) then (send ?b delete)) FALSE))
 ()
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [a1] of A
 [a2] of A
 [b2] of B
 [c1] of C
 [c2] of C
 [c3] of C
-For a total of 7 instances.
+For a total of 6 instances.
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> 
 (find-all-instances ((?a A) (?b B) (?c C)) 
@@ -800,13 +794,12 @@ FuzzyCLIPS>
          (if (eq ?a:x 2) then TRUE else FALSE)))
 ([a2] [b2] [c2] [a2] [b2] [c3])
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [a1] of A
 [a2] of A
 [b2] of B
 [c2] of C
 [c3] of C
-For a total of 6 instances.
+For a total of 5 instances.
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> 
 (find-instance ((?a A) (?b B) (?c C)) 
@@ -815,13 +808,12 @@ FuzzyCLIPS>
          (if (eq ?a:x 2) then TRUE else FALSE)))
 ([a2] [b2] [c2])
 FuzzyCLIPS> (instances)
-[initial-object] of INITIAL-OBJECT
 [a1] of A
 [a2] of A
 [b2] of B
 [c2] of C
 [c3] of C
-For a total of 6 instances.
+For a total of 5 instances.
 FuzzyCLIPS> 
 (clear)
 FuzzyCLIPS> (watch instances)

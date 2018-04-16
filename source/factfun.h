@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  08/25/16            */
    /*                                                     */
    /*              FACT FUNCTIONS HEADER FILE             */
    /*******************************************************/
@@ -34,50 +34,42 @@
 /*                                                           */
 /*            Converted API macros to function calls.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factfun
+
+#pragma once
+
 #define _H_factfun
 
-#ifndef _H_factmngr
 #include "factmngr.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTFUN_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           FactFunctionDefinitions(void *);
-   LOCALE void                          *FactRelationFunction(void *);
-   LOCALE void                          *FactRelation(void *);
-   LOCALE void                          *EnvFactDeftemplate(void *,void *);
-   LOCALE int                            FactExistpFunction(void *);
-   LOCALE int                            EnvFactExistp(void *,void *);
-   LOCALE void                           FactSlotValueFunction(void *,DATA_OBJECT *);
-   LOCALE void                           FactSlotValue(void *,void *,const char *,DATA_OBJECT *);
-   LOCALE void                           FactSlotNamesFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvFactSlotNames(void *,void *,DATA_OBJECT *);
-   LOCALE void                           GetFactListFunction(void *,DATA_OBJECT *);
-   LOCALE void                           EnvGetFactList(void *,DATA_OBJECT *,void *);
-   LOCALE void                           PPFactFunction(void *);
-   LOCALE void                           EnvPPFact(void *,void *,const char *,int);
-   LOCALE struct fact                   *GetFactAddressOrIndexArgument(void *,const char *,int,int);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE void                          *FactDeftemplate(void *);
-   LOCALE int                            FactExistp(void *);
-   LOCALE void                           FactSlotNames(void *,DATA_OBJECT *);
-   LOCALE void                           GetFactList(DATA_OBJECT_PTR,void *);
-   LOCALE void                           PPFact(void *,const char *,int);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   void                           FactFunctionDefinitions(Environment *);
+   void                           FactRelationFunction(Environment *,UDFContext *,UDFValue *);
+   CLIPSLexeme                   *FactRelation(Fact *);
+   Deftemplate                   *FactDeftemplate(Fact *);
+   void                           FactExistpFunction(Environment *,UDFContext *,UDFValue *);
+   bool                           FactExistp(Fact *);
+   void                           FactSlotValueFunction(Environment *,UDFContext *,UDFValue *);
+   void                           FactSlotValue(Environment *,Fact *,const char *,CLIPSValue *);
+   void                           FactSlotNamesFunction(Environment *,UDFContext *,UDFValue *);
+   void                           FactSlotNames(Fact *,CLIPSValue *);
+   void                           GetFactListFunction(Environment *,UDFContext *,UDFValue *);
+   void                           GetFactList(Environment *,CLIPSValue *,Defmodule *);
+   void                           PPFactFunction(Environment *,UDFContext *,UDFValue *);
+   void                           PPFact(Fact *,const char *,bool);
+   Fact                          *GetFactAddressOrIndexArgument(UDFContext *,bool);
 
 #endif /* _H_factfun */
 

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*             CLIPS Version 6.40  11/01/16            */
    /*                                                     */
    /*                                                     */
    /*******************************************************/
@@ -40,112 +40,106 @@
 /*            Added const qualifiers to remove C++            */
 /*            deprecation warnings.                           */
 /*                                                            */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_prccode
+
+#pragma once
+
 #define _H_prccode
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_evaluatn
 #include "evaluatn.h"
-#endif
-#ifndef _H_moduldef
 #include "moduldef.h"
-#endif
-#ifndef _H_scanner
 #include "scanner.h"
-#endif
-#ifndef _H_symbol
 #include "symbol.h"
-#endif
 
 typedef struct ProcParamStack
   {
-   DATA_OBJECT *ParamArray;
+   UDFValue *ParamArray;
 
 #if DEFGENERIC_CONSTRUCT
-   EXPRESSION *ParamExpressions;
+   Expression *ParamExpressions;
 #endif
 
-   int ParamArraySize;
-   DATA_OBJECT *WildcardValue;
-   void (*UnboundErrFunc)(void *);
+   unsigned int ParamArraySize;
+   UDFValue *WildcardValue;
+   void (*UnboundErrFunc)(Environment *,const char *);
    struct ProcParamStack *nxt;
   } PROC_PARAM_STACK;
 
 #define PROCEDURAL_PRIMITIVE_DATA 37
 
 struct proceduralPrimitiveData
-  { 
-   void *NoParamValue;
-   DATA_OBJECT *ProcParamArray;
-   int ProcParamArraySize;
-   EXPRESSION *CurrentProcActions;
+  {
+   Multifield *NoParamValue;
+   UDFValue *ProcParamArray;
+   unsigned int ProcParamArraySize;
+   Expression *CurrentProcActions;
 #if DEFGENERIC_CONSTRUCT
-   EXPRESSION *ProcParamExpressions;
+   Expression *ProcParamExpressions;
 #endif
    PROC_PARAM_STACK *pstack;
-   DATA_OBJECT *WildcardValue;
-   DATA_OBJECT *LocalVarArray;
-   void (*ProcUnboundErrFunc)(void *);
-   ENTITY_RECORD ProcParameterInfo; 
-   ENTITY_RECORD ProcWildInfo;
-   ENTITY_RECORD ProcGetInfo;     
-   ENTITY_RECORD ProcBindInfo;      
+   UDFValue *WildcardValue;
+   UDFValue *LocalVarArray;
+   void (*ProcUnboundErrFunc)(Environment *,const char *);
+   EntityRecord ProcParameterInfo;
+   EntityRecord ProcWildInfo;
+   EntityRecord ProcGetInfo;
+   EntityRecord ProcBindInfo;
 #if ! DEFFUNCTION_CONSTRUCT
-   ENTITY_RECORD DeffunctionEntityRecord;
+   EntityRecord DeffunctionEntityRecord;
 #endif
 #if ! DEFGENERIC_CONSTRUCT
-   ENTITY_RECORD GenericEntityRecord;
+   EntityRecord GenericEntityRecord;
 #endif
-   int Oldindex;
+   unsigned int Oldindex;
   };
 
 #define ProceduralPrimitiveData(theEnv) ((struct proceduralPrimitiveData *) GetEnvironmentData(theEnv,PROCEDURAL_PRIMITIVE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _PRCCODE_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InstallProcedurePrimitives(void *);
+   void                           InstallProcedurePrimitives(Environment *);
 
 #if (! BLOAD_ONLY) && (! RUN_TIME)
 
 #if DEFFUNCTION_CONSTRUCT || OBJECT_SYSTEM
-   LOCALE EXPRESSION                    *ParseProcParameters(void *,const char *,struct token *,EXPRESSION *,
-                                                             SYMBOL_HN **,int *,int *,int *,
-                                                             int (*)(void *,const char *));
+   Expression                    *ParseProcParameters(Environment *,const char *,struct token *,Expression *,
+                                                             CLIPSLexeme **,unsigned short *,unsigned short *,bool *,
+                                                             bool (*)(Environment *,const char *));
 #endif
-   LOCALE EXPRESSION                    *ParseProcActions(void *,const char *,const char *,struct token *,EXPRESSION *,SYMBOL_HN *,
-                                                          int (*)(void *,EXPRESSION *,void *),
-                                                          int (*)(void *,EXPRESSION *,void *),
-                                                          int *,void *);
-   LOCALE intBool                        ReplaceProcVars(void *,const char *,EXPRESSION *,EXPRESSION *,SYMBOL_HN *,
-                                                         int (*)(void *,EXPRESSION *,void *),void *);
+   Expression                    *ParseProcActions(Environment *,const char *,const char *,struct token *,Expression *,CLIPSLexeme *,
+                                                          int (*)(Environment *,Expression *,void *),
+                                                          int (*)(Environment *,Expression *,void *),
+                                                          unsigned short *,void *);
+   int                            ReplaceProcVars(Environment *,const char *,Expression *,Expression *,CLIPSLexeme *,
+                                                         int (*)(Environment *,Expression *,void *),void *);
 #if DEFGENERIC_CONSTRUCT
-   LOCALE EXPRESSION                    *GenProcWildcardReference(void *,int);
+   Expression                    *GenProcWildcardReference(Environment *,int);
 #endif
 #endif
 
-   LOCALE void                           PushProcParameters(void *,EXPRESSION *,int,const char *,const char *,void (*)(void *));
-   LOCALE void                           PopProcParameters(void *);
+   void                           PushProcParameters(Environment *,Expression *,unsigned int,const char *,const char *,void (*)(Environment *,const char *));
+   void                           PopProcParameters(Environment *);
 
 #if DEFGENERIC_CONSTRUCT
-   LOCALE EXPRESSION                    *GetProcParamExpressions(void *);
+   Expression                    *GetProcParamExpressions(Environment *);
 #endif
 
-   LOCALE void                           EvaluateProcActions(void *,struct defmodule *,EXPRESSION *,int,
-                                                             DATA_OBJECT *,void (*)(void *));
-   LOCALE void                           PrintProcParamArray(void *,const char *);
-   LOCALE void                           GrabProcWildargs(void *,DATA_OBJECT *,int);
+   void                           EvaluateProcActions(Environment *,Defmodule *,Expression *,unsigned short,
+                                                      UDFValue *,void (*)(Environment *,const char *));
+   void                           PrintProcParamArray(Environment *,const char *);
+   void                           GrabProcWildargs(Environment *,UDFValue *,unsigned int);
 
 #endif /* _H_prccode */
 

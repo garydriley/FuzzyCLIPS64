@@ -45,34 +45,35 @@
 #define LOCALE extern
 #endif
 
-    LOCALE void           DeffuzzyCommands(void *theEnv);
-    LOCALE void          *getu(void *theEnv);
-    LOCALE double         getu_from(void *theEnv);
-    LOCALE double         getu_to(void *theEnv);
-    LOCALE void          *getu_units(void *theEnv);
-    LOCALE void          *get_fs(void *theEnv);
-    LOCALE void          *get_fs_template(void *theEnv);
-    LOCALE void          *get_fs_lv(void *theEnv);
-    LOCALE int            get_fs_length(void *theEnv); 
-    LOCALE double         get_fs_value(void *theEnv);
-    LOCALE double         get_fs_x(void *theEnv);
-    LOCALE double         get_fs_y(void *theEnv);
-    LOCALE double         moment_defuzzify(void *theEnv);
-    LOCALE double         maximum_defuzzify(void *theEnv);
-    LOCALE void           add_fuzzy_modifier(void *theEnv);
-    LOCALE void           remove_fuzzy_modifier(void *theEnv);
-    LOCALE void           set_fuzzy_inference_type(void *theEnv);
-    LOCALE void          *get_fuzzy_inference_type(void *theEnv);
-    LOCALE void           set_fuzzy_display_precision(void *theEnv);
-    LOCALE long int       get_fuzzy_display_precision(void *theEnv);
-    LOCALE void           set_alpha_value(void *theEnv);
-    LOCALE double         get_alpha_value(void *theEnv);
-    LOCALE void           plot_fuzzy_value(void *theEnv);
-    LOCALE struct fuzzy_value *get_fuzzy_slot(void *theEnv);
-    LOCALE struct fuzzy_value *fuzzy_union(void *theEnv);
-    LOCALE struct fuzzy_value *fuzzy_intersection(void *theEnv);
-    LOCALE struct fuzzy_value *fuzzy_modify(void *theEnv);
-    LOCALE struct fuzzy_value *create_fuzzy_value(void *theEnv);
+    void                  DeffuzzyCommands(Environment *);
+    void                  getu(Environment *,UDFContext *,UDFValue *);
+    void                  getu_from(Environment *,UDFContext *,UDFValue *);
+    void                  getu_to(Environment *,UDFContext *,UDFValue *);
+    void                  getu_units(Environment *,UDFContext *,UDFValue *);
+    void                  get_fs(Environment *,UDFContext *,UDFValue *);
+    void                  get_fs_template(Environment *,UDFContext *,UDFValue *);
+    void                  get_fs_lv(Environment *,UDFContext *,UDFValue *);
+    void                  get_fs_length(Environment *,UDFContext *,UDFValue *);
+    void                  get_fs_value(Environment *,UDFContext *,UDFValue *);
+    void                  get_fs_x(Environment *,UDFContext *,UDFValue *);
+    void                  get_fs_y(Environment *,UDFContext *,UDFValue *);
+    void                  moment_defuzzify(Environment *,UDFContext *,UDFValue *);
+    void                  maximum_defuzzify(Environment *,UDFContext *,UDFValue *);
+    void                  add_fuzzy_modifier(Environment *,UDFContext *,UDFValue *);
+    void                  remove_fuzzy_modifier(Environment *,UDFContext *,UDFValue *);
+    void                  set_fuzzy_inference_type(Environment *,UDFContext *,UDFValue *);
+    void                  get_fuzzy_inference_type(Environment *,UDFContext *,UDFValue *);
+    void                  set_fuzzy_display_precision(Environment *,UDFContext *,UDFValue *);
+    void                  get_fuzzy_display_precision(Environment *,UDFContext *,UDFValue *);
+    void                  set_alpha_value(Environment *,UDFContext *,UDFValue *);
+    void                  get_alpha_value(Environment *,UDFContext *,UDFValue *);
+    void                  plot_fuzzy_value(Environment *,UDFContext *,UDFValue *);
+    void                  get_fuzzy_slot(Environment *,UDFContext *,UDFValue *);
+    void                  fuzzy_union(Environment *,UDFContext *,UDFValue *);
+    void                  fuzzy_intersection(Environment *,UDFContext *,UDFValue *);
+    void                  fuzzy_modify(Environment *,UDFContext *,UDFValue *);
+    void                  create_fuzzy_value(Environment *,UDFContext *,UDFValue *);
+    void                  is_defuzzify_value_valid(Environment *,UDFContext *,UDFValue *);
 
 #endif
 

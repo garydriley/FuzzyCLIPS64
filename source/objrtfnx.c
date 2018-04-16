@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*               CLIPS Version 6.30  08/16/14          */
+   /*            CLIPS Version 6.40  10/01/16             */
    /*                                                     */
    /*    INFERENCE ENGINE OBJECT ACCESS ROUTINES MODULE   */
    /*******************************************************/
@@ -34,6 +34,15 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
 /*************************************************************/
 /* =========================================
    *****************************************
@@ -45,7 +54,6 @@
 #if DEFRULE_CONSTRUCT && OBJECT_SYSTEM
 
 #include <stdio.h>
-#define _STDIO_INCLUDED_
 #include <string.h>
 
 #include "classcom.h"
@@ -64,10 +72,10 @@
 #include "memalloc.h"
 #include "multifld.h"
 #include "objrtmch.h"
+#include "prntutil.h"
 #include "reteutil.h"
 #include "router.h"
 
-#define _OBJRTFNX_SOURCE_
 #include "objrtfnx.h"
 
 /* =========================================
@@ -78,44 +86,42 @@
 
 #define GetInsSlot(ins,si) ins->slotAddresses[ins->cls->slotNameMap[si]-1]
 
-/* =========================================
-   *****************************************
-      INTERNALLY VISIBLE FUNCTION HEADERS
-   =========================================
-   ***************************************** */
+/***************************************/
+/* LOCAL INTERNAL FUNCTION DEFINITIONS */
+/***************************************/
 
-static void PrintObjectGetVarJN1(void *,const char *,void *);
-static intBool ObjectGetVarJNFunction1(void *,void *,DATA_OBJECT *);
-static void PrintObjectGetVarJN2(void *,const char *,void *);
-static intBool ObjectGetVarJNFunction2(void *,void *,DATA_OBJECT *);
-static void PrintObjectGetVarPN1(void *,const char *,void *);
-static intBool ObjectGetVarPNFunction1(void *,void *,DATA_OBJECT *);
-static void PrintObjectGetVarPN2(void *,const char *,void *);
-static intBool ObjectGetVarPNFunction2(void *,void *,DATA_OBJECT *);
-static void PrintObjectCmpConstant(void *,const char *,void *);
-static void PrintSlotLengthTest(void *,const char *,void *);
-static intBool SlotLengthTestFunction(void *,void *,DATA_OBJECT *);
-static void PrintPNSimpleCompareFunction1(void *,const char *,void *);
-static intBool PNSimpleCompareFunction1(void *,void *,DATA_OBJECT *);
-static void PrintPNSimpleCompareFunction2(void *,const char *,void *);
-static intBool PNSimpleCompareFunction2(void *,void *,DATA_OBJECT *);
-static void PrintPNSimpleCompareFunction3(void *,const char *,void *);
-static intBool PNSimpleCompareFunction3(void *,void *,DATA_OBJECT *);
-static void PrintJNSimpleCompareFunction1(void *,const char *,void *);
-static intBool JNSimpleCompareFunction1(void *,void *,DATA_OBJECT *);
-static void PrintJNSimpleCompareFunction2(void *,const char *,void *);
-static intBool JNSimpleCompareFunction2(void *,void *,DATA_OBJECT *);
-static void PrintJNSimpleCompareFunction3(void *,const char *,void *);
-static intBool JNSimpleCompareFunction3(void *,void *,DATA_OBJECT *);
-static void GetPatternObjectAndMarks(void *,int,int,int,INSTANCE_TYPE **,struct multifieldMarker **);
-static void GetObjectValueGeneral(void *,DATA_OBJECT *,INSTANCE_TYPE *,
-                                 struct multifieldMarker *,struct ObjectMatchVar1 *);
-static void GetObjectValueSimple(void *,DATA_OBJECT *,INSTANCE_TYPE *,struct ObjectMatchVar2 *);
-static long CalculateSlotField(struct multifieldMarker *,INSTANCE_SLOT *,long,long *); /* 6.04 Bug Fix */
-static void GetInsMultiSlotField(FIELD *,INSTANCE_TYPE *,unsigned,unsigned,unsigned);
-static void DeallocateObjectReteData(void *);
-static void DestroyObjectPatternNetwork(void *,OBJECT_PATTERN_NODE *);
-static void DestroyObjectAlphaNodes(void *,OBJECT_ALPHA_NODE *);
+   static void                    PrintObjectGetVarJN1(Environment *,const char *,void *);
+   static bool                    ObjectGetVarJNFunction1(Environment *,void *,UDFValue *);
+   static void                    PrintObjectGetVarJN2(Environment *,const char *,void *);
+   static bool                    ObjectGetVarJNFunction2(Environment *,void *,UDFValue *);
+   static void                    PrintObjectGetVarPN1(Environment *,const char *,void *);
+   static bool                    ObjectGetVarPNFunction1(Environment *,void *,UDFValue *);
+   static void                    PrintObjectGetVarPN2(Environment *,const char *,void *);
+   static bool                    ObjectGetVarPNFunction2(Environment *,void *,UDFValue *);
+   static void                    PrintObjectCmpConstant(Environment *,const char *,void *);
+   static void                    PrintSlotLengthTest(Environment *,const char *,void *);
+   static bool                    SlotLengthTestFunction(Environment *,void *,UDFValue *);
+   static void                    PrintPNSimpleCompareFunction1(Environment *,const char *,void *);
+   static bool                    PNSimpleCompareFunction1(Environment *,void *,UDFValue *);
+   static void                    PrintPNSimpleCompareFunction2(Environment *,const char *,void *);
+   static bool                    PNSimpleCompareFunction2(Environment *,void *,UDFValue *);
+   static void                    PrintPNSimpleCompareFunction3(Environment *,const char *,void *);
+   static bool                    PNSimpleCompareFunction3(Environment *,void *,UDFValue *);
+   static void                    PrintJNSimpleCompareFunction1(Environment *,const char *,void *);
+   static bool                    JNSimpleCompareFunction1(Environment *,void *,UDFValue *);
+   static void                    PrintJNSimpleCompareFunction2(Environment *,const char *,void *);
+   static bool                    JNSimpleCompareFunction2(Environment *,void *,UDFValue *);
+   static void                    PrintJNSimpleCompareFunction3(Environment *,const char *,void *);
+   static bool                    JNSimpleCompareFunction3(Environment *,void *,UDFValue *);
+   static void                    GetPatternObjectAndMarks(Environment *,unsigned short,bool,bool,Instance **,struct multifieldMarker **);
+   static void                    GetObjectValueGeneral(Environment *,UDFValue *,Instance *,
+                                                        struct multifieldMarker *,struct ObjectMatchVar1 *);
+   static void                    GetObjectValueSimple(Environment *,UDFValue *,Instance *,struct ObjectMatchVar2 *);
+   static size_t                  CalculateSlotField(struct multifieldMarker *,InstanceSlot *,size_t,size_t *);
+   static void                    GetInsMultiSlotField(CLIPSValue *,Instance *,unsigned,unsigned,unsigned);
+   static void                    DeallocateObjectReteData(Environment *);
+   static void                    DestroyObjectPatternNetwork(Environment *,OBJECT_PATTERN_NODE *);
+   static void                    DestroyObjectAlphaNodes(Environment *,OBJECT_ALPHA_NODE *);
 
 /* =========================================
    *****************************************
@@ -133,8 +139,8 @@ static void DestroyObjectAlphaNodes(void *,OBJECT_ALPHA_NODE *);
   SIDE EFFECTS : Primitive operations installed
   NOTES        : None
  ***************************************************/
-globle void InstallObjectPrimitives(
-  void *theEnv)
+void InstallObjectPrimitives(
+  Environment *theEnv)
   {
    struct entityRecord objectGVInfo1 = { "OBJ_GET_SLOT_JNVAR1", OBJ_GET_SLOT_JNVAR1,0,1,0,
                                              PrintObjectGetVarJN1,
@@ -211,18 +217,18 @@ globle void InstallObjectPrimitives(
    AllocateEnvironmentData(theEnv,OBJECT_RETE_DATA,sizeof(struct objectReteData),DeallocateObjectReteData);
    ObjectReteData(theEnv)->CurrentObjectSlotLength = 1;
 
-   memcpy(&ObjectReteData(theEnv)->ObjectGVInfo1,&objectGVInfo1,sizeof(struct entityRecord));  
+   memcpy(&ObjectReteData(theEnv)->ObjectGVInfo1,&objectGVInfo1,sizeof(struct entityRecord));
    memcpy(&ObjectReteData(theEnv)->ObjectGVInfo2,&objectGVInfo2,sizeof(struct entityRecord));
    memcpy(&ObjectReteData(theEnv)->ObjectGVPNInfo1,&objectGVPNInfo1,sizeof(struct entityRecord));
    memcpy(&ObjectReteData(theEnv)->ObjectGVPNInfo2,&objectGVPNInfo2,sizeof(struct entityRecord));
-   memcpy(&ObjectReteData(theEnv)->ObjectCmpConstantInfo,&objectCmpConstantInfo,sizeof(struct entityRecord)); 
-   memcpy(&ObjectReteData(theEnv)->LengthTestInfo,&lengthTestInfo,sizeof(struct entityRecord)); 
-   memcpy(&ObjectReteData(theEnv)->PNSimpleCompareInfo1,&pNSimpleCompareInfo1,sizeof(struct entityRecord)); 
-   memcpy(&ObjectReteData(theEnv)->PNSimpleCompareInfo2,&pNSimpleCompareInfo2,sizeof(struct entityRecord)); 
-   memcpy(&ObjectReteData(theEnv)->PNSimpleCompareInfo3,&pNSimpleCompareInfo3,sizeof(struct entityRecord)); 
-   memcpy(&ObjectReteData(theEnv)->JNSimpleCompareInfo1,&jNSimpleCompareInfo1,sizeof(struct entityRecord)); 
-   memcpy(&ObjectReteData(theEnv)->JNSimpleCompareInfo2,&jNSimpleCompareInfo2,sizeof(struct entityRecord)); 
-   memcpy(&ObjectReteData(theEnv)->JNSimpleCompareInfo3,&jNSimpleCompareInfo3,sizeof(struct entityRecord)); 
+   memcpy(&ObjectReteData(theEnv)->ObjectCmpConstantInfo,&objectCmpConstantInfo,sizeof(struct entityRecord));
+   memcpy(&ObjectReteData(theEnv)->LengthTestInfo,&lengthTestInfo,sizeof(struct entityRecord));
+   memcpy(&ObjectReteData(theEnv)->PNSimpleCompareInfo1,&pNSimpleCompareInfo1,sizeof(struct entityRecord));
+   memcpy(&ObjectReteData(theEnv)->PNSimpleCompareInfo2,&pNSimpleCompareInfo2,sizeof(struct entityRecord));
+   memcpy(&ObjectReteData(theEnv)->PNSimpleCompareInfo3,&pNSimpleCompareInfo3,sizeof(struct entityRecord));
+   memcpy(&ObjectReteData(theEnv)->JNSimpleCompareInfo1,&jNSimpleCompareInfo1,sizeof(struct entityRecord));
+   memcpy(&ObjectReteData(theEnv)->JNSimpleCompareInfo2,&jNSimpleCompareInfo2,sizeof(struct entityRecord));
+   memcpy(&ObjectReteData(theEnv)->JNSimpleCompareInfo3,&jNSimpleCompareInfo3,sizeof(struct entityRecord));
 
    InstallPrimitive(theEnv,&ObjectReteData(theEnv)->ObjectGVInfo1,OBJ_GET_SLOT_JNVAR1);
    InstallPrimitive(theEnv,&ObjectReteData(theEnv)->ObjectGVInfo2,OBJ_GET_SLOT_JNVAR2);
@@ -237,71 +243,71 @@ globle void InstallObjectPrimitives(
    InstallPrimitive(theEnv,&ObjectReteData(theEnv)->JNSimpleCompareInfo2,OBJ_JN_CMP2);
    InstallPrimitive(theEnv,&ObjectReteData(theEnv)->JNSimpleCompareInfo3,OBJ_JN_CMP3);
   }
-  
+
 /*****************************************************/
 /* DeallocateObjectReteData: Deallocates environment */
 /*    data for the object rete network.              */
 /*****************************************************/
 static void DeallocateObjectReteData(
-  void *theEnv)
+  Environment *theEnv)
   {
    OBJECT_PATTERN_NODE *theNetwork;
-   
+
 #if BLOAD || BLOAD_AND_BSAVE
    if (Bloaded(theEnv)) return;
 #endif
-   
+
    theNetwork = ObjectReteData(theEnv)->ObjectPatternNetworkPointer;
    DestroyObjectPatternNetwork(theEnv,theNetwork);
   }
-  
+
 /****************************************************************/
 /* DestroyObjectPatternNetwork: Deallocates the data structures */
 /*   associated with the object pattern network.                */
 /****************************************************************/
 static void DestroyObjectPatternNetwork(
-  void *theEnv,
+  Environment *theEnv,
   OBJECT_PATTERN_NODE *thePattern)
   {
    OBJECT_PATTERN_NODE *patternPtr;
-   
+
    if (thePattern == NULL) return;
-   
+
    while (thePattern != NULL)
      {
       patternPtr = thePattern->rightNode;
-      
+
       DestroyObjectPatternNetwork(theEnv,thePattern->nextLevel);
       DestroyObjectAlphaNodes(theEnv,thePattern->alphaNode);
-#if ! RUN_TIME      
+#if ! RUN_TIME
       rtn_struct(theEnv,objectPatternNode,thePattern);
-#endif      
+#endif
       thePattern = patternPtr;
      }
   }
-  
+
 /************************************************************/
 /* DestroyObjectAlphaNodes: Deallocates the data structures */
 /*   associated with the object alpha nodes.                */
 /************************************************************/
 static void DestroyObjectAlphaNodes(
-  void *theEnv,
+  Environment *theEnv,
   OBJECT_ALPHA_NODE *theNode)
   {
    OBJECT_ALPHA_NODE *nodePtr;
-   
+
    if (theNode == NULL) return;
-   
+
    while (theNode != NULL)
      {
       nodePtr = theNode->nxtInGroup;
-       
-      DestroyAlphaMemory(theEnv,&theNode->header,FALSE);
+
+      DestroyAlphaMemory(theEnv,&theNode->header,false);
 
 #if ! RUN_TIME
       rtn_struct(theEnv,objectAlphaNode,theNode);
 #endif
-      
+
       theNode = nodePtr;
      }
   }
@@ -312,25 +318,25 @@ static void DestroyObjectAlphaNodes(
                  against a constant
   INPUTS       : 1) The constant test bitmap
                  2) Data object buffer to hold result
-  RETURNS      : TRUE if test successful,
-                 FALSE otherwise
+  RETURNS      : True if test successful,
+                 false otherwise
   SIDE EFFECTS : Buffer set to symbol TRUE if test
-                 successful, FALSE otherwise
+                 successful, false otherwise
   NOTES        : Called directly by
                    EvaluatePatternExpression()
  *****************************************************/
-globle intBool ObjectCmpConstantFunction(
-  void *theEnv,
+bool ObjectCmpConstantFunction(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectCmpPNConstant *hack;
-   DATA_OBJECT theVar;
-   EXPRESSION *constantExp;
-   int rv;
-   SEGMENT *theSegment;
+   UDFValue theVar;
+   Expression *constantExp;
+   bool rv;
+   Multifield *theSegment;
 
-   hack = (struct ObjectCmpPNConstant *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpPNConstant *) ((CLIPSBitMap *) theValue)->contents;
    if (hack->general)
      {
       EvaluateExpression(theEnv,GetFirstArgument(),&theVar);
@@ -339,37 +345,32 @@ globle intBool ObjectCmpConstantFunction(
    else
      {
       constantExp = GetFirstArgument();
-      if (ObjectReteData(theEnv)->CurrentPatternObjectSlot->type == MULTIFIELD)
+      if (ObjectReteData(theEnv)->CurrentPatternObjectSlot->type == MULTIFIELD_TYPE)
         {
-         theSegment = (struct multifield *) ObjectReteData(theEnv)->CurrentPatternObjectSlot->value;
+         theSegment = ObjectReteData(theEnv)->CurrentPatternObjectSlot->multifieldValue;
          if (hack->fromBeginning)
            {
-            theVar.type = theSegment->theFields[hack->offset].type;
-            theVar.value = theSegment->theFields[hack->offset].value;
+            theVar.value = theSegment->contents[hack->offset].value;
            }
          else
            {
-            theVar.type = theSegment->theFields[theSegment->multifieldLength -
-                                      (hack->offset + 1)].type;
-            theVar.value = theSegment->theFields[theSegment->multifieldLength -
+            theVar.value = theSegment->contents[theSegment->length -
                                       (hack->offset + 1)].value;
            }
         }
       else
         {
-         theVar.type = (unsigned short) ObjectReteData(theEnv)->CurrentPatternObjectSlot->type;
          theVar.value = ObjectReteData(theEnv)->CurrentPatternObjectSlot->value;
         }
      }
-   if (theVar.type != constantExp->type)
-     rv = hack->fail;
+   if (theVar.header->type != constantExp->type)
+     rv = hack->fail ? true : false;
    else if (theVar.value != constantExp->value)
-     rv = hack->fail;
+     rv = hack->fail ? true : false;
    else
-     rv = hack->pass;
-   theResult->type = SYMBOL;
-   theResult->value = rv ? EnvTrueSymbol(theEnv) : EnvFalseSymbol(theEnv);
-   return(rv);
+     rv = hack->pass ? true : false;
+   theResult->value = rv ? TrueSymbol(theEnv) : FalseSymbol(theEnv);
+   return rv;
   }
 
 /* =========================================
@@ -379,37 +380,37 @@ globle intBool ObjectCmpConstantFunction(
    ***************************************** */
 
 static void PrintObjectGetVarJN1(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectMatchVar1 *hack;
 
-   hack = (struct ObjectMatchVar1 *) ValueToBitMap(theValue);
+   hack = (struct ObjectMatchVar1 *) ((CLIPSBitMap *) theValue)->contents;
 
    if (hack->objectAddress)
      {
-      EnvPrintRouter(theEnv,logicalName,"(obj-ptr ");
-      PrintLongInteger(theEnv,logicalName,(long long) hack->whichPattern);
+      WriteString(theEnv,logicalName,"(obj-ptr ");
+      PrintUnsignedInteger(theEnv,logicalName,hack->whichPattern);
      }
    else if (hack->allFields)
      {
-      EnvPrintRouter(theEnv,logicalName,"(obj-slot-contents ");
-      PrintLongInteger(theEnv,logicalName,(long long) hack->whichPattern);
-      EnvPrintRouter(theEnv,logicalName," ");
-      EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->whichSlot)));
+      WriteString(theEnv,logicalName,"(obj-slot-contents ");
+      PrintUnsignedInteger(theEnv,logicalName,hack->whichPattern);
+      WriteString(theEnv,logicalName," ");
+      WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->whichSlot)->contents);
      }
    else
      {
-      EnvPrintRouter(theEnv,logicalName,"(obj-slot-var ");
-      PrintLongInteger(theEnv,logicalName,(long long) hack->whichPattern);
-      EnvPrintRouter(theEnv,logicalName," ");
-      EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->whichSlot)));
-      EnvPrintRouter(theEnv,logicalName," ");
-      PrintLongInteger(theEnv,logicalName,(long long) hack->whichField);
+      WriteString(theEnv,logicalName,"(obj-slot-var ");
+      PrintUnsignedInteger(theEnv,logicalName,hack->whichPattern);
+      WriteString(theEnv,logicalName," ");
+      WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->whichSlot)->contents);
+      WriteString(theEnv,logicalName," ");
+      PrintUnsignedInteger(theEnv,logicalName,hack->whichField);
      }
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -419,45 +420,45 @@ static void PrintObjectGetVarJN1(
 #endif
   }
 
-static intBool ObjectGetVarJNFunction1(
-  void *theEnv,
+static bool ObjectGetVarJNFunction1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectMatchVar1 *hack;
-   INSTANCE_TYPE *theInstance;
+   Instance *theInstance;
    struct multifieldMarker *theMarks;
-   
-   hack = (struct ObjectMatchVar1 *) ValueToBitMap(theValue);
-   GetPatternObjectAndMarks(theEnv,((int) hack->whichPattern),hack->lhs,hack->rhs,&theInstance,&theMarks);
+
+   hack = (struct ObjectMatchVar1 *) ((CLIPSBitMap *) theValue)->contents;
+   GetPatternObjectAndMarks(theEnv,hack->whichPattern,hack->lhs,hack->rhs,&theInstance,&theMarks);
    GetObjectValueGeneral(theEnv,theResult,theInstance,theMarks,hack);
-   return(TRUE);
+   return true;
   }
 
 static void PrintObjectGetVarJN2(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectMatchVar2 *hack;
 
-   hack = (struct ObjectMatchVar2 *) ValueToBitMap(theValue);
-   EnvPrintRouter(theEnv,logicalName,"(obj-slot-quick-var ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->whichPattern);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->whichSlot)));
+   hack = (struct ObjectMatchVar2 *) ((CLIPSBitMap *) theValue)->contents;
+   WriteString(theEnv,logicalName,"(obj-slot-quick-var ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->whichPattern);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->whichSlot)->contents);
    if (hack->fromBeginning)
      {
-      EnvPrintRouter(theEnv,logicalName," B");
-      PrintLongInteger(theEnv,logicalName,(long long) (hack->beginningOffset + 1));
+      WriteString(theEnv,logicalName," B");
+      PrintUnsignedInteger(theEnv,logicalName,hack->beginningOffset + 1);
      }
    if (hack->fromEnd)
      {
-      EnvPrintRouter(theEnv,logicalName," E");
-      PrintLongInteger(theEnv,logicalName,(long long) (hack->endOffset + 1));
+      WriteString(theEnv,logicalName," E");
+      PrintUnsignedInteger(theEnv,logicalName,hack->endOffset + 1);
      }
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -467,46 +468,46 @@ static void PrintObjectGetVarJN2(
 #endif
   }
 
-static intBool ObjectGetVarJNFunction2(
-  void *theEnv,
+static bool ObjectGetVarJNFunction2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectMatchVar2 *hack;
-   INSTANCE_TYPE *theInstance;
+   Instance *theInstance;
    struct multifieldMarker *theMarks;
-   
-   hack = (struct ObjectMatchVar2 *) ValueToBitMap(theValue);
-   GetPatternObjectAndMarks(theEnv,((int) hack->whichPattern),hack->lhs,hack->rhs,&theInstance,&theMarks);
+
+   hack = (struct ObjectMatchVar2 *) ((CLIPSBitMap *) theValue)->contents;
+   GetPatternObjectAndMarks(theEnv,hack->whichPattern,hack->lhs,hack->rhs,&theInstance,&theMarks);
    GetObjectValueSimple(theEnv,theResult,theInstance,hack);
-   return(TRUE);
+   return true;
   }
 
 static void PrintObjectGetVarPN1(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectMatchVar1 *hack;
 
-   hack = (struct ObjectMatchVar1 *) ValueToBitMap(theValue);
+   hack = (struct ObjectMatchVar1 *) ((CLIPSBitMap *) theValue)->contents;
 
    if (hack->objectAddress)
-     EnvPrintRouter(theEnv,logicalName,"(ptn-obj-ptr ");
+     WriteString(theEnv,logicalName,"(ptn-obj-ptr ");
    else if (hack->allFields)
      {
-      EnvPrintRouter(theEnv,logicalName,"(ptn-obj-slot-contents ");
-      EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->whichSlot)));
+      WriteString(theEnv,logicalName,"(ptn-obj-slot-contents ");
+      WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->whichSlot)->contents);
      }
    else
      {
-      EnvPrintRouter(theEnv,logicalName,"(ptn-obj-slot-var ");
-      EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->whichSlot)));
-      EnvPrintRouter(theEnv,logicalName," ");
-      PrintLongInteger(theEnv,logicalName,(long long) hack->whichField);
+      WriteString(theEnv,logicalName,"(ptn-obj-slot-var ");
+      WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->whichSlot)->contents);
+      WriteString(theEnv,logicalName," ");
+      PrintUnsignedInteger(theEnv,logicalName,hack->whichField);
      }
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -516,40 +517,40 @@ static void PrintObjectGetVarPN1(
 #endif
   }
 
-static intBool ObjectGetVarPNFunction1(
-  void *theEnv,
+static bool ObjectGetVarPNFunction1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectMatchVar1 *hack;
 
-   hack = (struct ObjectMatchVar1 *) ValueToBitMap(theValue);
+   hack = (struct ObjectMatchVar1 *) ((CLIPSBitMap *) theValue)->contents;
    GetObjectValueGeneral(theEnv,theResult,ObjectReteData(theEnv)->CurrentPatternObject,ObjectReteData(theEnv)->CurrentPatternObjectMarks,hack);
-   return(TRUE);
+   return true;
   }
 
 static void PrintObjectGetVarPN2(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectMatchVar2 *hack;
 
-   hack = (struct ObjectMatchVar2 *) ValueToBitMap(theValue);
-   EnvPrintRouter(theEnv,logicalName,"(ptn-obj-slot-quick-var ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->whichSlot)));
+   hack = (struct ObjectMatchVar2 *) ((CLIPSBitMap *) theValue)->contents;
+   WriteString(theEnv,logicalName,"(ptn-obj-slot-quick-var ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->whichSlot)->contents);
    if (hack->fromBeginning)
      {
-      EnvPrintRouter(theEnv,logicalName," B");
-      PrintLongInteger(theEnv,logicalName,(long long) (hack->beginningOffset + 1));
+      WriteString(theEnv,logicalName," B");
+      PrintUnsignedInteger(theEnv,logicalName,(hack->beginningOffset + 1));
      }
    if (hack->fromEnd)
      {
-      EnvPrintRouter(theEnv,logicalName," E");
-      PrintLongInteger(theEnv,logicalName,(long long) (hack->endOffset + 1));
+      WriteString(theEnv,logicalName," E");
+      PrintUnsignedInteger(theEnv,logicalName,(hack->endOffset + 1));
      }
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -559,40 +560,40 @@ static void PrintObjectGetVarPN2(
 #endif
   }
 
-static intBool ObjectGetVarPNFunction2(
-  void *theEnv,
+static bool ObjectGetVarPNFunction2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectMatchVar2 *hack;
 
-   hack = (struct ObjectMatchVar2 *) ValueToBitMap(theValue);
+   hack = (struct ObjectMatchVar2 *) ((CLIPSBitMap *) theValue)->contents;
    GetObjectValueSimple(theEnv,theResult,ObjectReteData(theEnv)->CurrentPatternObject,hack);
-   return(TRUE);
+   return true;
   }
 
 static void PrintObjectCmpConstant(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectCmpPNConstant *hack;
 
-   hack = (struct ObjectCmpPNConstant *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpPNConstant *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(obj-const ");
-   EnvPrintRouter(theEnv,logicalName,hack->pass ? "p " : "n ");
+   WriteString(theEnv,logicalName,"(obj-const ");
+   WriteString(theEnv,logicalName,hack->pass ? "p " : "n ");
    if (hack->general)
      PrintExpression(theEnv,logicalName,GetFirstArgument());
    else
      {
-      EnvPrintRouter(theEnv,logicalName,hack->fromBeginning ? "B" : "E");
-      PrintLongInteger(theEnv,logicalName,(long long) hack->offset);
-      EnvPrintRouter(theEnv,logicalName," ");
+      WriteString(theEnv,logicalName,hack->fromBeginning ? "B" : "E");
+      PrintUnsignedInteger(theEnv,logicalName,hack->offset);
+      WriteString(theEnv,logicalName," ");
       PrintExpression(theEnv,logicalName,GetFirstArgument());
      }
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -603,22 +604,22 @@ static void PrintObjectCmpConstant(
   }
 
 static void PrintSlotLengthTest(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectMatchLength *hack;
 
-   hack = (struct ObjectMatchLength *) ValueToBitMap(theValue);
+   hack = (struct ObjectMatchLength *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(obj-slot-len ");
+   WriteString(theEnv,logicalName,"(obj-slot-len ");
    if (hack->exactly)
-     EnvPrintRouter(theEnv,logicalName,"= ");
+     WriteString(theEnv,logicalName,"= ");
    else
-     EnvPrintRouter(theEnv,logicalName,">= ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->minLength);
-   EnvPrintRouter(theEnv,logicalName,")");
+     WriteString(theEnv,logicalName,">= ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->minLength);
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -628,40 +629,39 @@ static void PrintSlotLengthTest(
 #endif
   }
 
-static intBool SlotLengthTestFunction(
-  void *theEnv,
+static bool SlotLengthTestFunction(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectMatchLength *hack;
 
-   theResult->type = SYMBOL;
-   theResult->value = EnvFalseSymbol(theEnv);
-   hack = (struct ObjectMatchLength *) ValueToBitMap(theValue);
+   theResult->value = FalseSymbol(theEnv);
+   hack = (struct ObjectMatchLength *) ((CLIPSBitMap *) theValue)->contents;
    if (ObjectReteData(theEnv)->CurrentObjectSlotLength < hack->minLength)
-     return(FALSE);
+     return false;
    if (hack->exactly && (ObjectReteData(theEnv)->CurrentObjectSlotLength > hack->minLength))
-     return(FALSE);
-   theResult->value = EnvTrueSymbol(theEnv);
-   return(TRUE);
+     return false;
+   theResult->value = TrueSymbol(theEnv);
+   return true;
   }
 
 static void PrintPNSimpleCompareFunction1(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectCmpPNSingleSlotVars1 *hack;
 
-   hack = (struct ObjectCmpPNSingleSlotVars1 *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpPNSingleSlotVars1 *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(pslot-cmp1 ");
-   EnvPrintRouter(theEnv,logicalName,hack->pass ? "p " : "n ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->firstSlot)));
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->secondSlot)));
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,"(pslot-cmp1 ");
+   WriteString(theEnv,logicalName,hack->pass ? "p " : "n ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->firstSlot)->contents);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->secondSlot)->contents);
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -671,47 +671,46 @@ static void PrintPNSimpleCompareFunction1(
 #endif
   }
 
-static intBool PNSimpleCompareFunction1(
-  void *theEnv,
+static bool PNSimpleCompareFunction1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectCmpPNSingleSlotVars1 *hack;
-   INSTANCE_SLOT *is1,*is2;
-   int rv;
+   InstanceSlot *is1,*is2;
+   bool rv;
 
-   hack = (struct ObjectCmpPNSingleSlotVars1 *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpPNSingleSlotVars1 *) ((CLIPSBitMap *) theValue)->contents;
    is1 = GetInsSlot(ObjectReteData(theEnv)->CurrentPatternObject,hack->firstSlot);
    is2 = GetInsSlot(ObjectReteData(theEnv)->CurrentPatternObject,hack->secondSlot);
    if (is1->type != is2->type)
      rv = hack->fail;
    else if (is1->value != is2->value)
-     rv = hack->fail;
+     rv = hack->fail ? true : false;
    else
-     rv = hack->pass;
-   theResult->type = SYMBOL;
-   theResult->value = rv ? EnvTrueSymbol(theEnv) : EnvFalseSymbol(theEnv);
-   return(rv);
+     rv = hack->pass ? true : false;
+   theResult->value = rv ? TrueSymbol(theEnv) : FalseSymbol(theEnv);
+   return rv;
   }
 
 static void PrintPNSimpleCompareFunction2(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectCmpPNSingleSlotVars2 *hack;
 
-   hack = (struct ObjectCmpPNSingleSlotVars2 *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpPNSingleSlotVars2 *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(pslot-cmp2 ");
-   EnvPrintRouter(theEnv,logicalName,hack->pass ? "p " : "n ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->firstSlot)));
-   EnvPrintRouter(theEnv,logicalName,hack->fromBeginning ? " B" : " E");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->offset);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->secondSlot)));
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,"(pslot-cmp2 ");
+   WriteString(theEnv,logicalName,hack->pass ? "p " : "n ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->firstSlot)->contents);
+   WriteString(theEnv,logicalName,hack->fromBeginning ? " B" : " E");
+   PrintUnsignedInteger(theEnv,logicalName,hack->offset);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->secondSlot)->contents);
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -721,51 +720,48 @@ static void PrintPNSimpleCompareFunction2(
 #endif
   }
 
-static intBool PNSimpleCompareFunction2(
-  void *theEnv,
+static bool PNSimpleCompareFunction2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectCmpPNSingleSlotVars2 *hack;
-   int rv;
-   FIELD f1;
-   INSTANCE_SLOT *is2;
+   bool rv;
+   CLIPSValue f1;
+   InstanceSlot *is2;
 
-   hack = (struct ObjectCmpPNSingleSlotVars2 *) ValueToBitMap(theValue);
-   GetInsMultiSlotField(&f1,ObjectReteData(theEnv)->CurrentPatternObject,(unsigned) hack->firstSlot,
-                             (unsigned) hack->fromBeginning,(unsigned) hack->offset);
+   hack = (struct ObjectCmpPNSingleSlotVars2 *) ((CLIPSBitMap *) theValue)->contents;
+   GetInsMultiSlotField(&f1,ObjectReteData(theEnv)->CurrentPatternObject,hack->firstSlot,
+                        hack->fromBeginning,hack->offset);
    is2 = GetInsSlot(ObjectReteData(theEnv)->CurrentPatternObject,hack->secondSlot);
-   if (f1.type != is2->type)
-     rv = hack->fail;
-   else if (f1.value != is2->value)
-     rv = hack->fail;
+   if (f1.value != is2->value)
+     rv = hack->fail ? true : false;
    else
-     rv = hack->pass;
-   theResult->type = SYMBOL;
-   theResult->value = rv ? EnvTrueSymbol(theEnv) : EnvFalseSymbol(theEnv);
-   return(rv);
+     rv = hack->pass ? true : false;
+   theResult->value = rv ? TrueSymbol(theEnv) : FalseSymbol(theEnv);
+   return rv;
   }
 
 static void PrintPNSimpleCompareFunction3(
-  void *theEnv,
+  Environment*theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectCmpPNSingleSlotVars3 *hack;
 
-   hack = (struct ObjectCmpPNSingleSlotVars3 *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpPNSingleSlotVars3 *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(pslot-cmp3 ");
-   EnvPrintRouter(theEnv,logicalName,hack->pass ? "p " : "n ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->firstSlot)));
-   EnvPrintRouter(theEnv,logicalName,hack->firstFromBeginning ? " B" : " E");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->firstOffset);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->secondSlot)));
-   EnvPrintRouter(theEnv,logicalName,hack->secondFromBeginning ? " B" : " E");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->secondOffset);
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,"(pslot-cmp3 ");
+   WriteString(theEnv,logicalName,hack->pass ? "p " : "n ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->firstSlot)->contents);
+   WriteString(theEnv,logicalName,hack->firstFromBeginning ? " B" : " E");
+   PrintUnsignedInteger(theEnv,logicalName,hack->firstOffset);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->secondSlot)->contents);
+   WriteString(theEnv,logicalName,hack->secondFromBeginning ? " B" : " E");
+   PrintUnsignedInteger(theEnv,logicalName,hack->secondOffset);
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -775,51 +771,48 @@ static void PrintPNSimpleCompareFunction3(
 #endif
   }
 
-static intBool PNSimpleCompareFunction3(
-  void *theEnv,
+static bool PNSimpleCompareFunction3(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
    struct ObjectCmpPNSingleSlotVars3 *hack;
-   int rv;
-   FIELD f1,f2;
+   bool rv;
+   CLIPSValue f1, f2;
 
-   hack = (struct ObjectCmpPNSingleSlotVars3 *) ValueToBitMap(theValue);
-   GetInsMultiSlotField(&f1,ObjectReteData(theEnv)->CurrentPatternObject,(unsigned) hack->firstSlot,
-                        (unsigned) hack->firstFromBeginning,(unsigned) hack->firstOffset);
-   GetInsMultiSlotField(&f2,ObjectReteData(theEnv)->CurrentPatternObject,(unsigned) hack->secondSlot,
-                        (unsigned) hack->secondFromBeginning,(unsigned) hack->secondOffset);
-   if (f1.type != f2.type)
-     rv = hack->fail;
-   else if (f1.value != f2.value)
-     rv = hack->fail;
+   hack = (struct ObjectCmpPNSingleSlotVars3 *) ((CLIPSBitMap *) theValue)->contents;
+   GetInsMultiSlotField(&f1,ObjectReteData(theEnv)->CurrentPatternObject,hack->firstSlot,
+                        hack->firstFromBeginning,hack->firstOffset);
+   GetInsMultiSlotField(&f2,ObjectReteData(theEnv)->CurrentPatternObject,hack->secondSlot,
+                        hack->secondFromBeginning,hack->secondOffset);
+   if (f1.value != f2.value)
+     rv = hack->fail ? true : false;
    else
-     rv = hack->pass;
-   theResult->type = SYMBOL;
-   theResult->value = rv ? EnvTrueSymbol(theEnv) : EnvFalseSymbol(theEnv);
-   return(rv);
+     rv = hack->pass ? true : false;
+   theResult->value = rv ? TrueSymbol(theEnv) : FalseSymbol(theEnv);
+   return rv;
   }
 
 static void PrintJNSimpleCompareFunction1(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectCmpJoinSingleSlotVars1 *hack;
 
-   hack = (struct ObjectCmpJoinSingleSlotVars1 *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpJoinSingleSlotVars1 *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(jslot-cmp1 ");
-   EnvPrintRouter(theEnv,logicalName,hack->pass ? "p " : "n ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->firstPattern);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->firstSlot)));
-   EnvPrintRouter(theEnv,logicalName," ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->secondPattern);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->secondSlot)));
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,"(jslot-cmp1 ");
+   WriteString(theEnv,logicalName,hack->pass ? "p " : "n ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->firstPattern);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->firstSlot)->contents);
+   WriteString(theEnv,logicalName," ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->secondPattern);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->secondSlot)->contents);
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -829,55 +822,54 @@ static void PrintJNSimpleCompareFunction1(
 #endif
   }
 
-static intBool JNSimpleCompareFunction1(
-  void *theEnv,
+static bool JNSimpleCompareFunction1(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
-   INSTANCE_TYPE *ins1,*ins2;
+   Instance *ins1,*ins2;
    struct multifieldMarker *theMarks;
    struct ObjectCmpJoinSingleSlotVars1 *hack;
-   int rv;
-   INSTANCE_SLOT *is1,*is2;
+   bool rv;
+   InstanceSlot *is1,*is2;
 
-   hack = (struct ObjectCmpJoinSingleSlotVars1 *) ValueToBitMap(theValue);
-   GetPatternObjectAndMarks(theEnv,((int) hack->firstPattern),hack->firstPatternLHS,hack->firstPatternRHS,&ins1,&theMarks);
+   hack = (struct ObjectCmpJoinSingleSlotVars1 *) ((CLIPSBitMap *) theValue)->contents;
+   GetPatternObjectAndMarks(theEnv,hack->firstPattern,hack->firstPatternLHS,hack->firstPatternRHS,&ins1,&theMarks);
    is1 = GetInsSlot(ins1,hack->firstSlot);
-   GetPatternObjectAndMarks(theEnv,((int) hack->secondPattern),hack->secondPatternLHS,hack->secondPatternRHS,&ins2,&theMarks);
+   GetPatternObjectAndMarks(theEnv,hack->secondPattern,hack->secondPatternLHS,hack->secondPatternRHS,&ins2,&theMarks);
    is2 = GetInsSlot(ins2,hack->secondSlot);
    if (is1->type != is2->type)
      rv = hack->fail;
    else if (is1->value != is2->value)
-     rv = hack->fail;
+     rv = hack->fail ? true : false;
    else
-     rv = hack->pass;
-   theResult->type = SYMBOL;
-   theResult->value = rv ? EnvTrueSymbol(theEnv) : EnvFalseSymbol(theEnv);
-   return(rv);
+     rv = hack->pass ? true : false;
+   theResult->value = rv ? TrueSymbol(theEnv) : FalseSymbol(theEnv);
+   return rv;
   }
 
 static void PrintJNSimpleCompareFunction2(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectCmpJoinSingleSlotVars2 *hack;
 
-   hack = (struct ObjectCmpJoinSingleSlotVars2 *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpJoinSingleSlotVars2 *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(jslot-cmp2 ");
-   EnvPrintRouter(theEnv,logicalName,hack->pass ? "p " : "n ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->firstPattern);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->firstSlot)));
-   EnvPrintRouter(theEnv,logicalName,hack->fromBeginning ? " B" : " E");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->offset);
-   EnvPrintRouter(theEnv,logicalName," ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->secondPattern);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->secondSlot)));
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,"(jslot-cmp2 ");
+   WriteString(theEnv,logicalName,hack->pass ? "p " : "n ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->firstPattern);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->firstSlot)->contents);
+   WriteString(theEnv,logicalName,hack->fromBeginning ? " B" : " E");
+   PrintUnsignedInteger(theEnv,logicalName,hack->offset);
+   WriteString(theEnv,logicalName," ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->secondPattern);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->secondSlot)->contents);
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -887,59 +879,56 @@ static void PrintJNSimpleCompareFunction2(
 #endif
   }
 
-static intBool JNSimpleCompareFunction2(
-  void *theEnv,
+static bool JNSimpleCompareFunction2(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
-   INSTANCE_TYPE *ins1,*ins2;
+   Instance *ins1,*ins2;
    struct multifieldMarker *theMarks;
    struct ObjectCmpJoinSingleSlotVars2 *hack;
-   int rv;
-   FIELD f1;
-   INSTANCE_SLOT *is2;
+   bool rv;
+   CLIPSValue f1;
+   InstanceSlot *is2;
 
-   hack = (struct ObjectCmpJoinSingleSlotVars2 *) ValueToBitMap(theValue);
-   GetPatternObjectAndMarks(theEnv,((int) hack->firstPattern),hack->firstPatternLHS,hack->firstPatternRHS,&ins1,&theMarks);
-   GetInsMultiSlotField(&f1,ins1,(unsigned) hack->firstSlot,
-                        (unsigned) hack->fromBeginning,(unsigned) hack->offset);
-   GetPatternObjectAndMarks(theEnv,((int) hack->secondPattern),hack->secondPatternLHS,hack->secondPatternRHS,&ins2,&theMarks);
+   hack = (struct ObjectCmpJoinSingleSlotVars2 *) ((CLIPSBitMap *) theValue)->contents;
+   GetPatternObjectAndMarks(theEnv,hack->firstPattern,hack->firstPatternLHS,hack->firstPatternRHS,&ins1,&theMarks);
+   GetInsMultiSlotField(&f1,ins1,hack->firstSlot,
+                        hack->fromBeginning,hack->offset);
+   GetPatternObjectAndMarks(theEnv,hack->secondPattern,hack->secondPatternLHS,hack->secondPatternRHS,&ins2,&theMarks);
    is2 = GetInsSlot(ins2,hack->secondSlot);
-   if (f1.type != is2->type)
-     rv = hack->fail;
-   else if (f1.value != is2->value)
-     rv = hack->fail;
+   if (f1.value != is2->value)
+     rv = hack->fail ? true : false;
    else
-     rv = hack->pass;
-   theResult->type = SYMBOL;
-   theResult->value = rv ? EnvTrueSymbol(theEnv) : EnvFalseSymbol(theEnv);
-   return(rv);
+     rv = hack->pass ? true : false;
+   theResult->value = rv ? TrueSymbol(theEnv) : FalseSymbol(theEnv);
+   return rv;
   }
 
 static void PrintJNSimpleCompareFunction3(
-  void *theEnv,
+  Environment *theEnv,
   const char *logicalName,
   void *theValue)
   {
 #if DEVELOPER
    struct ObjectCmpJoinSingleSlotVars3 *hack;
 
-   hack = (struct ObjectCmpJoinSingleSlotVars3 *) ValueToBitMap(theValue);
+   hack = (struct ObjectCmpJoinSingleSlotVars3 *) ((CLIPSBitMap *) theValue)->contents;
 
-   EnvPrintRouter(theEnv,logicalName,"(jslot-cmp3 ");
-   EnvPrintRouter(theEnv,logicalName,hack->pass ? "p " : "n ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->firstPattern);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->firstSlot)));
-   EnvPrintRouter(theEnv,logicalName,hack->firstFromBeginning ? " B" : " E");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->firstOffset);
-   EnvPrintRouter(theEnv,logicalName," ");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->secondPattern);
-   EnvPrintRouter(theEnv,logicalName," ");
-   EnvPrintRouter(theEnv,logicalName,ValueToString(FindIDSlotName(theEnv,(unsigned) hack->secondSlot)));
-   EnvPrintRouter(theEnv,logicalName,hack->secondFromBeginning ? " B" : " E");
-   PrintLongInteger(theEnv,logicalName,(long long) hack->secondOffset);
-   EnvPrintRouter(theEnv,logicalName,")");
+   WriteString(theEnv,logicalName,"(jslot-cmp3 ");
+   WriteString(theEnv,logicalName,hack->pass ? "p " : "n ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->firstPattern);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->firstSlot)->contents);
+   WriteString(theEnv,logicalName,hack->firstFromBeginning ? " B" : " E");
+   PrintUnsignedInteger(theEnv,logicalName,hack->firstOffset);
+   WriteString(theEnv,logicalName," ");
+   PrintUnsignedInteger(theEnv,logicalName,hack->secondPattern);
+   WriteString(theEnv,logicalName," ");
+   WriteString(theEnv,logicalName,FindIDSlotName(theEnv,hack->secondSlot)->contents);
+   WriteString(theEnv,logicalName,hack->secondFromBeginning ? " B" : " E");
+   PrintUnsignedInteger(theEnv,logicalName,hack->secondOffset);
+   WriteString(theEnv,logicalName,")");
 #else
 #if MAC_XCD
 #pragma unused(theEnv)
@@ -949,35 +938,32 @@ static void PrintJNSimpleCompareFunction3(
 #endif
   }
 
-static intBool JNSimpleCompareFunction3(
-  void *theEnv,
+static bool JNSimpleCompareFunction3(
+  Environment *theEnv,
   void *theValue,
-  DATA_OBJECT *theResult)
+  UDFValue *theResult)
   {
-   INSTANCE_TYPE *ins1,*ins2;
+   Instance *ins1,*ins2;
    struct multifieldMarker *theMarks;
    struct ObjectCmpJoinSingleSlotVars3 *hack;
-   int rv;
-   FIELD f1,f2;
+   bool rv;
+   CLIPSValue f1,f2;
 
-   hack = (struct ObjectCmpJoinSingleSlotVars3 *) ValueToBitMap(theValue);
-   GetPatternObjectAndMarks(theEnv,((int) hack->firstPattern),hack->firstPatternLHS,hack->firstPatternRHS,&ins1,&theMarks);
-   GetInsMultiSlotField(&f1,ins1,(unsigned) hack->firstSlot,
-                        (unsigned) hack->firstFromBeginning,
-                        (unsigned) hack->firstOffset);
-   GetPatternObjectAndMarks(theEnv,((int) hack->secondPattern),hack->secondPatternLHS,hack->secondPatternRHS,&ins2,&theMarks);
-   GetInsMultiSlotField(&f2,ins2,(unsigned) hack->secondSlot,
-                        (unsigned) hack->secondFromBeginning,
-                        (unsigned) hack->secondOffset);
-   if (f1.type != f2.type)
-     rv = hack->fail;
-   else if (f1.value != f2.value)
-     rv = hack->fail;
+   hack = (struct ObjectCmpJoinSingleSlotVars3 *) ((CLIPSBitMap *) theValue)->contents;
+   GetPatternObjectAndMarks(theEnv,hack->firstPattern,hack->firstPatternLHS,hack->firstPatternRHS,&ins1,&theMarks);
+   GetInsMultiSlotField(&f1,ins1,hack->firstSlot,
+                        hack->firstFromBeginning,
+                        hack->firstOffset);
+   GetPatternObjectAndMarks(theEnv,hack->secondPattern,hack->secondPatternLHS,hack->secondPatternRHS,&ins2,&theMarks);
+   GetInsMultiSlotField(&f2,ins2,hack->secondSlot,
+                        hack->secondFromBeginning,
+                        hack->secondOffset);
+   if (f1.value != f2.value)
+     rv = hack->fail ? true : false;
    else
-     rv = hack->pass;
-   theResult->type = SYMBOL;
-   theResult->value = rv ? EnvTrueSymbol(theEnv) : EnvFalseSymbol(theEnv);
-   return(rv);
+     rv = hack->pass ? true : false;
+   theResult->value = rv ? TrueSymbol(theEnv) : FalseSymbol(theEnv);
+   return rv;
   }
 
 /****************************************************
@@ -995,43 +981,43 @@ static intBool JNSimpleCompareFunction3(
   NOTES        : None
  ****************************************************/
 static void GetPatternObjectAndMarks(
-  void *theEnv,
-  int pattern,
-  int lhs,
-  int rhs,
-  INSTANCE_TYPE **theInstance,
+  Environment *theEnv,
+  unsigned short pattern,
+  bool lhs,
+  bool rhs,
+  Instance **theInstance,
   struct multifieldMarker **theMarkers)
   {
    if (lhs)
      {
-      *theInstance = (INSTANCE_TYPE *)
+      *theInstance = (Instance *)
         get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,pattern)->matchingItem;
       *theMarkers =
         get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,pattern)->markers;
      }
    else if (rhs)
      {
-      *theInstance = (INSTANCE_TYPE *)
+      *theInstance = (Instance *)
         get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,pattern)->matchingItem;
       *theMarkers =
         get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,pattern)->markers;
      }
    else if (EngineData(theEnv)->GlobalRHSBinds == NULL)
      {
-      *theInstance = (INSTANCE_TYPE *)
+      *theInstance = (Instance *)
         get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,pattern)->matchingItem;
       *theMarkers =
         get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,pattern)->markers;
      }
-   else if ((((int) EngineData(theEnv)->GlobalJoin->depth) - 1) == pattern)
+   else if ((EngineData(theEnv)->GlobalJoin->depth - 1) == pattern)
      {
-      *theInstance = (INSTANCE_TYPE *) 
+      *theInstance = (Instance *)
         get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->matchingItem;
       *theMarkers = get_nth_pm_match(EngineData(theEnv)->GlobalRHSBinds,0)->markers;
      }
    else
      {
-      *theInstance = (INSTANCE_TYPE *)
+      *theInstance = (Instance *)
         get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,pattern)->matchingItem;
       *theMarkers =
         get_nth_pm_match(EngineData(theEnv)->GlobalLHSBinds,pattern)->markers;
@@ -1054,31 +1040,29 @@ static void GetPatternObjectAndMarks(
   NOTES        : None
  ***************************************************/
 static void GetObjectValueGeneral(
-  void *theEnv,
-  DATA_OBJECT *result,
-  INSTANCE_TYPE *theInstance,
+  Environment *theEnv,
+  UDFValue *returnValue,
+  Instance *theInstance,
   struct multifieldMarker *theMarks,
   struct ObjectMatchVar1 *matchVar)
   {
-   long field, extent; /* 6.04 Bug Fix */
-   INSTANCE_SLOT **insSlot,*basisSlot;
-   
+   size_t field;
+   size_t extent;
+   InstanceSlot **insSlot,*basisSlot;
+
    if (matchVar->objectAddress)
      {
-      result->type = INSTANCE_ADDRESS;
-      result->value = (void *) theInstance;
+      returnValue->value = theInstance;
       return;
      }
    if (matchVar->whichSlot == ISA_ID)
      {
-      result->type = SYMBOL;
-      result->value = (void *) GetDefclassNamePointer((void *) theInstance->cls);
+      returnValue->value = GetDefclassNamePointer(theInstance->cls);
       return;
      }
    if (matchVar->whichSlot == NAME_ID)
      {
-      result->type = INSTANCE_NAME;
-      result->value = (void *) theInstance->name;
+      returnValue->value = theInstance->name;
       return;
      }
    insSlot =
@@ -1110,12 +1094,11 @@ static void GetObjectValueGeneral(
       ================================================== */
    if (matchVar->allFields)
      {
-      result->type = (unsigned short) (*insSlot)->type;
-      result->value = (*insSlot)->value;
-      if (result->type == MULTIFIELD)
+      returnValue->value = (*insSlot)->value;
+      if (returnValue->header->type == MULTIFIELD_TYPE)
         {
-         result->begin = 0;
-         SetpDOEnd(result,GetMFLength((*insSlot)->value));
+         returnValue->begin = 0;
+         returnValue->range = (*insSlot)->multifieldValue->length;
         }
       return;
      }
@@ -1124,26 +1107,21 @@ static void GetObjectValueGeneral(
       Access a general field in a slot pattern with
       two or more multifield variables
       ============================================= */
+      
+   extent = SIZE_MAX;
    field = CalculateSlotField(theMarks,*insSlot,matchVar->whichField,&extent);
-   if (extent == -1)
+   if (extent == SIZE_MAX)
      {
       if ((*insSlot)->desc->multiple)
-        {
-         result->type = GetMFType((*insSlot)->value,field);
-         result->value = GetMFValue((*insSlot)->value,field);
-        }
+        { returnValue->value = (*insSlot)->multifieldValue->contents[field-1].value; }
       else
-        {
-         result->type = (unsigned short) (*insSlot)->type;
-         result->value = (*insSlot)->value;
-        }
+        { returnValue->value = (*insSlot)->value; }
      }
    else
      {
-      result->type = MULTIFIELD;
-      result->value = (*insSlot)->value;
-      result->begin = field - 1;
-      result->end = field + extent - 2;
+      returnValue->value = (*insSlot)->value;
+      returnValue->begin = field - 1;
+      returnValue->range = extent;
      }
   }
 
@@ -1161,15 +1139,15 @@ static void GetObjectValueGeneral(
   NOTES        : None
  ***************************************************/
 static void GetObjectValueSimple(
-  void *theEnv,
-  DATA_OBJECT *result,
-  INSTANCE_TYPE *theInstance,
+  Environment *theEnv,
+  UDFValue *returnValue,
+  Instance *theInstance,
   struct ObjectMatchVar2 *matchVar)
   {
-   INSTANCE_SLOT **insSlot,*basisSlot;
-   SEGMENT *segmentPtr;
-   FIELD *fieldPtr;
-   
+   InstanceSlot **insSlot,*basisSlot;
+   Multifield *segmentPtr;
+   CLIPSValue *fieldPtr;
+
    insSlot =
      &theInstance->slotAddresses
      [theInstance->cls->slotNameMap[matchVar->whichSlot] - 1];
@@ -1194,35 +1172,31 @@ static void GetObjectValueSimple(
 
    if ((*insSlot)->desc->multiple)
      {
-      segmentPtr = (SEGMENT *) (*insSlot)->value;
+      segmentPtr = (*insSlot)->multifieldValue;
       if (matchVar->fromBeginning)
         {
          if (matchVar->fromEnd)
            {
-            result->type = MULTIFIELD;
-            result->value = (void *) segmentPtr;
-            result->begin = matchVar->beginningOffset;
-            SetpDOEnd(result,GetMFLength(segmentPtr) - matchVar->endOffset);
+            returnValue->value = segmentPtr;
+            returnValue->begin = matchVar->beginningOffset;
+            returnValue->range = segmentPtr->length - (matchVar->endOffset + matchVar->beginningOffset);
            }
          else
            {
-            fieldPtr = &segmentPtr->theFields[matchVar->beginningOffset];
-            result->type = fieldPtr->type;
-            result->value = fieldPtr->value;
+            fieldPtr = &segmentPtr->contents[matchVar->beginningOffset];
+            returnValue->value = fieldPtr->value;
            }
         }
       else
         {
-         fieldPtr = &segmentPtr->theFields[segmentPtr->multifieldLength -
+         fieldPtr = &segmentPtr->contents[segmentPtr->length -
                                            (matchVar->endOffset + 1)];
-         result->type = fieldPtr->type;
-         result->value = fieldPtr->value;
+         returnValue->value = fieldPtr->value;
         }
      }
    else
      {
-      result->type = (unsigned short) (*insSlot)->type;
-      result->value = (*insSlot)->value;
+      returnValue->value = (*insSlot)->value;
      }
   }
 
@@ -1241,39 +1215,46 @@ static void GetObjectValueSimple(
   SIDE EFFECTS : None
   NOTES        : None
  ****************************************************/
-static long CalculateSlotField(
+static size_t CalculateSlotField(
   struct multifieldMarker *theMarkers,
-  INSTANCE_SLOT *theSlot,
-  long theIndex,
-  long *extent)
+  InstanceSlot *theSlot,
+  size_t theIndex,
+  size_t *extent)
   {
-   register long actualIndex;
+   size_t actualIndex;
    void *theSlotName;
 
    actualIndex = theIndex;
-   *extent = -1;
+   *extent = SIZE_MAX;
+      
    if (theSlot == NULL)
-     return(actualIndex);
-   theSlotName = (void *) theSlot->desc->slotName->name;
+     { return actualIndex; }
+     
+   theSlotName = theSlot->desc->slotName->name;
    while (theMarkers != NULL)
      {
       if (theMarkers->where.whichSlot == theSlotName)
         break;
       theMarkers = theMarkers->next;
      }
-   while ((theMarkers != NULL) ? (theMarkers->where.whichSlot == theSlotName) : FALSE)
+   
+   while ((theMarkers != NULL) ? (theMarkers->where.whichSlot == theSlotName) : false)
      {
       if (theMarkers->whichField == theIndex)
         {
-         *extent = theMarkers->endPosition - theMarkers->startPosition + 1;
-         return(actualIndex);
+         *extent = theMarkers->range;
+
+         return actualIndex;
         }
+
       if (theMarkers->whichField > theIndex)
-        return(actualIndex);
-      actualIndex += theMarkers->endPosition - theMarkers->startPosition;
+        { return actualIndex; }
+        
+      actualIndex = actualIndex + theMarkers->range - 1;
       theMarkers = theMarkers->next;
      }
-   return(actualIndex);
+      
+   return actualIndex;
   }
 
 /****************************************************
@@ -1297,15 +1278,15 @@ static long CalculateSlotField(
                  comparisons
  ****************************************************/
 static void GetInsMultiSlotField(
-  FIELD *theField,
-  INSTANCE_TYPE *theInstance,
+  CLIPSValue *theField,
+  Instance *theInstance,
   unsigned theSlotID,
   unsigned fromBeginning,
   unsigned offset)
   {
-   register INSTANCE_SLOT * insSlot;
-   register SEGMENT *theSegment;
-   register FIELD *tmpField;
+   InstanceSlot * insSlot;
+   Multifield *theSegment;
+   CLIPSValue *tmpField;
 
    insSlot = theInstance->slotAddresses
                [theInstance->cls->slotNameMap[theSlotID] - 1];
@@ -1314,17 +1295,15 @@ static void GetInsMultiSlotField(
 
    if (insSlot->desc->multiple)
      {
-      theSegment = (SEGMENT *) insSlot->value;
+      theSegment = insSlot->multifieldValue;
       if (fromBeginning)
-        tmpField = &theSegment->theFields[offset];
+        tmpField = &theSegment->contents[offset];
       else
-        tmpField = &theSegment->theFields[theSegment->multifieldLength - offset - 1];
-      theField->type = tmpField->type;
+        tmpField = &theSegment->contents[theSegment->length - offset - 1];
       theField->value = tmpField->value;
      }
    else
      {
-      theField->type = (unsigned short) insSlot->type;
       theField->value = insSlot->value;
      }
   }

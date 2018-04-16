@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  01/25/15            */
+   /*             CLIPS Version 6.40  11/01/16            */
    /*                                                     */
    /*               DEFTEMPLATE HEADER FILE               */
    /*******************************************************/
@@ -14,6 +14,10 @@
 /*                                                           */
 /* Contributing Programmer(s):                               */
 /*      Brian L. Dantes                                      */
+/*      Bob Orchard (NRCC - Nat'l Research Council of Canada)*/
+/*                  (Fuzzy reasoning extensions)             */
+/*                  (certainty factors for facts and rules)  */
+/*                  (extensions to run command)              */
 /*                                                           */
 /* Revision History:                                         */
 /*                                                           */
@@ -44,43 +48,44 @@
 /*            imported modules are search when locating a    */
 /*            named construct.                               */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            ALLOW_ENVIRONMENT_GLOBALS no longer supported. */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_tmpltdef
+
+#pragma once
+
 #define _H_tmpltdef
 
-struct deftemplate;
+typedef struct deftemplate Deftemplate;
+
 struct templateSlot;
 struct deftemplateModule;
 
-#ifndef _H_conscomp
-#include "conscomp.h"
-#endif
-#ifndef _H_symbol
-#include "symbol.h"
-#endif
-#ifndef _H_expressn
-#include "expressn.h"
-#endif
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_constrct
+#include "entities.h"
+
 #include "constrct.h"
-#endif
-#ifndef _H_moduldef
+#include "conscomp.h"
+#include "evaluatn.h"
 #include "moduldef.h"
-#endif
-#ifndef _H_constrnt
+
+struct deftemplateModule
+  {
+   struct defmoduleItemHeader header;
+  };
+
 #include "constrnt.h"
-#endif
 #include "factbld.h"
-#ifndef _H_factmngr
-#include "factmngr.h"
-#endif
-#ifndef _H_cstrccom
-#include "cstrccom.h"
-#endif
 
 #if FUZZY_DEFTEMPLATES 
 #ifndef _H_fuzzylv
@@ -90,7 +95,7 @@ struct deftemplateModule;
 
 struct deftemplate
   {
-   struct constructHeader header;
+   ConstructHeader header;
    struct templateSlot *slotList;
    unsigned int implied       : 1;
    unsigned int watch         : 1;
@@ -104,34 +109,30 @@ struct deftemplate
    /* will be a NULL ptr if not a fuzzy template */
    struct fuzzyLv *fuzzyTemplate;
 #endif
-   struct fact *factList;
-   struct fact *lastFact;
+   Fact *factList;
+   Fact *lastFact;
   };
 
 struct templateSlot
   {
-   struct symbolHashNode *slotName;
+   CLIPSLexeme *slotName;
    unsigned int multislot : 1;
    unsigned int noDefault : 1;
    unsigned int defaultPresent : 1;
    unsigned int defaultDynamic : 1;
    CONSTRAINT_RECORD *constraints;
-   struct expr *defaultList;
-   struct expr *facetList;
+   Expression *defaultList;
+   Expression *facetList;
    struct templateSlot *next;
   };
 
-struct deftemplateModule
-  {
-   struct defmoduleItemHeader header;
-  };
 
 #define DEFTEMPLATE_DATA 5
 
 struct deftemplateData
-  { 
-   struct construct *DeftemplateConstruct;
-   int DeftemplateModuleIndex;
+  {
+   Construct *DeftemplateConstruct;
+   unsigned int DeftemplateModuleIndex;
    struct entityRecord DeftemplatePtrRecord;
 #if DEBUGGING_FUNCTIONS
    int DeletedTemplateDebugFlags;
@@ -140,7 +141,7 @@ struct deftemplateData
    struct CodeGeneratorItem *DeftemplateCodeItem;
 #endif
 #if (! RUN_TIME) && (! BLOAD_ONLY)
-   int DeftemplateError;
+   bool DeftemplateError;
 #endif
 #if FUZZY_DEFTEMPLATES       /* added 03-11-96 */
 /* this is only used in this file and pattern.c (routine
@@ -152,45 +153,23 @@ struct deftemplateData
 
 #define DeftemplateData(theEnv) ((struct deftemplateData *) GetEnvironmentData(theEnv,DEFTEMPLATE_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _TMPLTDEF_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeDeftemplates(void *);
-   LOCALE void                          *EnvFindDeftemplate(void *,const char *);
-   LOCALE void                          *EnvFindDeftemplateInModule(void *,const char *);
-   LOCALE void                          *EnvGetNextDeftemplate(void *,void *);
-   LOCALE intBool                        EnvIsDeftemplateDeletable(void *,void *);
-   LOCALE void                          *EnvGetNextFactInTemplate(void *,void *,void *);
-   LOCALE struct deftemplateModule      *GetDeftemplateModuleItem(void *,struct defmodule *);
-   LOCALE void                           ReturnSlots(void *,struct templateSlot *);
-   LOCALE void                           IncrementDeftemplateBusyCount(void *,void *);
-   LOCALE void                           DecrementDeftemplateBusyCount(void *,void *);
-   LOCALE void                          *CreateDeftemplateScopeMap(void *,struct deftemplate *);
+   void                           InitializeDeftemplates(Environment *);
+   Deftemplate                   *FindDeftemplate(Environment *,const char *);
+   Deftemplate                   *FindDeftemplateInModule(Environment *,const char *);
+   Deftemplate                   *GetNextDeftemplate(Environment *,Deftemplate *);
+   bool                           DeftemplateIsDeletable(Deftemplate *);
+   Fact                          *GetNextFactInTemplate(Deftemplate *,Fact *);
+   struct deftemplateModule      *GetDeftemplateModuleItem(Environment *,Defmodule *);
+   void                           ReturnSlots(Environment *,struct templateSlot *);
+   void                           IncrementDeftemplateBusyCount(Environment *,Deftemplate *);
+   void                           DecrementDeftemplateBusyCount(Environment *,Deftemplate *);
+   void                          *CreateDeftemplateScopeMap(Environment *,Deftemplate *);
 #if RUN_TIME
-   LOCALE void                           DeftemplateRunTimeInitialize(void *);
+   void                           DeftemplateRunTimeInitialize(Environment *);
 #endif
-   LOCALE const char                    *EnvDeftemplateModule(void *,void *);
-   LOCALE const char                    *EnvGetDeftemplateName(void *,void *);
-   LOCALE const char                    *EnvGetDeftemplatePPForm(void *,void *);
-
-#if ALLOW_ENVIRONMENT_GLOBALS
-
-   LOCALE const char                    *DeftemplateModule(void *);
-   LOCALE void                          *FindDeftemplate(const char *);
-   LOCALE const char                    *GetDeftemplateName(void *);
-   LOCALE const char                    *GetDeftemplatePPForm(void *);
-   LOCALE void                          *GetNextDeftemplate(void *);
-   LOCALE intBool                        IsDeftemplateDeletable(void *);
-   LOCALE void                          *GetNextFactInTemplate(void *,void *);
-
-#endif /* ALLOW_ENVIRONMENT_GLOBALS */
+   const char                    *DeftemplateModule(Deftemplate *);
+   const char                    *DeftemplateName(Deftemplate *);
+   const char                    *DeftemplatePPForm(Deftemplate *);
 
 #endif /* _H_tmpltdef */
 

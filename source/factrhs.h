@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/20/14            */
+   /*             CLIPS Version 6.40  07/30/16            */
    /*                                                     */
    /*        FACT RHS PATTERN PARSER HEADER MODULE        */
    /*******************************************************/
@@ -23,39 +23,33 @@
 /*            being executed during fact assertions via      */
 /*            Increment/DecrementClearReadyLocks API.        */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_factrhs
+
+#pragma once
+
 #define _H_factrhs
 
-#ifndef _H_expressn
 #include "expressn.h"
-#endif
-#ifndef _H_scanner
-#include "scanner.h"
-#endif
-#ifndef _H_factmngr
 #include "factmngr.h"
-#endif
-#ifndef _H_symbol
+#include "scanner.h"
 #include "symbol.h"
-#endif
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FACTRHS_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE struct expr                   *BuildRHSAssert(void *,const char *,struct token *,int *,int,int,const char *);
-   LOCALE struct expr                   *GetAssertArgument(void *,const char *,struct token *,int *,int,int,int *);
-   LOCALE struct expr                   *GetRHSPattern(void *,const char *,struct token *,int *,int,
-                                                       int,int,int);
-   LOCALE struct fact                   *StringToFact(void *,const char *);
+   struct expr                   *BuildRHSAssert(Environment *,const char *,struct token *,bool *,bool,bool,const char *);
+   struct expr                   *GetAssertArgument(Environment *,const char *,struct token *,bool *,TokenType,bool,bool *);
+   struct expr                   *GetRHSPattern(Environment*,const char *,struct token *,bool *,bool,
+                                                       bool,bool,TokenType);
+   Fact                          *StringToFact(Environment *,const char *);
 
 #endif /* _H_factrhs */
 

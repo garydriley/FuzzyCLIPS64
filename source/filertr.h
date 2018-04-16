@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.30  08/16/14            */
+   /*             CLIPS Version 6.40  10/19/17            */
    /*                                                     */
    /*             FILE I/O ROUTER HEADER FILE             */
    /*******************************************************/
@@ -36,18 +36,29 @@
 /*            Added const qualifiers to remove C++           */
 /*            deprecation warnings.                          */
 /*                                                           */
+/*      6.40: Removed LOCALE definition.                     */
+/*                                                           */
+/*            Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            Added flush, rewind, tell, and seek functions. */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_filertr
+
+#pragma once
+
 #define _H_filertr
 
-#ifndef _STDIO_INCLUDED_
-#define _STDIO_INCLUDED_
 #include <stdio.h>
-#endif
 
 #define FILE_ROUTER_DATA 47
-   
+
 struct fileRouter
   {
    const char *logicalName;
@@ -56,28 +67,23 @@ struct fileRouter
   };
 
 struct fileRouterData
-  { 
+  {
    struct fileRouter *ListOfFileRouters;
   };
 
 #define FileRouterData(theEnv) ((struct fileRouterData *) GetEnvironmentData(theEnv,FILE_ROUTER_DATA))
 
-#ifdef LOCALE
-#undef LOCALE
-#endif
-
-#ifdef _FILERTR_SOURCE_
-#define LOCALE
-#else
-#define LOCALE extern
-#endif
-
-   LOCALE void                           InitializeFileRouter(void *);
-   LOCALE FILE                          *FindFptr(void *,const char *);
-   LOCALE int                            OpenAFile(void *,const char *,const char *,const char *);
-   LOCALE int                            CloseAllFiles(void *);
-   LOCALE int                            CloseFile(void *,const char *);
-   LOCALE int                            FindFile(void *,const char *);
+   void                           InitializeFileRouter(Environment *);
+   FILE                          *FindFptr(Environment *,const char *);
+   bool                           OpenAFile(Environment *,const char *,const char *,const char *);
+   bool                           CloseAllFiles(Environment *);
+   bool                           CloseFile(Environment *,const char *);
+   bool                           FindFile(Environment *,const char *,void *);
+   bool                           FlushAllFiles(Environment *);
+   bool                           FlushFile(Environment *,const char *);
+   bool                           RewindFile(Environment *,const char *);
+   long long                      TellFile(Environment *,const char *);
+   bool                           SeekFile(Environment *,const char *,long,int);
 
 #endif /* _H_filertr */
 

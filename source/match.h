@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  08/28/17            */
+   /*            CLIPS Version 6.40  08/28/17             */
    /*                                                     */
    /*                  MATCH HEADER FILE                  */
    /*******************************************************/
@@ -24,107 +24,107 @@
 /*      6.31: Bug fix to prevent rule activations for        */
 /*            partial matches being deleted.                 */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_match
 
+#pragma once
+
 #define _H_match
 
-struct genericMatch;
-struct patternMatch;
-struct partialMatch;
-struct alphaMatch;
-struct multifieldMarker;
+typedef struct genericMatch GenericMatch;
+typedef struct patternMatch PatternMatch;
+typedef struct partialMatch PartialMatch;
+typedef struct alphaMatch AlphaMatch;
+typedef struct multifieldMarker MultifieldMarker;
 
-#ifndef _H_evaluatn
-#include "evaluatn.h"
-#endif
-#ifndef _H_network
+#include "entities.h"
 #include "network.h"
-#endif
-#ifndef _H_pattern
-#include "pattern.h"
-#endif
 
-/***************************/
-/* PATTERNMATCH STRUCTURE: */
-/***************************/
+/****************/
+/* patternMatch */
+/****************/
 struct patternMatch
   {
-   struct patternMatch *next;
-   struct partialMatch *theMatch;
-   struct patternNodeHeader *matchingPattern;
+   PatternMatch *next;
+   PartialMatch *theMatch;
+   PatternNodeHeader *matchingPattern;
   };
 
-/**************************/
-/* genericMatch structure */
-/**************************/
+/****************/
+/* genericMatch */
+/****************/
 struct genericMatch
   {
    union
      {
       void *theValue;
-      struct alphaMatch *theMatch;
+      AlphaMatch *theMatch;
      } gm;
   };
 
-/***************************/
-/* PARTIALMATCH STRUCTURE: */
-/***************************/
+/****************/
+/* partialMatch */
+/****************/
 struct partialMatch
   {
    unsigned int betaMemory  :  1;
    unsigned int busy        :  1;
    unsigned int rhsMemory   :  1;
    unsigned int deleting    :  1;
-   unsigned short bcount; 
+   unsigned short bcount;
    unsigned long hashValue;
    void *owner;
    void *marker;
    void *dependents;
-   struct partialMatch *nextInMemory;
-   struct partialMatch *prevInMemory;
-   struct partialMatch *children;
-   struct partialMatch *rightParent;
-   struct partialMatch *nextRightChild;
-   struct partialMatch *prevRightChild;
-   struct partialMatch *leftParent;
-   struct partialMatch *nextLeftChild;
-   struct partialMatch *prevLeftChild;
-   struct partialMatch *blockList;
-   struct partialMatch *nextBlocked;
-   struct partialMatch *prevBlocked;
-   struct genericMatch binds[1];
+   PartialMatch *nextInMemory;
+   PartialMatch *prevInMemory;
+   PartialMatch *children;
+   PartialMatch *rightParent;
+   PartialMatch *nextRightChild;
+   PartialMatch *prevRightChild;
+   PartialMatch *leftParent;
+   PartialMatch *nextLeftChild;
+   PartialMatch *prevLeftChild;
+   PartialMatch *blockList;
+   PartialMatch *nextBlocked;
+   PartialMatch *prevBlocked;
+   GenericMatch binds[1];
   };
 
-/*************************/
-/* ALPHAMATCH STRUCTURE: */
-/*************************/
+/**************/
+/* alphaMatch */
+/**************/
 struct alphaMatch
   {
-   struct patternEntity *matchingItem;
-   struct multifieldMarker *markers;
-   struct alphaMatch *next;
+   PatternEntity *matchingItem;
+   MultifieldMarker *markers;
+   AlphaMatch *next;
    unsigned long bucket;
   };
 
-/************************************************************/
-/* MULTIFIELDMARKER STRUCTURE: Used in the pattern matching */
-/* process to mark the range of fields that the $? and      */
-/* $?variables match because a single pattern restriction   */
-/* may span zero or more fields..                           */
-/************************************************************/
+/******************************************************/
+/* multifieldMarker: Used in the pattern matching     */
+/*    process to mark the range of fields that the $? */
+/*    and $?variables match because a single pattern  */
+/*    restriction may span zero or more fields.       */
+/******************************************************/
 struct multifieldMarker
   {
-   int whichField;
+   unsigned short whichField;
    union
      {
       void *whichSlot;
-      short int whichSlotNumber;
+      unsigned short whichSlotNumber;
      } where;
-    long startPosition;
-    long endPosition;
-    struct multifieldMarker *next;
+    size_t startPosition;
+    size_t range;
+    MultifieldMarker *next;
    };
 
 #define get_nth_pm_value(thePM,thePos) (thePM->binds[thePos].gm.theValue)

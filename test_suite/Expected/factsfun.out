@@ -27,25 +27,23 @@ FALSE
 FuzzyCLIPS> (fact-existp 5)
 FALSE
 FuzzyCLIPS> (fact-existp -1)
-[ARGACCES5] Function fact-existp expected argument #1 to be of type fact-address or fact-index
+[ARGACCES2] Function 'fact-existp' expected argument #1 to be of type fact-address or fact-index.
 FALSE
 FuzzyCLIPS> (fact-existp a)
-[ARGACCES5] Function fact-existp expected argument #1 to be of type fact-address or fact-index
-FALSE
+[ARGACCES2] Function 'fact-existp' expected argument #1 to be of type integer or fact address.
 FuzzyCLIPS> (fact-existp 1 2)
-[ARGACCES4] Function fact-existp expected exactly 1 argument(s)
+[ARGACCES1] Function 'fact-existp' expected exactly 1 argument.
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (deftemplate foo (slot x) (slot y))
 FuzzyCLIPS> (defglobal ?*w* = (assert (foo (x 1) (y 2))))
 FuzzyCLIPS> (defglobal ?*x* = (assert (a)))
 FuzzyCLIPS> (fact-relation)
-[ARGACCES4] Function fact-relation expected exactly 1 argument(s)
+[ARGACCES1] Function 'fact-relation' expected exactly 1 argument.
 FuzzyCLIPS> (fact-relation a)
-[ARGACCES5] Function fact-relation expected argument #1 to be of type fact-address or fact-index
-FALSE
+[ARGACCES2] Function 'fact-relation' expected argument #1 to be of type integer or fact address.
 FuzzyCLIPS> (fact-relation 2 3)
-[ARGACCES4] Function fact-relation expected exactly 1 argument(s)
+[ARGACCES1] Function 'fact-relation' expected exactly 1 argument.
 FuzzyCLIPS> (fact-relation ?*w*)
 foo
 FuzzyCLIPS> (fact-relation ?*x*)
@@ -74,22 +72,22 @@ FuzzyCLIPS> (defglobal ?*x1* = (assert (a)))
 FuzzyCLIPS> (defglobal ?*x2* = (assert (a b)))
 FuzzyCLIPS> (defglobal ?*x3* = (assert (a b c)))
 FuzzyCLIPS> (fact-slot-value)
-[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'fact-slot-value' expected exactly 2 arguments.
 FuzzyCLIPS> (fact-slot-value 1)
-[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'fact-slot-value' expected exactly 2 arguments.
 FuzzyCLIPS> (fact-slot-value ?*w1*)
-[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'fact-slot-value' expected exactly 2 arguments.
 FuzzyCLIPS> (fact-slot-value a)
-[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'fact-slot-value' expected exactly 2 arguments.
 FuzzyCLIPS> (fact-slot-value 1 2)
-[ARGACCES5] Function fact-slot-value expected argument #2 to be of type symbol
+[ARGACCES2] Function 'fact-slot-value' expected argument #2 to be of type symbol.
 FuzzyCLIPS> (fact-slot-value 1 x 3)
-[ARGACCES4] Function fact-slot-value expected exactly 2 argument(s)
+[ARGACCES1] Function 'fact-slot-value' expected exactly 2 arguments.
 FuzzyCLIPS> (fact-slot-value 1 z)
-[TMPLTDEF1] Invalid slot z not defined in corresponding deftemplate foo.
+[TMPLTDEF1] Invalid slot 'z' not defined in corresponding deftemplate 'foo'.
 FALSE
 FuzzyCLIPS> (fact-slot-value 4 z)
-[TMPLTDEF1] Invalid slot z not defined in corresponding deftemplate a.
+[TMPLTDEF1] Invalid slot 'z' not defined in corresponding deftemplate 'a'.
 FALSE
 FuzzyCLIPS> (fact-slot-value 1 x)
 1
@@ -135,12 +133,11 @@ FuzzyCLIPS> (defglobal ?*w4* = (assert (foo4)))
 FuzzyCLIPS> (defglobal ?*x1* = (assert (a)))
 FuzzyCLIPS> (defglobal ?*x2* = (assert (b c)))
 FuzzyCLIPS> (fact-slot-names) 
-[ARGACCES4] Function fact-slot-names expected exactly 1 argument(s)
+[ARGACCES1] Function 'fact-slot-names' expected exactly 1 argument.
 FuzzyCLIPS> (fact-slot-names a)
-[ARGACCES5] Function fact-slot-names expected argument #1 to be of type fact-address or fact-index
-FALSE
+[ARGACCES2] Function 'fact-slot-names' expected argument #1 to be of type integer or fact address.
 FuzzyCLIPS> (fact-slot-names 1 a)
-[ARGACCES4] Function fact-slot-names expected exactly 1 argument(s)
+[ARGACCES1] Function 'fact-slot-names' expected exactly 1 argument.
 FuzzyCLIPS> (fact-slot-names ?*w1*)
 ()
 FuzzyCLIPS> (fact-slot-names 2)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.31  02/09/18            */
+   /*            CLIPS Version 6.40  02/09/18             */
    /*                                                     */
    /*                CONSTANTS HEADER FILE                */
    /*******************************************************/
@@ -28,26 +28,36 @@
 /*                                                           */
 /*            Added NESTED_RHS constant.                     */
 /*                                                           */
+/*      6.40: Pragma once and other inclusion changes.       */
+/*                                                           */
+/*            Added support for booleans with <stdbool.h>.   */
+/*                                                           */
+/*            Removed use of void pointers for specific      */
+/*            data structures.                               */
+/*                                                           */
+/*            UDF redesign.                                  */
+/*                                                           */
+/*            Removed DATA_OBJECT_ARRAY primitive type.      */
+/*                                                           */
 /*************************************************************/
 
 #ifndef _H_constant
 
+#pragma once
+
 #define _H_constant
 
-#ifndef FALSE
-#define FALSE 0
-#endif
-#ifndef TRUE
-#define TRUE 1
-#endif
+#include <stdbool.h>
+#include <stdint.h>
+#include <limits.h>
 
 #define EXACTLY       0
 #define AT_LEAST      1
 #define NO_MORE_THAN  2
 #define RANGE         3
 
-#define OFF           0
-#define ON            1
+#define UNBOUNDED    USHRT_MAX
+
 #define LHS           0
 #define RHS           1
 #define NESTED_RHS    2
@@ -62,17 +72,41 @@
 #define GREATER_THAN  1
 #define EQUAL         2
 
-#define GLOBAL_SAVE   0
-#define LOCAL_SAVE    1
-#define VISIBLE_SAVE  2
+typedef enum
+  {
+   LOCAL_SAVE,
+   VISIBLE_SAVE
+  } SaveScope;
 
-#define NO_DEFAULT      0
-#define STATIC_DEFAULT  1
-#define DYNAMIC_DEFAULT 2
+typedef enum
+  {
+   NO_DEFAULT,
+   STATIC_DEFAULT,
+   DYNAMIC_DEFAULT
+  } DefaultType;
+  
+typedef enum
+  {
+   PSE_NO_ERROR = 0,
+   PSE_NULL_POINTER_ERROR,
+   PSE_INVALID_TARGET_ERROR,
+   PSE_SLOT_NOT_FOUND_ERROR,
+   PSE_TYPE_ERROR,
+   PSE_RANGE_ERROR,
+   PSE_ALLOWED_VALUES_ERROR,
+   PSE_CARDINALITY_ERROR,
+   PSE_ALLOWED_CLASSES_ERROR,
+   PSE_EVALUATION_ERROR,
+   PSE_RULE_NETWORK_ERROR
+  } PutSlotError;
 
-#ifndef WPROMPT_STRING
-#define WPROMPT_STRING "wclips"
-#endif
+typedef enum
+  {
+   GSE_NO_ERROR = 0,
+   GSE_NULL_POINTER_ERROR,
+   GSE_INVALID_TARGET_ERROR,
+   GSE_SLOT_NOT_FOUND_ERROR
+  } GetSlotError;
 
 #ifndef APPLICATION_NAME
 #define APPLICATION_NAME "FuzzyCLIPS"
@@ -83,15 +117,15 @@
 #endif
 
 #ifndef VERSION_STRING
-#define VERSION_STRING "6.31"
+#define VERSION_STRING "6.40"
 #endif
 
 #ifndef CREATION_DATE_STRING
-#define CREATION_DATE_STRING "2/26/18"
+#define CREATION_DATE_STRING "2/9/18"
 #endif
 
 #ifndef BANNER_STRING
-#define BANNER_STRING "         FuzzyCLIPS (6.31 2/26/18)\n"
+#define BANNER_STRING "         FuzzyCLIPS (Cypher Beta 3/1/18)\n"
 #endif
 
 /*************************/
@@ -115,7 +149,7 @@
 #define INSTANCE_NAME_TYPE_NAME        "INSTANCE-NAME"
 #define INSTANCE_ADDRESS_TYPE_NAME     "INSTANCE-ADDRESS"
 /* FUZZY extensions */
-#define FUZZY_VALUE_NAME               "FUZZY-VALUE"
+#define FUZZY_VALUE_TYPE_NAME          "FUZZY-VALUE"
 
 /*************************************************************************/
 /* The values of these constants should not be changed.  They are set to */
@@ -131,25 +165,56 @@
 #define ADDRESS_TYPE_CODE              13
 #define INSTANCE_TYPE_CODE             14
 
+typedef enum
+  {
+   FLOAT_BIT = (1 << 0),
+   INTEGER_BIT = (1 << 1),
+   SYMBOL_BIT = (1 << 2),
+   STRING_BIT = (1 << 3),
+   MULTIFIELD_BIT = (1 << 4),
+   EXTERNAL_ADDRESS_BIT = (1 << 5),
+   FACT_ADDRESS_BIT = (1 << 6),
+   INSTANCE_ADDRESS_BIT = (1 << 7),
+   INSTANCE_NAME_BIT = (1 << 8),
+   FUZZY_BIT = (1 << 9),
+   VOID_BIT = (1 << 10),
+   BOOLEAN_BIT = (1 << 11),
+   // TBD FUZZY_BIT?
+  } CLIPSType;
+
+#define NUMBER_BITS (INTEGER_BIT | FLOAT_BIT)
+#define LEXEME_BITS (SYMBOL_BIT | STRING_BIT)
+#define ADDRESS_BITS (EXTERNAL_ADDRESS_BIT | FACT_ADDRESS_BIT | INSTANCE_ADDRESS_BIT)
+#define INSTANCE_BITS (INSTANCE_ADDRESS_BIT | INSTANCE_NAME_BIT)
+#define SINGLEFIELD_BITS (NUMBER_BITS | LEXEME_BITS | ADDRESS_BITS | INSTANCE_NAME_BIT | FUZZY_BIT)
+#define ANY_TYPE_BITS (VOID_BIT | SINGLEFIELD_BITS | MULTIFIELD_BIT)
+
 /****************************************************/
 /* The first 9 primitive types need to retain their */
 /* values!! Sorted arrays depend on their values!!  */
 /****************************************************/
 
-#define FLOAT                           0
-#define INTEGER                         1
-#define SYMBOL                          2
-#define STRING                          3
-#define MULTIFIELD                      4
-#define EXTERNAL_ADDRESS                5
-#define FACT_ADDRESS                    6
-#define INSTANCE_ADDRESS                7
-#define INSTANCE_NAME                   8
+#define FLOAT_TYPE                      0
+#define INTEGER_TYPE                    1
+#define SYMBOL_TYPE                     2
+#define STRING_TYPE                     3
+#define MULTIFIELD_TYPE                 4
+#define EXTERNAL_ADDRESS_TYPE           5
+#define FACT_ADDRESS_TYPE               6
+#define INSTANCE_ADDRESS_TYPE           7
+#define INSTANCE_NAME_TYPE              8
+
+
 /******************************************************/
 /* NOTE: Below FUZZY_VALUE is set to 9 -- a           */
 /*       primitive as well                            */
 /******************************************************/
-#define FUZZY_VALUE                     9   /* 1st number after original primitives */
+#define FUZZY_VALUE_TYPE                9   /* 1st number after original primitives */
+
+
+#define VOID_TYPE                      10
+
+#define BITMAP_TYPE                    11
 
 #define FCALL                          30
 #define GCALL                          31
@@ -159,10 +224,7 @@
 
 #define SF_VARIABLE                    35
 #define MF_VARIABLE                    36
-#define SF_WILDCARD                    37
-#define MF_WILDCARD                    38
 #define BITMAPARRAY                    39
-#define DATA_OBJECT_ARRAY              40
 
 #define FACT_PN_CMP1                   50
 #define FACT_JN_CMP1                   51
@@ -223,27 +285,7 @@
 #define Z_FUNCTION                    103
 #define PI_FUNCTION                   104
 
-#define PATTERN_CE                    150
-#define AND_CE                        151
-#define OR_CE                         152
-#define NOT_CE                        153
-#define TEST_CE                       154
-#define NAND_CE                       155
-#define EXISTS_CE                     156
-#define FORALL_CE                     157
-
-#define NOT_CONSTRAINT                160
-#define AND_CONSTRAINT                161
-#define OR_CONSTRAINT                 162
-#define PREDICATE_CONSTRAINT          163
-#define RETURN_VALUE_CONSTRAINT       164
-
-#define LPAREN                        170
-#define RPAREN                        171
-#define STOP                          172
 #define UNKNOWN_VALUE                 173
-
-#define RVOID                         175
 
 #define INTEGER_OR_FLOAT              180
 #define SYMBOL_OR_STRING              181
@@ -266,8 +308,6 @@
 #define MAXPROD 2
 
 #define FUZZY_TOLERANCE     0.00000001
-
-typedef long int FACT_ID;
 
 /*************************/
 /* Macintosh Definitions */
