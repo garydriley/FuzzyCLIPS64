@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  01/25/18             */
+   /*            CLIPS Version 6.40  07/05/18             */
    /*                                                     */
    /*                I/O FUNCTIONS MODULE                 */
    /*******************************************************/
@@ -99,7 +99,12 @@
 /*            Added r+, w+, a+, rb+, wb+, and ab+ file       */
 /*            access modes for the open function.            */
 /*                                                           */
-/*            Added flush, rewind, tell, and seek functions. */
+/*            Added flush, rewind, tell, seek, and chdir     */
+/*            functions.                                     */
+/*                                                           */
+/*            Changed error return value of read, readline,  */
+/*            and read-number functions to FALSE and added   */
+/*            an error code for read.                        */
 /*                                                           */
 /*************************************************************/
 
@@ -121,6 +126,7 @@
 #include "extnfunc.h"
 #include "filertr.h"
 #include "memalloc.h"
+#include "miscfun.h"
 #include "prntutil.h"
 #include "router.h"
 #include "scanner.h"
@@ -201,6 +207,7 @@ void IOFunctionDefinitions(
    AddUDF(theEnv,"readline","sy",0,1,";ldsyn",ReadlineFunction,"ReadlineFunction",NULL);
    AddUDF(theEnv,"set-locale","sy",0,1,";s",SetLocaleFunction,"SetLocaleFunction",NULL);
    AddUDF(theEnv,"read-number","syld",0,1,";ldsyn",ReadNumberFunction,"ReadNumberFunction",NULL);
+   AddUDF(theEnv,"chdir","b",0,1,"sy",ChdirFunction,"ChdirFunction",NULL);
 #endif
 #else
 #if MAC_XCD
@@ -366,6 +373,8 @@ void ReadFunction(
    struct token theToken;
    const char *logicalName = NULL;
 
+   ClearErrorValue(theEnv);
+
    /*======================================================*/
    /* Determine the logical name from which input is read. */
    /*======================================================*/
@@ -380,7 +389,8 @@ void ReadFunction(
          IllegalLogicalNameMessage(theEnv,"read");
          SetHaltExecution(theEnv,true);
          SetEvaluationError(theEnv,true);
-         returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***");
+         SetErrorValue(theEnv,&CreateSymbol(theEnv,"LOGICAL_NAME_ERROR")->header);
+         returnValue->lexemeValue = FalseSymbol(theEnv);
          return;
         }
      }
@@ -394,7 +404,8 @@ void ReadFunction(
       UnrecognizedRouterMessage(theEnv,logicalName);
       SetHaltExecution(theEnv,true);
       SetEvaluationError(theEnv,true);
-      returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***");
+      SetErrorValue(theEnv,&CreateSymbol(theEnv,"LOGICAL_NAME_ERROR")->header);
+      returnValue->lexemeValue = FalseSymbol(theEnv);
       return;
      }
 
@@ -419,9 +430,15 @@ void ReadFunction(
        (theToken.tknType == SYMBOL_TOKEN) || (theToken.tknType == INTEGER_TOKEN))
      { returnValue->value = theToken.value; }
    else if (theToken.tknType == STOP_TOKEN)
-     { returnValue->value = CreateSymbol(theEnv,"EOF"); }
+     {
+      SetErrorValue(theEnv,&CreateSymbol(theEnv,"EOF")->header);
+      returnValue->value = CreateSymbol(theEnv,"EOF");
+     }
    else if (theToken.tknType == UNKNOWN_VALUE_TOKEN)
-     { returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***"); }
+     {
+      SetErrorValue(theEnv,&CreateSymbol(theEnv,"READ_ERROR")->header);
+      returnValue->lexemeValue = FalseSymbol(theEnv);
+     }
    else
      { returnValue->value = CreateSymbol(theEnv,theToken.printForm); }
   }
@@ -501,8 +518,9 @@ static void ReadTokenFromStdin(
 
       if (GetHaltExecution(theEnv))
         {
-         theToken->tknType = STRING_TOKEN;
-         theToken->value = CreateString(theEnv,"*** READ ERROR ***");
+         SetErrorValue(theEnv,&CreateSymbol(theEnv,"READ_ERROR")->header);
+         theToken->tknType = SYMBOL_TOKEN;
+         theToken->value = FalseSymbol(theEnv);
         }
 
       /*====================================================*/
@@ -1164,6 +1182,70 @@ void RenameFunction(
    returnValue->lexemeValue = CreateBoolean(theEnv,genrename(theEnv,oldFileName,newFileName));
   }
 
+/*************************************/
+/* ChdirFunction: H/L access routine */
+/*   for the chdir function.         */
+/*************************************/
+void ChdirFunction(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
+  {
+   const char *theFileName;
+   int success;
+
+   /*===============================================*/
+   /* If called with no arguments, the return value */
+   /* indicates whether chdir is supported.         */
+   /*===============================================*/
+   
+   if (! UDFHasNextArgument(context))
+     {
+      if (genchdir(theEnv,NULL))
+        { returnValue->lexemeValue = TrueSymbol(theEnv); }
+      else
+        { returnValue->lexemeValue = FalseSymbol(theEnv); }
+        
+      return;
+     }
+
+   /*====================*/
+   /* Get the file name. */
+   /*====================*/
+
+   if ((theFileName = GetFileName(context)) == NULL)
+     {
+      returnValue->lexemeValue = FalseSymbol(theEnv);
+      return;
+     }
+
+   /*==================================================*/
+   /* Change the directory. Return TRUE if successful, */
+   /* FALSE if unsuccessful, and UNSUPPORTED if the    */
+   /* chdir functionality is not implemented.          */
+   /*==================================================*/
+
+   success = genchdir(theEnv,theFileName);
+   
+   switch (success)
+     {
+      case 1:
+        returnValue->lexemeValue = TrueSymbol(theEnv);
+        break;
+        
+      case 0:
+        returnValue->lexemeValue = FalseSymbol(theEnv);
+        break;
+
+      default:
+        WriteString(theEnv,STDERR,"The chdir function is not supported on this system.\n");
+        SetHaltExecution(theEnv,true);
+        SetEvaluationError(theEnv,true);
+        returnValue->lexemeValue = FalseSymbol(theEnv);
+        break;
+     }
+  }
+
 /****************************************/
 /* FormatFunction: H/L access routine   */
 /*   for the format function.           */
@@ -1615,7 +1697,7 @@ void ReadlineFunction(
          IllegalLogicalNameMessage(theEnv,"readline");
          SetHaltExecution(theEnv,true);
          SetEvaluationError(theEnv,true);
-         returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***");
+         returnValue->lexemeValue = FalseSymbol(theEnv);
          return;
         }
      }
@@ -1625,7 +1707,7 @@ void ReadlineFunction(
       UnrecognizedRouterMessage(theEnv,logicalName);
       SetHaltExecution(theEnv,true);
       SetEvaluationError(theEnv,true);
-      returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***");
+      returnValue->lexemeValue = FalseSymbol(theEnv);
       return;
      }
 
@@ -1650,7 +1732,7 @@ void ReadlineFunction(
 
    if (GetHaltExecution(theEnv))
      {
-      returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***");
+      returnValue->lexemeValue = FalseSymbol(theEnv);
       if (buffer != NULL) rm(theEnv,buffer,sizeof (char) * line_max);
       return;
      }
@@ -1778,7 +1860,7 @@ void ReadNumberFunction(
          IllegalLogicalNameMessage(theEnv,"read");
          SetHaltExecution(theEnv,true);
          SetEvaluationError(theEnv,true);
-         returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***");
+         returnValue->lexemeValue = FalseSymbol(theEnv);
          return;
         }
      }
@@ -1792,7 +1874,7 @@ void ReadNumberFunction(
       UnrecognizedRouterMessage(theEnv,logicalName);
       SetHaltExecution(theEnv,true);
       SetEvaluationError(theEnv,true);
-      returnValue->lexemeValue = CreateString(theEnv,"*** READ ERROR ***");
+      returnValue->lexemeValue = FalseSymbol(theEnv);
       return;
      }
 
@@ -1829,7 +1911,7 @@ void ReadNumberFunction(
    else if (theToken.tknType == STOP_TOKEN)
      { returnValue->value = CreateSymbol(theEnv,"EOF"); }
    else if (theToken.tknType == UNKNOWN_VALUE_TOKEN)
-     { returnValue->value = CreateString(theEnv,"*** READ ERROR ***"); }
+     { returnValue->lexemeValue = FalseSymbol(theEnv); }
    else
      { returnValue->value = CreateString(theEnv,theToken.printForm); }
 
@@ -1895,8 +1977,9 @@ static void ReadNumber(
 
    if (GetHaltExecution(theEnv))
      {
-      theToken->tknType = STRING_TOKEN;
-      theToken->value = CreateString(theEnv,"*** READ ERROR ***");
+      theToken->tknType = SYMBOL_TOKEN;
+      theToken->value = FalseSymbol(theEnv);
+      SetErrorValue(theEnv,&CreateSymbol(theEnv,"READ_ERROR")->header);
       if (inputStringSize > 0) rm(theEnv,inputString,inputStringSize);
       return;
      }
@@ -1981,8 +2064,9 @@ static void ReadNumber(
    /* a number was not successfully parsed.   */
    /*=========================================*/
 
-   theToken->tknType = STRING_TOKEN;
-   theToken->value = CreateString(theEnv,"*** READ ERROR ***");
+   theToken->tknType = SYMBOL_TOKEN;
+   theToken->value = FalseSymbol(theEnv);
+   SetErrorValue(theEnv,&CreateSymbol(theEnv,"READ_ERROR")->header);
   }
 
 #endif

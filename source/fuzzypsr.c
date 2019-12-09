@@ -1154,7 +1154,7 @@ void InstallFuzzyTemplate(
          /* set each whichDeftemplate field for each fuzzy value */
          pt->fuzzy_value_description->contents->whichDeftemplate = theDeftemplate;
          /* and install the fuzzy value */
-         InstallFuzzyValue((void *)pt->fuzzy_value_description);
+         InstallFuzzyValue(pt->fuzzy_value_description);
          /* NOTE: must decrease the busyCount of the deftemplate
                      that was just incremented by InstallFuzzyValue
                      because these are already associated with the

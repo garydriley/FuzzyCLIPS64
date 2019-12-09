@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  07/30/16             */
+   /*            CLIPS Version 6.40  12/02/19             */
    /*                                                     */
    /*            CONSTRAINT BLOAD/BSAVE MODULE            */
    /*******************************************************/
@@ -131,7 +131,7 @@ void WriteNeededConstraints(
            tmpPtr != NULL;
            tmpPtr = tmpPtr->next)
         {
-         tmpPtr->bsaveIndex = theIndex++;
+         tmpPtr->bsaveID = theIndex++;
          numberOfUsedConstraints++;
 #if FUZZY_DEFTEMPLATES
          if (tmpPtr->fuzzyValuesAllowed)
@@ -159,9 +159,9 @@ void WriteNeededConstraints(
               tmpPtr = tmpPtr->next)
           {
               if (tmpPtr->fuzzyValuesAllowed)
-                 tmpPtr->bsaveIndex = theIndex++;
+                 tmpPtr->bsaveID = theIndex++;
               else
-                 tmpPtr->bsaveIndex = ULONG_MAX;
+                 tmpPtr->bsaveID = ULONG_MAX;
           }
         }
 #else

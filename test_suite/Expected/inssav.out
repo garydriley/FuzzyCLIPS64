@@ -972,13 +972,13 @@ FuzzyCLIPS> (file-message "Actual//inssav3.out" "INITIAL-OBJECT B D E")
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav4.out" local inherit)
 [ARGACCES2] Function 'save-instances' expected argument #3 to be of type 'valid concrete class name'.
-0
+-1
 FuzzyCLIPS> (save-instances "Actual//inssav4.out" local inherit A)
 [ARGACCES2] Function 'save-instances' expected argument #4 to be of type 'valid class name'.
-0
+-1
 FuzzyCLIPS> (save-instances "Actual//inssav4.out" local A)
 [ARGACCES2] Function 'save-instances' expected argument #3 to be of type 'valid concrete class name'.
-0
+-1
 FuzzyCLIPS> (bsave-instances "Temp//inssav4.bin" visible inherit A)
 200
 FuzzyCLIPS> (bload-instances "Temp//inssav4.bin")
@@ -989,10 +989,10 @@ FuzzyCLIPS> (file-message "Actual//inssav4.out" "B E")
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav5.out" local C)
 [ARGACCES2] Function 'save-instances' expected argument #3 to be of type 'valid concrete class name'.
-0
+-1
 FuzzyCLIPS> (save-instances "Actual//inssav5.out" local inherit inherit)
 [ARGACCES2] Function 'save-instances' expected argument #4 to be of type 'valid class name'.
-0
+-1
 FuzzyCLIPS> (save-instances "Actual//inssav5.out" local inherit C)
 200
 FuzzyCLIPS> (file-message "Actual//inssav5.out" "D E")
@@ -1307,7 +1307,7 @@ FuzzyCLIPS> (close inssav6)
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav6.out" local inherit B)
 [ARGACCES2] Function 'save-instances' expected argument #4 to be of type 'valid class name'.
-0
+-1
 FuzzyCLIPS> (file-message "Actual//inssav6.out" "no classes")
 TRUE
 FuzzyCLIPS> (save-instances "Actual//inssav7.out" visible inherit B)

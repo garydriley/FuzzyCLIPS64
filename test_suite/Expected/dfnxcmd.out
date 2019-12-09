@@ -8,12 +8,23 @@ FuzzyCLIPS> (ppdeffunction bogus)
 (deffunction MAIN::bogus
    (?a ?b $?c)
    (printout t "Random action" crlf))
+FuzzyCLIPS> (ppdeffunction bogus stdout)
+(deffunction MAIN::bogus
+   (?a ?b $?c)
+   (printout t "Random action" crlf))
+FuzzyCLIPS> (ppdeffunction bogus bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FuzzyCLIPS> (ppdeffunction bogus nil)
+"(deffunction MAIN::bogus
+   (?a ?b $?c)
+   (printout t "Random action" crlf))
+"
 FuzzyCLIPS> (ppdeffunction bad)
 [PRNTUTIL1] Unable to find deffunction 'bad'.
 FuzzyCLIPS> (ppdeffunction 1)
 [ARGACCES2] Function 'ppdeffunction' expected argument #1 to be of type symbol.
 FuzzyCLIPS> (ppdeffunction)
-[ARGACCES1] Function 'ppdeffunction' expected exactly 1 argument.
+[ARGACCES1] Function 'ppdeffunction' expected at least 1 argument.
 FuzzyCLIPS> (list-deffunctions)
 bogus
 bogus2

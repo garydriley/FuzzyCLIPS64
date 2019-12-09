@@ -358,6 +358,7 @@ put-x primary in class A
 FuzzyCLIPS> (constructs-to-c bug 1 Temp/)      ; DR0647
 [CSTRNCMP1] WARNING: Constraints are not saved with a constructs-to-c image
   when dynamic constraint checking is disabled.
+  (except Fuzzy Value constraints are always saved)
 FuzzyCLIPS> (describe-class B)                 ; DR0647
 ================================================================================
 ********************************************************************************

@@ -663,7 +663,7 @@ static void Yexpand_set(
    double lastx, lasty, nextx, nexty, newx, newy;
    double *newxArray, *newyArray;
 
-   newmaxn = num + ( floor(1.0/YSPACING) - 1 ) * ( num - 1 );
+   newmaxn = (int) (num + ( floor(1.0/YSPACING) - 1 ) * ( num - 1 ));
    newxArray = FgetArray ( theEnv,newmaxn );
    newyArray = FgetArray ( theEnv,newmaxn );
     
@@ -691,7 +691,7 @@ static void Yexpand_set(
                   small value to prevent very close values from
                   going up
          */
-         subdiv = ceil ( rise / YSPACING - FUZZY_TOLERANCE);
+         subdiv = (int) ceil ( rise / YSPACING - FUZZY_TOLERANCE);
       
          if (subdiv > 1)
            {

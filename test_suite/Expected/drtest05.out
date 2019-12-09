@@ -39,10 +39,10 @@ f-1     (fact "a b c") CF 1.00
 f-2     (fact a b c) CF 1.00 
 For a total of 2 facts.
 FuzzyCLIPS> (save-facts "Temp//foo.tmp")       ; DR0411
-TRUE
+2
 FuzzyCLIPS> (reset)                            ; DR0411
 FuzzyCLIPS> (load-facts "Temp//foo.tmp")       ; DR0411
-TRUE
+2
 FuzzyCLIPS> (facts)                            ; DR0411
 f-1     (fact "a b c") CF 1.00 
 f-2     (fact a b c) CF 1.00 

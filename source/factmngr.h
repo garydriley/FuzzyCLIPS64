@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.40  11/15/17            */
+   /*             CLIPS Version 6.40  07/02/18            */
    /*                                                     */
    /*              FACTS MANAGER HEADER FILE              */
    /*******************************************************/
@@ -74,6 +74,9 @@
 /*            changed slots.                                 */
 /*                                                           */
 /*            Modify command preserves fact id and address.  */
+/*                                                           */
+/*            Pretty print functions accept optional logical */
+/*            name argument.                                 */
 /*                                                           */
 /*************************************************************/
 
@@ -249,7 +252,7 @@ struct factsData
    void                           FactDeinstall(Environment *,Fact *);
    Fact                          *GetNextFact(Environment *,Fact *);
    Fact                          *GetNextFactInScope(Environment *,Fact *);
-   void                           FactPPForm(Fact *,StringBuilder *);
+   void                           FactPPForm(Fact *,StringBuilder *,bool);
    bool                           GetFactListChanged(Environment *);
    void                           SetFactListChanged(Environment *,bool);
    unsigned long                  GetNumberOfFacts(Environment *);

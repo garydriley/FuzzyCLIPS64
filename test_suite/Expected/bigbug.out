@@ -5,7 +5,7 @@ TRUE
 FuzzyCLIPS> (mem-used)
 52109 ;; Reference mem-used number
 FuzzyCLIPS> (load-facts bigbug.fct)
-TRUE
+1
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (progn (release-mem) TRUE)
 TRUE

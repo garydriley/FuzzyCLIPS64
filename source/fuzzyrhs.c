@@ -129,7 +129,7 @@
                                            struct token *tempToken,
                                            struct fuzzyLv *lvp,
                                            bool *error);
-  static char                 *modifyName(Environment *theEnv,char *str1, char *str2);
+  static char                 *modifyName(Environment *theEnv,const char *str1, const char *str2);
   static struct primary_term  *FindPrimaryTerm(struct fuzzyLv *lvp, CLIPSLexeme *pt_name);
   static struct expr          *assertParseFuzzySet(Environment *theEnv,
                                                    const char *readSource,
@@ -709,8 +709,8 @@ void ModifyFuzzyValue(
 /*************************************************************/
 static char *modifyName(
   Environment *theEnv,
-  char *str1, 
-  char *str2)
+  const char *str1, 
+  const char *str2)
 {
    char *temp;
    size_t str1len = strlen(str1);

@@ -976,6 +976,71 @@ FuzzyCLIPS> (defrule foo
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then (if (eq 3 3) then
       (if (eq 3 3) then 3)))))))))))))))))))))))))))))))))))))))))))
+FuzzyCLIPS> (clear) ; Crash bug
+FuzzyCLIPS> 
+(deftemplate foobar
+  (slot foo)
+  (multislot bar))
+FuzzyCLIPS> (assert (foobar)))
+<Fact-1>
+FuzzyCLIPS> (modify 1 (dummy TRUE))
+
+[TMPLTDEF1] Invalid slot 'dummy' not defined in corresponding deftemplate 'foobar'.
+FALSE
+FuzzyCLIPS> (clear) ; Logical CE Issue
+FuzzyCLIPS> (deftemplate A (slot val))
+FuzzyCLIPS> (deftemplate B)
+FuzzyCLIPS> (deftemplate C)
+FuzzyCLIPS> (deftemplate D)
+FuzzyCLIPS> 
+(deffacts infinite_setup
+  (A (val 1)))
+FuzzyCLIPS> 
+(defrule infinite_rule
+  (logical
+    (A (val ?val))
+    (not (and (B) (C)))
+    (test (eq ?val 1)))
+  (not (D))
+  =>
+  (assert (D)))
+FuzzyCLIPS> 
+(reset)
+FuzzyCLIPS> (watch rules)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (run 1)
+FIRE    1 infinite_rule: f-1,*,*
+==> f-2     (D) CF 1.00 
+FuzzyCLIPS> (unwatch all)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate A (slot val))
+FuzzyCLIPS> (deftemplate B)
+FuzzyCLIPS> (deftemplate C)
+FuzzyCLIPS> (deftemplate D)
+FuzzyCLIPS> 
+(deffacts infinite_setup
+  (A (val 1)))
+FuzzyCLIPS> 
+(defrule infinite_rule
+  (logical
+    (A (val ?val))
+    (not (and (B) (C)))
+    (test (eq ?val 1))
+    (not (D)))
+  =>
+  (assert (D)))
+FuzzyCLIPS> 
+(reset)
+FuzzyCLIPS> (watch rules)
+FuzzyCLIPS> (watch facts)
+FuzzyCLIPS> (watch activations)
+FuzzyCLIPS> (run 1)
+FIRE    1 infinite_rule: f-1,*,*
+==> f-2     (D) CF 1.00 
+<== f-2     (D) CF 1.00 
+==> Activation 0      infinite_rule: f-1,*,*
+FuzzyCLIPS> (unwatch all)
 FuzzyCLIPS> (clear) ; Funcall module specifier #1
 FuzzyCLIPS> 
 (defmodule M
@@ -1035,5 +1100,224 @@ b x
 b y
 c x
 c y
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (defglobal ?*crash* = (create$ 1 2 3 etc))
+FuzzyCLIPS> (bind ?*crash* (rest$ ?*crash*))
+(2 3 etc)
+FuzzyCLIPS> (clear) ; SourceForge Ticket #49
+FuzzyCLIPS> (::)
+
+[EXPRNPSR7] Missing module name for '::'.
+FuzzyCLIPS> (clear) ; SourceForge Ticket #54 Extraneous Module Specifier
+FuzzyCLIPS> (defmodule EXTRANEOUS::COMPUTE)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmodule EXTRANEOUS::COMPUTE
+FuzzyCLIPS> (deftemplate MAIN::EXTRANEOUS::point)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(deftemplate MAIN::EXTRANEOUS::point
+FuzzyCLIPS> (deffacts MAIN::EXTRANEOUS::points)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(deffacts MAIN::EXTRANEOUS::points
+FuzzyCLIPS> (defrule MAIN::EXTRANEOUS::find-point =>)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defrule MAIN::EXTRANEOUS::find-point
+FuzzyCLIPS> (defclass MAIN::EXTRANEOUS::POINT (is-a USER))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defclass MAIN::EXTRANEOUS::POINT
+FuzzyCLIPS> (defclass MAIN::POINT (is-a USER))
+FuzzyCLIPS> (defmessage-handler MAIN::EXTRANEOUS::POINT add-points ())
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmessage-handler MAIN::EXTRANEOUS::POINT
+FuzzyCLIPS> (definstances MAIN::EXTRANEOUS::points)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(definstances MAIN::EXTRANEOUS::points
+FuzzyCLIPS> (deffunction MAIN::EXTRANEOUS::add-point (?x ?y))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(deffunction MAIN::EXTRANEOUS::add-point
+FuzzyCLIPS> (defgeneric MAIN::EXTRANEOUS::add-point)
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defgeneric MAIN::EXTRANEOUS::add-point
+FuzzyCLIPS> (defmethod MAIN::EXTRANEOUS::add-point ((?x FLOAT) (?y FLOAT)))
+
+[PRNTUTIL2] Syntax Error:  Check appropriate syntax for module specifier.
+
+ERROR:
+(defmethod MAIN::EXTRANEOUS::add-point
+FuzzyCLIPS> (clear) ; bsave-instances external-address issue
+FuzzyCLIPS> 
+(defclass EXPERIMENT 
+   (is-a USER)
+   (slot fa (type FACT-ADDRESS))
+   (slot ia (type INSTANCE-ADDRESS))
+   (slot ea (type EXTERNAL-ADDRESS)))
+FuzzyCLIPS>    
+(make-instance e1 of EXPERIMENT
+   (fa (assert (b)))
+   (ia (instance-address(make-instance e2 of EXPERIMENT))))
+[e1]
+FuzzyCLIPS> (bsave-instances "Temp//experiment.bins")
+2
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (bload-instances "Temp//experiment.bins")
+2
+FuzzyCLIPS> (send [e1] print)
+[e1] of EXPERIMENT
+(fa <Dummy Fact>)
+(ia [e2])
+(ea <Pointer-C-0x0>)
+FuzzyCLIPS> (send [e2] print)
+[e2] of EXPERIMENT
+(fa <Dummy Fact>)
+(ia [Dummy Instance])
+(ea <Pointer-C-0x0>)
+FuzzyCLIPS> (clear) ; Local variables cannot be accessed bug
+FuzzyCLIPS> 
+(deftemplate hello
+  (slot self (type FACT-ADDRESS)))
+FuzzyCLIPS>   
+(deffacts hellos
+   (hello))
+FuzzyCLIPS> (clear) ; Source Ticket #56
+FuzzyCLIPS> 
+(deftemplate maze
+   (multislot open-list)
+   (slot goal))
+FuzzyCLIPS> 
+(defrule test-1
+   (maze (open-list)
+         (goal ?g&nil))
+   =>)
+FuzzyCLIPS> 
+(defrule test-2
+   (maze (open-list) 
+         (goal ?g&:(eq ?g nil)))
+   =>)
+FuzzyCLIPS> 
+(defrule test-3
+   (maze (open-list) 
+         (goal ~nil))
+   =>)
+FuzzyCLIPS> (clear) ; Error line count issue
+FuzzyCLIPS> (load line_error_crlf.clp)
+%$
+[TMPLTDEF1] line_error_crlf.clp, Line 7: Invalid slot 'z' not defined in corresponding deftemplate 'point'.
+
+ERROR:
+(deffacts MAIN::points
+   (point (x 1) (y 2))
+   (point (x 3) (y 4) (z
+
+FALSE
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (load line_error_lf.clp)
+%$
+[TMPLTDEF1] line_error_lf.clp, Line 7: Invalid slot 'z' not defined in corresponding deftemplate 'point'.
+
+ERROR:
+(deffacts MAIN::points
+   (point (x 1) (y 2))
+   (point (x 3) (y 4) (z
+
+FALSE
+FuzzyCLIPS> (clear) ; CLIPSESG https://groups.google.com/forum/#!topic/CLIPSESG/j4fmacgmAZY
+FuzzyCLIPS> 
+(deftemplate example
+   (slot value
+      (type SYMBOL)
+      (allowed-symbols FALSE TRUE)))
+FuzzyCLIPS> 
+(defrule attempt-to-construct-example
+   ?f <- (line ?line)
+   =>
+   (retract ?f)
+   (assert (example (value (eq ?line "")))))
+FuzzyCLIPS> (clear) ; CLIPSESG https://groups.google.com/forum/#!topic/CLIPSESG/YaNnNF1xg5w
+FuzzyCLIPS> 
+(defclass OAV
+   (is-a USER)
+   (slot object)
+   (slot attribute)
+   (multislot values))
+FuzzyCLIPS> 
+(make-instance oav1 of OAV
+   (object Fred)
+   (attribute hobbies)
+   (values reading hiking chess))
+[oav1]
+FuzzyCLIPS> (bsave-instances "Temp//drins.bin")
+1
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (bload-instances "Temp//drins.bin")
+1
+FuzzyCLIPS> (send [oav1] print)
+[oav1] of OAV
+(object Fred)
+(attribute hobbies)
+(values reading hiking chess)
+FuzzyCLIPS> (clear) ; Object pattern matching underflow
+FuzzyCLIPS> 
+(deftemplate range
+   (slot start)
+   (slot finish))
+FuzzyCLIPS>              
+(deftemplate sequence
+   (multislot elements))
+FuzzyCLIPS> (defclass container
+   (is-a USER)
+   (multislot contents))
+FuzzyCLIPS> 
+(deffacts defranges
+   (range (start 2) (finish 11))
+   (range (start 12) (finish 19)))
+FuzzyCLIPS>           
+(deffacts defsequences
+   (sequence (elements 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19)))
+FuzzyCLIPS> 
+(definstances containers
+   (of container 
+      (contents 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19))
+   (of container
+      (contents)))
+FuzzyCLIPS> 
+(defrule eliminate-entire-range
+   (range (start ?start) 
+          (finish ?finish))
+   (sequence (elements ?start $? ?finish))
+   (object (is-a container)
+           (contents $?before ?start $? ?finish $?after)
+           (name ?name))
+   =>
+   (modify-instance ?name
+      (contents $?before 
+      $?after)))
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (run)
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (dribble-off)

@@ -231,7 +231,7 @@ FuzzyCLIPS> (explode$ "hammer drill saw screw")
 FuzzyCLIPS> (explode$ "1 2 abc 3 4 \"abc\" \"def\"")
 (1 2 abc 3 4 "abc" "def")
 FuzzyCLIPS> (explode$ "?x ~ )")             ; 10.3.7
-("?x" "~" ")")
+(?x ~ ))
 FuzzyCLIPS> (implode$)                      ; 10.3.8
 [ARGACCES1] Function 'implode$' expected exactly 1 argument.
 FuzzyCLIPS> (implode$ (create$ a b) dkj)    ; 10.3.8

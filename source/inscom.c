@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  01/15/18             */
+   /*            CLIPS Version 6.40  08/14/19             */
    /*                                                     */
    /*               INSTANCE COMMAND MODULE               */
    /*******************************************************/
@@ -50,6 +50,10 @@
 /*            Converted API macros to function calls.        */
 /*                                                           */
 /*      6.31: Fast router used for MakeInstance.             */
+/*                                                           */
+/*            Added code to keep track of pointers to        */
+/*            constructs that are contained externally to    */
+/*            to constructs, DanglingConstructs.             */
 /*                                                           */
 /*      6.40: Added Env prefix to GetEvaluationError and     */
 /*            SetEvaluationError functions.                  */
@@ -209,7 +213,7 @@ void SetupInstances(
 
    AddUDF(theEnv,"symbol-to-instance-name","*",1,1,"y",SymbolToInstanceNameFunction,"SymbolToInstanceNameFunction",NULL);
    AddUDF(theEnv,"instance-name-to-symbol","y",1,1,"ny",InstanceNameToSymbolFunction,"InstanceNameToSymbolFunction",NULL);
-   AddUDF(theEnv,"instance-address","bn",1,2,";iyn;yn",InstanceAddressCommand,"InstanceAddressCommand",NULL);
+   AddUDF(theEnv,"instance-address","bi",1,2,";iyn;yn",InstanceAddressCommand,"InstanceAddressCommand",NULL);
    AddUDF(theEnv,"instance-addressp","b",1,1,NULL,InstanceAddressPCommand,"InstanceAddressPCommand",NULL);
    AddUDF(theEnv,"instance-namep","b",1,1,NULL,InstanceNamePCommand,"InstanceNamePCommand",NULL);
    AddUDF(theEnv,"instance-name","bn",1,1,"yin",InstanceNameCommand,"InstanceNameCommand",NULL);
@@ -458,8 +462,8 @@ UnmakeInstanceError UnmakeAllInstances(
 /*******************************************************************
   NAME         : UnmakeInstance
   DESCRIPTION  : Removes a named instance via message-passing
-  INPUTS       : The instance address (NULL to delete all instances)
-  RETURNS      : Error code (UE_NO_ERROR if successful)
+  INPUTS       : The instance address
+  RETURNS      : Error code (UIE_NO_ERROR if successful)
   SIDE EFFECTS : Instance is deallocated
   NOTES        : C interface for deleting instances
  *******************************************************************/
@@ -702,6 +706,7 @@ Instance *MakeInstance(
    const char *oldRouter;
    const char *oldString;
    long oldIndex;
+   int danglingConstructs;
    
    InstanceData(theEnv)->makeInstanceError = MIE_NO_ERROR;
    
@@ -737,7 +742,9 @@ Instance *MakeInstance(
    GetToken(theEnv,router,&tkn);
    if (tkn.tknType == LEFT_PARENTHESIS_TOKEN)
      {
-      top = GenConstant(theEnv,FCALL,FindFunction(theEnv,"make-instance"));
+      danglingConstructs = ConstructData(theEnv)->DanglingConstructs;
+
+      top = GenConstant(theEnv,FCALL,FindFunction(theEnv,"make-instance"));    
       if (ParseSimpleInstance(theEnv,top,router) != NULL)
         {
          GetToken(theEnv,router,&tkn);
@@ -756,6 +763,9 @@ Instance *MakeInstance(
         }
       else
         { InstanceData(theEnv)->makeInstanceError = MIE_PARSING_ERROR; }
+      
+      if (EvaluationData(theEnv)->CurrentExpression == NULL)
+        { ConstructData(theEnv)->DanglingConstructs = danglingConstructs; }
      }
    else
      {
@@ -2048,8 +2058,8 @@ static InstanceSlot *FindISlotByName(
   {
    CLIPSLexeme *ssym;
 
-   ssym = FindSymbolHN(theEnv,sname,LEXEME_BITS | INSTANCE_NAME_BIT);
-   
+   ssym = FindSymbolHN(theEnv,sname,SYMBOL_BIT);
+
    if (ssym == NULL)
      { return NULL; }
 

@@ -143,7 +143,7 @@ static unsigned int FuzzyValueHashNodesToCode(
   char *fileNameBuffer,
   unsigned int version)
   {
-   int i, j;
+   unsigned int i, j;
    CLIPSFuzzyValue *hashPtr;
    int count;
    int numberOfEntries;
@@ -253,7 +253,7 @@ static unsigned int FuzzyValuesToCode(
   char *fileNameBuffer,
   unsigned int version)
   {
-   int i, j;
+   unsigned int i, j;
    CLIPSFuzzyValue *hashPtr;
    int count;
    int numberOfEntries;
@@ -262,7 +262,7 @@ static unsigned int FuzzyValuesToCode(
    int arrayVersion = 1;
    FILE *fp;
    int arraySize;
-   int xyArrayPartition = 1, xyArrayPartitionCount = 0;
+   unsigned int xyArrayPartition = 1, xyArrayPartitionCount = 0;
 
    /*====================================*/
    /* Count the total number of entries. */

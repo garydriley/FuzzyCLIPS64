@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  11/07/17             */
+   /*            CLIPS Version 6.40  04/03/19             */
    /*                                                     */
    /*                 CLASS PARSER MODULE                 */
    /*******************************************************/
@@ -28,17 +28,20 @@
 /*            Added const qualifiers to remove C++            */
 /*            deprecation warnings.                           */
 /*                                                            */
-/*      6.40: Pragma once and other inclusion changes.       */
-/*                                                           */
-/*            Added support for booleans with <stdbool.h>.   */
-/*                                                           */
-/*            Removed use of void pointers for specific      */
-/*            data structures.                               */
-/*                                                           */
+/*      6.31: Changed allocation of multifield slot default   */
+/*            from ephemeral to explicit deallocation.        */
+/*                                                            */
+/*      6.40: Pragma once and other inclusion changes.        */
+/*                                                            */
+/*            Added support for booleans with <stdbool.h>.    */
+/*                                                            */
+/*            Removed use of void pointers for specific       */
+/*            data structures.                                */
+/*                                                            */
 /*            Static constraint checking is always enabled.   */
 /*                                                            */
-/*            UDF redesign.                                  */
-/*                                                           */
+/*            UDF redesign.                                   */
+/*                                                            */
 /**************************************************************/
 
 /* =========================================
@@ -167,8 +170,7 @@ TEMP_SLOT_LINK *ParseSlot(
   const char *className,
   TEMP_SLOT_LINK *slist,
   PACKED_CLASS_LINKS *preclist,
-  bool multiSlot,
-  bool fieldSpecified)
+  bool multiSlot)
   {
    SlotDescriptor *slot;
    CONSTRAINT_PARSE_RECORD parsedConstraint;
@@ -212,9 +214,11 @@ TEMP_SLOT_LINK *ParseSlot(
    if (slist == NULL)
      return NULL;
    if (multiSlot)
-     slot->multiple = true;
-   if (fieldSpecified)
-     SetBitMap(specbits,FIELD_BIT);
+     {
+      slot->multiple = true;
+      SetBitMap(specbits,FIELD_BIT);
+     }
+      
    GetToken(theEnv,readSource,&DefclassData(theEnv)->ObjectParseToken);
    IncrementIndentDepth(theEnv,3);
    InitializeConstraintParseRecord(&parsedConstraint);
@@ -401,8 +405,11 @@ void DeleteSlots(
         }
       else if (stmp->desc->defaultValue != NULL)
         {
-         ReleaseUDFV(theEnv,(UDFValue *) stmp->desc->defaultValue);
-         rtn_struct(theEnv,udfValue,stmp->desc->defaultValue);
+         UDFValue *theValue = (UDFValue *) stmp->desc->defaultValue;
+         ReleaseUDFV(theEnv,theValue);
+         if (theValue->header->type == MULTIFIELD_TYPE)
+           { ReturnMultifield(theEnv,theValue->multifieldValue); }
+         rtn_struct(theEnv,udfValue,theValue);
         }
       rtn_struct(theEnv,slotDescriptor,stmp->desc);
       rtn_struct(theEnv,tempSlotLink,stmp);
@@ -730,9 +737,14 @@ static void BuildCompositeFacets(
               }
             else
               {
+               UDFValue *newValue;
+               UDFValue *oldValue = (UDFValue *) compslot->defaultValue;
                sd->defaultValue = get_struct(theEnv,udfValue);
-               GenCopyMemory(UDFValue,1,sd->defaultValue,compslot->defaultValue);
-               RetainUDFV(theEnv,(UDFValue *) sd->defaultValue);
+               GenCopyMemory(UDFValue,1,sd->defaultValue,oldValue);
+               newValue = (UDFValue *) sd->defaultValue;
+               if (oldValue->header->type == MULTIFIELD_TYPE)
+                 { newValue->multifieldValue = CopyMultifield(theEnv,oldValue->multifieldValue); }
+               RetainUDFV(theEnv,newValue);
               }
            }
         }
@@ -873,10 +885,14 @@ static bool EvaluateSlotDefaultValue(
          SetExecutingConstruct(theEnv,oldce);
          if (vPass)
            {
+            UDFValue *newValue;
             ExpressionDeinstall(theEnv,(Expression *) sd->defaultValue);
             ReturnPackedExpression(theEnv,(Expression *) sd->defaultValue);
             sd->defaultValue = get_struct(theEnv,udfValue);
+            newValue = (UDFValue *) sd->defaultValue;
             GenCopyMemory(UDFValue,1,sd->defaultValue,&temp);
+            if (temp.header->type == MULTIFIELD_TYPE)
+              { newValue->multifieldValue = CopyMultifield(theEnv,temp.multifieldValue); }
             RetainUDFV(theEnv,(UDFValue *) sd->defaultValue);
            }
          else
@@ -889,7 +905,7 @@ static bool EvaluateSlotDefaultValue(
         {
          sd->defaultValue = get_struct(theEnv,udfValue);
          DeriveDefaultFromConstraints(theEnv,sd->constraint,
-                                      (UDFValue *) sd->defaultValue,sd->multiple,true);
+                                      (UDFValue *) sd->defaultValue,sd->multiple,false);
          RetainUDFV(theEnv,(UDFValue *) sd->defaultValue);
         }
      }

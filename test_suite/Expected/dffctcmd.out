@@ -23,6 +23,13 @@ d6
 For a total of 7 deffacts.
 FuzzyCLIPS> (ppdeffacts d1)
 (deffacts MAIN::d1)
+FuzzyCLIPS> (ppdeffacts d1 stdout)
+(deffacts MAIN::d1)
+FuzzyCLIPS> (ppdeffacts d1 bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FuzzyCLIPS> (ppdeffacts d1 nil)
+"(deffacts MAIN::d1)
+"
 FuzzyCLIPS> (ppdeffacts d2)
 (deffacts MAIN::d2
    (a))

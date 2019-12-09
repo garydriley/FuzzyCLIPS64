@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.40  07/30/16            */
+   /*             CLIPS Version 6.40  12/02/19            */
    /*                                                     */
    /*    CONSTRAINT BLOAD/BSAVE/CONSTRUCTS-TO-C HEADER    */
    /*******************************************************/
@@ -46,9 +46,9 @@
 #include "constrnt.h"
 
 #if FUZZY_DEFTEMPLATES 
-#define ConstraintIndex(theConstraint) ((theConstraint == NULL) ? ULONG_MAX : theConstraint->bsaveIndex)
+#define ConstraintIndex(theConstraint) ((theConstraint == NULL) ? ULONG_MAX : theConstraint->bsaveID)
 #else
-#define ConstraintIndex(theConstraint) (((! GetDynamicConstraintChecking(theEnv)) || (theConstraint == NULL)) ? ULONG_MAX : (theConstraint->bsaveIndex))
+#define ConstraintIndex(theConstraint) (((! GetDynamicConstraintChecking(theEnv)) || (theConstraint == NULL)) ? ULONG_MAX : (theConstraint->bsaveID))
 #endif
 #define ConstraintPointer(i) (((i) == ULONG_MAX) ? NULL : (CONSTRAINT_RECORD *) &ConstraintData(theEnv)->ConstraintArray[i])
 

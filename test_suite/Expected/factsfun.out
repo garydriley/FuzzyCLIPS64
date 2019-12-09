@@ -33,6 +33,24 @@ FuzzyCLIPS> (fact-existp a)
 [ARGACCES2] Function 'fact-existp' expected argument #1 to be of type integer or fact address.
 FuzzyCLIPS> (fact-existp 1 2)
 [ARGACCES1] Function 'fact-existp' expected exactly 1 argument.
+FuzzyCLIPS> (fact-addressp)
+[ARGACCES1] Function 'fact-addressp' expected exactly 1 argument.
+FuzzyCLIPS> (fact-addressp 1)
+FALSE
+FuzzyCLIPS> (fact-addressp 1 2)
+[ARGACCES1] Function 'fact-addressp' expected exactly 1 argument.
+FuzzyCLIPS> (fact-addressp ?*w*)
+TRUE
+FuzzyCLIPS> (fact-addressp ?*y*)
+TRUE
+FuzzyCLIPS> (fact-addressp [x])
+FALSE
+FuzzyCLIPS> (fact-addressp 1.2)
+FALSE
+FuzzyCLIPS> (fact-addressp "a")
+FALSE
+FuzzyCLIPS> (fact-addressp b)
+FALSE
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (deftemplate foo (slot x) (slot y))

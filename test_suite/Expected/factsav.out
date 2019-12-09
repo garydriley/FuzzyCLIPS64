@@ -10,14 +10,14 @@ FuzzyCLIPS> (save-facts blah.tmp 7)
 [ARGACCES2] Function 'save-facts' expected argument #2 to be of type symbol.
 FuzzyCLIPS> (save-facts blah.tmp hello)
 [ARGACCES2] Function 'save-facts' expected argument #2 to be of type symbol with value local or visible.
-FALSE
+-1
 FuzzyCLIPS> (save-facts blah.tmp local bogus)
 [ARGACCES2] Function 'save-facts' expected argument #3 to be of type 'local deftemplate name'.
-FALSE
+-1
 FuzzyCLIPS> (remove blah.tmp)
 TRUE
 FuzzyCLIPS> (save-facts blah.tmp)
-TRUE
+0
 FuzzyCLIPS> (load-facts)
 [ARGACCES1] Function 'load-facts' expected exactly 1 argument.
 FuzzyCLIPS> (load-facts 7)
@@ -28,7 +28,34 @@ FuzzyCLIPS> (remove blah.tmp)
 TRUE
 FuzzyCLIPS> (load-facts blah.tmp)
 [ARGACCES3] Function 'load-facts' was unable to open file 'blah.tmp'.
-FALSE
+-1
+FuzzyCLIPS> (bsave-facts)
+[ARGACCES1] Function 'bsave-facts' expected at least 1 argument.
+FuzzyCLIPS> (bsave-facts 7)
+[ARGACCES2] Function 'bsave-facts' expected argument #1 to be of type symbol or string.
+FuzzyCLIPS> (bsave-facts blah.tmp 7)
+[ARGACCES2] Function 'bsave-facts' expected argument #2 to be of type symbol.
+FuzzyCLIPS> (bsave-facts blah.tmp hello)
+[ARGACCES2] Function 'bsave-facts' expected argument #2 to be of type symbol with value local or visible.
+-1
+FuzzyCLIPS> (bsave-facts blah.tmp local bogus)
+[ARGACCES2] Function 'bsave-facts' expected argument #3 to be of type 'local deftemplate name'.
+-1
+FuzzyCLIPS> (remove blah.tmp)
+TRUE
+FuzzyCLIPS> (bsave-facts blah.tmp)
+0
+FuzzyCLIPS> (bload-facts)
+[ARGACCES1] Function 'bload-facts' expected exactly 1 argument.
+FuzzyCLIPS> (bload-facts 7)
+[ARGACCES2] Function 'bload-facts' expected argument #1 to be of type symbol or string.
+FuzzyCLIPS> (bload-facts blah.tmp bogus)
+[ARGACCES1] Function 'bload-facts' expected exactly 1 argument.
+FuzzyCLIPS> (remove blah.tmp)
+TRUE
+FuzzyCLIPS> (bload-facts blah.tmp)
+[ARGACCES3] Function 'bload-facts' was unable to open file 'blah.tmp'.
+-1
 FuzzyCLIPS> (clear) ; Test Saving and Reloading
 FuzzyCLIPS> (load factsav.clp)
 +%%+%%%+%%+
@@ -66,9 +93,13 @@ f-2     (B (x 1)) CF 1.00
 f-3     (B (x 2)) CF 1.00 
 For a total of 3 facts.
 FuzzyCLIPS> (save-facts "Temp//fctsav1.fct" visible)
-TRUE
+3
 FuzzyCLIPS> (save-facts "Temp//fctsav2.fct" local A)
-TRUE
+1
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb1.fct" visible)
+3
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb2.fct" local A)
+1
 FuzzyCLIPS> (set-current-module BAR)
 MAIN
 FuzzyCLIPS> (facts)
@@ -81,9 +112,13 @@ f-6     (D (x 1)) CF 1.00
 f-7     (E (x 1)) CF 1.00 
 For a total of 7 facts.
 FuzzyCLIPS> (save-facts "Temp//fctsav3.fct" local C)
-TRUE
+1
 FuzzyCLIPS> (save-facts "Temp//fctsav4.fct" visible B E)
-TRUE
+3
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb3.fct" local C)
+1
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb4.fct" visible B E)
+3
 FuzzyCLIPS> (set-current-module WOZ)
 BAR
 FuzzyCLIPS> (facts)
@@ -93,9 +128,13 @@ f-9     (F (x 1)) CF 1.00
 f-10    (G (x 2)) CF 1.00 
 For a total of 4 facts.
 FuzzyCLIPS> (save-facts "Temp//fctsav5.fct" local)
-TRUE
+3
 FuzzyCLIPS> (save-facts "Temp//fctsav6.fct" visible F G E)
-TRUE
+4
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb5.fct" local)
+3
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb6.fct" visible F G E)
+4
 FuzzyCLIPS> (set-current-module FOO)
 WOZ
 FuzzyCLIPS> (facts)
@@ -106,14 +145,18 @@ f-7     (E (x 1)) CF 1.00
 f-9     (F (x 1)) CF 1.00 
 For a total of 5 facts.
 FuzzyCLIPS> (save-facts "Temp//fctsav7.fct" local)
-TRUE
+0
 FuzzyCLIPS> (save-facts "Temp//fctsav8.fct" visible)
-TRUE
+5
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb7.fct" local)
+0
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb8.fct" visible)
+5
 FuzzyCLIPS> (reset)
 FuzzyCLIPS> (set-current-module MAIN)
 MAIN
 FuzzyCLIPS> (load-facts "Temp//fctsav1.fct")
-TRUE
+3
 FuzzyCLIPS> (facts *)
 f-1     (A (x 1)) CF 1.00 
 f-2     (B (x 1)) CF 1.00 
@@ -121,7 +164,7 @@ f-3     (B (x 2)) CF 1.00
 For a total of 3 facts.
 FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (load-facts "Temp//fctsav2.fct")
-TRUE
+1
 FuzzyCLIPS> (facts *)
 f-4     (A (x 1)) CF 1.00 
 For a total of 1 fact.
@@ -130,19 +173,19 @@ FuzzyCLIPS> (load-facts "Temp//fctsav3.fct")
 
 [PRNTUTIL2] Syntax Error:  Check appropriate syntax for RHS patterns.
 Function load-facts encountered an error
-FALSE
+-1
 FuzzyCLIPS> (facts *)
 FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (set-current-module BAR)
 MAIN
 FuzzyCLIPS> (load-facts "Temp//fctsav3.fct")
-TRUE
+1
 FuzzyCLIPS> (facts *)
 f-5     (C (x 1)) CF 1.00 
 For a total of 1 fact.
 FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (load-facts "Temp//fctsav4.fct")
-TRUE
+3
 FuzzyCLIPS> (facts *)
 f-6     (B (x 1)) CF 1.00 
 f-7     (B (x 2)) CF 1.00 
@@ -152,7 +195,7 @@ FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (set-current-module WOZ)
 BAR
 FuzzyCLIPS> (load-facts "Temp//fctsav5.fct")
-TRUE
+3
 FuzzyCLIPS> (facts *)
 f-9     (G (x 1)) CF 1.00 
 f-10    (F (x 1)) CF 1.00 
@@ -160,7 +203,7 @@ f-11    (G (x 2)) CF 1.00
 For a total of 3 facts.
 FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (load-facts "Temp//fctsav6.fct")
-TRUE
+4
 FuzzyCLIPS> (facts *)
 f-12    (E (x 1)) CF 1.00 
 f-13    (G (x 1)) CF 1.00 
@@ -171,11 +214,11 @@ FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (set-current-module FOO)
 WOZ
 FuzzyCLIPS> (load-facts "Temp//fctsav7.fct")
-TRUE
+0
 FuzzyCLIPS> (facts *)
 FuzzyCLIPS> (retract *)
 FuzzyCLIPS> (load-facts "Temp//fctsav8.fct")
-TRUE
+5
 FuzzyCLIPS> (facts *)
 f-16    (A (x 1)) CF 1.00 
 f-17    (B (x 1)) CF 1.00 
@@ -184,4 +227,167 @@ f-19    (E (x 1)) CF 1.00
 f-20    (F (x 1)) CF 1.00 
 For a total of 5 facts.
 FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (set-current-module MAIN)
+FOO
+FuzzyCLIPS> (bload-facts "Temp//fctsavb1.fct")
+3
+FuzzyCLIPS> (facts *)
+f-21    (A (x 1)) CF 1.00 
+f-22    (B (x 1)) CF 1.00 
+f-23    (B (x 2)) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (bload-facts "Temp//fctsavb2.fct")
+1
+FuzzyCLIPS> (facts *)
+f-24    (A (x 1)) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (bload-facts "Temp//fctsavb3.fct")
+[FACTFILE3] Function 'bload-facts' is unable to load fact of deftemplate 'C'
+-1
+FuzzyCLIPS> (facts *)
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (set-current-module BAR)
+MAIN
+FuzzyCLIPS> (bload-facts "Temp//fctsavb3.fct")
+1
+FuzzyCLIPS> (facts *)
+f-25    (C (x 1)) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (bload-facts "Temp//fctsavb4.fct")
+3
+FuzzyCLIPS> (facts *)
+f-26    (B (x 1)) CF 1.00 
+f-27    (B (x 2)) CF 1.00 
+f-28    (E (x 1)) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (set-current-module WOZ)
+BAR
+FuzzyCLIPS> (bload-facts "Temp//fctsavb5.fct")
+3
+FuzzyCLIPS> (facts *)
+f-29    (G (x 1)) CF 1.00 
+f-30    (F (x 1)) CF 1.00 
+f-31    (G (x 2)) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (bload-facts "Temp//fctsavb6.fct")
+4
+FuzzyCLIPS> (facts *)
+f-32    (E (x 1)) CF 1.00 
+f-33    (G (x 1)) CF 1.00 
+f-34    (F (x 1)) CF 1.00 
+f-35    (G (x 2)) CF 1.00 
+For a total of 4 facts.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (set-current-module FOO)
+WOZ
+FuzzyCLIPS> (bload-facts "Temp//fctsavb7.fct")
+0
+FuzzyCLIPS> (facts *)
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (bload-facts "Temp//fctsavb8.fct")
+5
+FuzzyCLIPS> (facts *)
+f-36    (A (x 1)) CF 1.00 
+f-37    (B (x 1)) CF 1.00 
+f-38    (B (x 2)) CF 1.00 
+f-39    (E (x 1)) CF 1.00 
+f-40    (F (x 1)) CF 1.00 
+For a total of 5 facts.
+FuzzyCLIPS> (retract *)
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(deftemplate person 
+   (multislot name)
+   (multislot hobbies)
+   (slot age (type INTEGER))
+   (slot gender (allowed-values male female)))
+FuzzyCLIPS> (assert (factoid))
+<Fact-1>
+FuzzyCLIPS> (assert (types a "bc" [def] 1 2.3))
+<Fact-2>
+FuzzyCLIPS> (assert (colors red green blue))
+<Fact-3>
+FuzzyCLIPS> (assert (people frank sally joe))
+<Fact-4>
+FuzzyCLIPS> (assert (person (name Roger Downs) (age 33) (gender male) (hobbies reading running)))
+<Fact-5>
+FuzzyCLIPS> (assert (person (name Jenny Smith) (age 25) (gender female) (hobbies movies softball)))
+<Fact-6>
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb9.fct")
+6
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(deftemplate person 
+   (multislot name)
+   (multislot hobbies)
+   (slot age (type INTEGER))
+   (slot gender (allowed-values male female)))
+FuzzyCLIPS> (assert (people susan howard jane))
+<Fact-1>
+FuzzyCLIPS> (bload-facts "Temp//fctsavb9.fct")
+6
+FuzzyCLIPS> (facts)
+f-1     (people susan howard jane) CF 1.00 
+f-2     (factoid) CF 1.00 
+f-3     (types a "bc" [def] 1 2.3) CF 1.00 
+f-4     (colors red green blue) CF 1.00 
+f-5     (people frank sally joe) CF 1.00 
+f-6     (person (name Roger Downs) (hobbies reading running) (age 33) (gender male)) CF 1.00 
+f-7     (person (name Jenny Smith) (hobbies movies softball) (age 25) (gender female)) CF 1.00 
+For a total of 7 facts.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> 
+(deftemplate stuff
+   (slot fa (type FACT-ADDRESS))
+   (slot ea (type EXTERNAL-ADDRESS))
+   (slot ia (type INSTANCE-ADDRESS)))
+FuzzyCLIPS> (assert (stuff))
+<Fact-1>
+FuzzyCLIPS> (facts)
+f-1     (stuff (fa <Dummy Fact>) (ea <Pointer-C-0x0>) (ia <Dummy Instance>)) CF 1.00 
+For a total of 1 fact.
+FuzzyCLIPS> (defclass THING (is-a USER))
+FuzzyCLIPS> (make-instance t1 of THING)
+[t1]
+FuzzyCLIPS> (assert (stuff (fa (assert (colors red green blue))) (ia (instance-address [t1]))))
+<Fact-3>
+FuzzyCLIPS> (facts)
+f-1     (stuff (fa <Dummy Fact>) (ea <Pointer-C-0x0>) (ia <Dummy Instance>)) CF 1.00 
+f-2     (colors red green blue) CF 1.00 
+f-3     (stuff (fa <Fact-2>) (ea <Pointer-C-0x0>) (ia <Instance-t1>)) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb10.fct")
+3
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (bload-facts "Temp//fctsavb10.fct")
+3
+FuzzyCLIPS> (facts)
+f-1     (stuff (fa <Dummy Fact>) (ea <Pointer-C-0x0>) (ia [Dummy Instance])) CF 1.00 
+f-2     (colors red green blue) CF 1.00 
+f-3     (stuff (fa <Dummy Fact>) (ea <Pointer-C-0x0>) (ia [t1])) CF 1.00 
+For a total of 3 facts.
+FuzzyCLIPS> (clear)
+FuzzyCLIPS> (deftemplate cp (multislot v) (multislot a))
+FuzzyCLIPS> 
+(assert (cp (v) (a))
+        (cp (v 1) (a x))
+        (cp (v 2 3) (a))
+        (cp (v) (a y z)))
+<Fact-4>
+FuzzyCLIPS> (bsave-facts "Temp//fctsavb11.fct")
+4
+FuzzyCLIPS> (reset)
+FuzzyCLIPS> (bload-facts "Temp//fctsavb11.fct")
+4
+FuzzyCLIPS> (facts)
+f-1     (cp (v) (a)) CF 1.00 
+f-2     (cp (v 1) (a x)) CF 1.00 
+f-3     (cp (v 2 3) (a)) CF 1.00 
+f-4     (cp (v) (a y z)) CF 1.00 
+For a total of 4 facts.
 FuzzyCLIPS> (dribble-off)

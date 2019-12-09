@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  02/09/18             */
+   /*            CLIPS Version 6.40  12/02/19             */
    /*                                                     */
    /*                CONSTANTS HEADER FILE                */
    /*******************************************************/
@@ -121,11 +121,11 @@ typedef enum
 #endif
 
 #ifndef CREATION_DATE_STRING
-#define CREATION_DATE_STRING "2/9/18"
+#define CREATION_DATE_STRING "12/2/19"
 #endif
 
 #ifndef BANNER_STRING
-#define BANNER_STRING "         FuzzyCLIPS (Cypher Beta 3/1/18)\n"
+#define BANNER_STRING "         FuzzyCLIPS (Cypher Beta 12/2/19)\n"
 #endif
 
 /*************************/
@@ -183,7 +183,7 @@ typedef enum
   } CLIPSType;
 
 #define NUMBER_BITS (INTEGER_BIT | FLOAT_BIT)
-#define LEXEME_BITS (SYMBOL_BIT | STRING_BIT)
+#define LEXEME_BITS (SYMBOL_BIT | STRING_BIT | BOOLEAN_BIT)
 #define ADDRESS_BITS (EXTERNAL_ADDRESS_BIT | FACT_ADDRESS_BIT | INSTANCE_ADDRESS_BIT)
 #define INSTANCE_BITS (INSTANCE_ADDRESS_BIT | INSTANCE_NAME_BIT)
 #define SINGLEFIELD_BITS (NUMBER_BITS | LEXEME_BITS | ADDRESS_BITS | INSTANCE_NAME_BIT | FUZZY_BIT)

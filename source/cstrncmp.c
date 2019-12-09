@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  07/30/16             */
+   /*            CLIPS Version 6.40  12/02/19             */
    /*                                                     */
    /*          CONSTRAINT CONSTRUCTS-TO-C MODULE          */
    /*******************************************************/
@@ -70,7 +70,8 @@ void ConstraintsToCode(
   unsigned imageID,
   unsigned maxIndices)
   {
-   unsigned int i, j, count;
+   unsigned int i, j;
+   unsigned long count;
    bool newHeader = true;
    FILE *fp;
    unsigned int version = 1;
@@ -92,7 +93,7 @@ void ConstraintsToCode(
            tmpPtr != NULL;
            tmpPtr = tmpPtr->next)
         {
-         tmpPtr->bsaveIndex = numberOfConstraints++;
+         tmpPtr->bsaveID = numberOfConstraints++;
 #if FUZZY_DEFTEMPLATES
          if (tmpPtr->fuzzyValuesAllowed)
            { numberOfFuzzyValueConstraints++; }
@@ -119,9 +120,9 @@ void ConstraintsToCode(
          while (tmpPtr != NULL)
            {
             if (tmpPtr->fuzzyValuesAllowed)
-               tmpPtr->bsaveIndex = theIndex++;
+               tmpPtr->bsaveID = theIndex++;
             else
-               tmpPtr->bsaveIndex = ULONG_MAX;
+               tmpPtr->bsaveID = ULONG_MAX;
             tmpPtr = tmpPtr->next;
            }
         }
@@ -295,14 +296,14 @@ void PrintConstraintReference(
   unsigned int maxIndices)
   {
 #if FUZZY_DEFTEMPLATES
-   if ((cPtr == NULL) || (cPtr->bsaveIndex == ULONG_MAX))
+   if ((cPtr == NULL) || (cPtr->bsaveID == ULONG_MAX))
 #else
    if ((cPtr == NULL) || (! GetDynamicConstraintChecking(theEnv)))
 #endif
      { fprintf(fp,"NULL"); }
-   else fprintf(fp,"&C%u_%lu[%lu]",imageID,
-                                 (cPtr->bsaveIndex / maxIndices) + 1,
-                                 cPtr->bsaveIndex % maxIndices);
+   else fprintf(fp,"&C%u_%ld[%ld]",imageID,
+                                 (cPtr->bsaveID / maxIndices) + 1,
+                                 cPtr->bsaveID % maxIndices);
   }
 
 #endif /* CONSTRUCT_COMPILER && (! RUN_TIME) */

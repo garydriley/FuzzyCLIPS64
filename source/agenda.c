@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  10/04/17             */
+   /*            CLIPS Version 6.40  10/03/19             */
    /*                                                     */
    /*                    AGENDA MODULE                    */
    /*******************************************************/
@@ -101,13 +101,13 @@
 
    static void                    PrintActivation(Environment *,const char *,Activation *);
    static void                    AgendaClearFunction(Environment *,void *);
-   static const char             *SalienceEvaluationName(int);
+   static const char             *SalienceEvaluationName(SalienceEvaluationType);
    static int                     EvaluateSalience(Environment *,Defrule *);
    static struct salienceGroup   *ReuseOrCreateSalienceGroup(Environment *,struct defruleModule *,int);
    static struct salienceGroup   *FindSalienceGroup(struct defruleModule *,int);
    static void                    RemoveActivationFromGroup(Environment *,Activation *,struct defruleModule *);
 #if CERTAINTY_FACTORS
-   static char                   *CFEvaluationName(int);
+   static const char             *CFEvaluationName(int);
    static double                  EvaluateCF(Environment *,Defrule *);
 #endif
 
@@ -1241,7 +1241,7 @@ void GetSalienceEvaluationCommand(
 /*   character string of the behavior's name.                    */
 /*****************************************************************/
 static const char *SalienceEvaluationName(
-  int strategy)
+  SalienceEvaluationType strategy)
   {
    const char *sname;
 
@@ -1424,10 +1424,10 @@ void GetCFEvaluationCommand(
 /*   to a specified rule CF evaluation behavior, returns a       */
 /*   character string of the behavior's name.                    */
 /*****************************************************************/
-static char *CFEvaluationName(
+static const char *CFEvaluationName(
   int strategy)
   {
-   char *sname;
+   const char *sname;
 
    switch (strategy)
      {

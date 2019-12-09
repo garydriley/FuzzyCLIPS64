@@ -23,6 +23,15 @@ For a total of 7 defrules.
 FuzzyCLIPS> (ppdefrule r1)
 (defrule MAIN::r1
    =>)
+FuzzyCLIPS> (ppdefrule r1 stdout)
+(defrule MAIN::r1
+   =>)
+FuzzyCLIPS> (ppdefrule r1 bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FuzzyCLIPS> (ppdefrule r1 nil)
+"(defrule MAIN::r1
+   =>)
+"
 FuzzyCLIPS> (ppdefrule r2)
 (defrule MAIN::r2
    (a)

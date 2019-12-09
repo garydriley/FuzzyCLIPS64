@@ -27,10 +27,28 @@ FuzzyCLIPS> (describe 3.0)
 "NUMBER"
 FuzzyCLIPS> (ppdefgeneric describe)
 (defgeneric MAIN::describe)
+FuzzyCLIPS> (ppdefgeneric describe stdout)
+(defgeneric MAIN::describe)
+FuzzyCLIPS> (ppdefgeneric describe bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FuzzyCLIPS> (ppdefgeneric describe nil)
+"(defgeneric MAIN::describe)
+"
 FuzzyCLIPS> (ppdefmethod describe 2)
 (defmethod MAIN::describe
    ((?a NUMBER))
    "NUMBER")
+FuzzyCLIPS> (ppdefmethod describe 2 stdout)
+(defmethod MAIN::describe
+   ((?a NUMBER))
+   "NUMBER")
+FuzzyCLIPS> (ppdefmethod describe 2 bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FuzzyCLIPS> (ppdefmethod describe 2 nil)
+"(defmethod MAIN::describe
+   ((?a NUMBER))
+   "NUMBER")
+"
 FuzzyCLIPS> (preview-generic describe 34)
 describe #1  (INTEGER)
 describe #2  (NUMBER)

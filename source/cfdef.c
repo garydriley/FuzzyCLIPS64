@@ -62,7 +62,7 @@
     Local Internal Function Declarations
  ******************************************************************/
  
-   static struct fact *getFactPtr(Environment *,struct expr *theArgument, char *functionName);
+   static struct fact *getFactPtr(Environment *,struct expr *theArgument,const char *functionName);
 
 void InitializeCF(
   Environment *theEnv)
@@ -402,7 +402,7 @@ double computeFuzzyCrispConclCF(
    */ 
    for (i=(unsigned int)((binds->bcount)-1); i>=0; i--, jNode = jNode->lastLevel)
      {
-       int j;
+      unsigned int j;
 
        /* find the fact that matched a pattern */
        tmpFact = (struct fact *)(antecedent_binds[i].gm.theMatch->matchingItem);
@@ -567,7 +567,7 @@ void changeCFofNewFact(
 static struct fact *getFactPtr(
   Environment *theEnv,
   struct expr *theArgument,
-  char *functionName)
+  const char *functionName)
   {
    long long factIndex;
    int found_fact;

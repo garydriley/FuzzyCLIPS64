@@ -2314,7 +2314,7 @@ static void computeMinOfMaxmins(
     
     for (i=0; i<(unsigned int)EngineData(theEnv)->GlobalLHSBinds->bcount; i++)
       {
-        int j;
+        unsigned int j;
 
         /* ExecutingRule->pattern_fv_arrayPtr is ptr to array of fuzzy value
            hashNode ptrs of connected to fuzzy patterns in the rule's LHS
@@ -2668,7 +2668,7 @@ void changeValueOfFuzzySlots(
 /* PrintFloatFuzzy:  Converts number to CLIPS string format. */
 /*************************************************************/
 static void PrintFloatFuzzy(
-  void *theEnv,
+  Environment *theEnv,
   const char *logName,
   double number)
   {

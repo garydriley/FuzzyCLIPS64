@@ -287,7 +287,7 @@ static void BsaveFind(
             */
             if (theDisjunct->numberOfFuzzySlots > 0)
               {
-               int i;
+               unsigned int i;
                CLIPSFuzzyValue *fvhnPtr;
                struct fzSlotLocator  *fvSLPtr;
 
@@ -495,7 +495,7 @@ static void BsaveBinaryItem(
          theDisjunct = theDefrule;
          while (theDisjunct != NULL)
            {
-            int i;
+            unsigned int i;
             struct bsaveFzSlotLocator tempFZSlotLocator;
 
             for (i = 0; i < theDisjunct->numberOfFuzzySlots; i++)

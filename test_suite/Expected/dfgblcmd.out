@@ -22,6 +22,13 @@ d6
 For a total of 7 defglobals.
 FuzzyCLIPS> (ppdefglobal d1)
 (defglobal MAIN ?*d1* = 1)
+FuzzyCLIPS> (ppdefglobal d1 stdout)
+(defglobal MAIN ?*d1* = 1)
+FuzzyCLIPS> (ppdefglobal d1 bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
+FuzzyCLIPS> (ppdefglobal d1 nil)
+"(defglobal MAIN ?*d1* = 1)
+"
 FuzzyCLIPS> (ppdefglobal d2)
 (defglobal MAIN ?*d2* = 2)
 FuzzyCLIPS> (ppdefglobal d3)

@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  10/01/16             */
+   /*            CLIPS Version 6.40  10/03/19             */
    /*                                                     */
    /*                  CLASS COMMANDS MODULE              */
    /*******************************************************/
@@ -50,7 +50,10 @@
 /*                                                           */
 /*            UDF redesign.                                  */
 /*                                                           */
-/**************************************************************/
+/*            Pretty print functions accept optional logical */
+/*            name argument.                                 */
+/*                                                           */
+/*************************************************************/
 
 /* =========================================
    *****************************************
@@ -86,7 +89,7 @@
 #if (! BLOAD_ONLY) && (! RUN_TIME) && DEBUGGING_FUNCTIONS
    static void                    SaveDefclass(Environment *,ConstructHeader *,void *);
 #endif
-   static const char             *GetClassDefaultsModeName(unsigned short);
+   static const char             *GetClassDefaultsModeName(ClassDefaultsMode);
 
 /* =========================================
    *****************************************
@@ -459,7 +462,7 @@ void PPDefclassCommand(
   UDFContext *context,
   UDFValue *returnValue)
   {
-   PPConstructCommand(context,"ppdefclass",DefclassData(theEnv)->DefclassConstruct);
+   PPConstructCommand(context,"ppdefclass",DefclassData(theEnv)->DefclassConstruct,returnValue);
   }
 
 /***************************************************
@@ -854,7 +857,7 @@ void SetClassDefaultsModeCommand(
   {
    UDFValue theArg;
    const char *argument;
-   unsigned short oldMode;
+   ClassDefaultsMode oldMode;
 
    oldMode = DefclassData(theEnv)->ClassDefaultsModeValue;
 
@@ -895,7 +898,7 @@ void SetClassDefaultsModeCommand(
 /*   of the class defaults mode's name.                            */
 /*******************************************************************/
 static const char *GetClassDefaultsModeName(
-  unsigned short mode)
+  ClassDefaultsMode mode)
   {
    const char *sname;
 

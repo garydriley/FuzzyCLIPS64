@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  01/29/18             */
+   /*            CLIPS Version 6.40  09/09/19             */
    /*                                                     */
    /*            EXTENDED MATH FUNCTIONS MODULE           */
    /*******************************************************/
@@ -9,10 +9,10 @@
 /*************************************************************/
 /* Purpose: Contains the code for numerous extended math     */
 /*   functions including cos, sin, tan, sec, csc, cot, acos, */
-/*   asin, atan, asec, acsc, acot, cosh, sinh, tanh, sech,   */
-/*   csch, coth, acosh, asinh, atanh, asech, acsch, acoth,   */
-/*   mod, exp, log, log10, sqrt, pi, deg-rad, rad-deg,       */
-/*   deg-grad, grad-deg, **, and round.                      */
+/*   asin, atan, atan2, asec, acsc, acot, cosh, sinh, tanh,  */
+/*   sech, csch, coth, acosh, asinh, atanh, asech, acsch,    */
+/*   acoth, mod, exp, log, log10, sqrt, pi, deg-rad,         */
+/*   rad-deg, deg-grad, grad-deg, **, and round.             */
 /*                                                           */
 /* Principal Programmer(s):                                  */
 /*      Brian L. Dantes                                      */
@@ -51,6 +51,8 @@
 /*                                                           */
 /*            Added error codes for get-error and            */
 /*            clear-error functions.                         */
+/*                                                           */
+/*            Added atan2 function.                          */
 /*                                                           */
 /*************************************************************/
 
@@ -116,6 +118,7 @@ void ExtendedMathFunctionDefinitions(
    AddUDF(theEnv,"acos","d",1,1,"ld",AcosFunction,"AcosFunction",NULL);
    AddUDF(theEnv,"asin","d",1,1,"ld",AsinFunction,"AsinFunction",NULL);
    AddUDF(theEnv,"atan","d",1,1,"ld",AtanFunction,"AtanFunction",NULL);
+   AddUDF(theEnv,"atan2","d",2,2,"ld",Atan2Function,"Atan2Function",NULL);
    AddUDF(theEnv,"asec","d",1,1,"ld",AsecFunction,"AsecFunction",NULL);
    AddUDF(theEnv,"acsc","d",1,1,"ld",AcscFunction,"AcscFunction",NULL);
    AddUDF(theEnv,"acot","d",1,1,"ld",AcotFunction,"AcotFunction",NULL);
@@ -288,6 +291,8 @@ void TanFunction(
   UDFValue *returnValue)
   {
    double tv;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -312,6 +317,8 @@ void SecFunction(
   UDFValue *returnValue)
   {
    double tv;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -336,6 +343,8 @@ void CscFunction(
   UDFValue *returnValue)
   {
    double tv;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -360,6 +369,8 @@ void CotFunction(
   UDFValue *returnValue)
   {
    double tv;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -385,6 +396,8 @@ void AcosFunction(
   {
    double num;
 
+   ClearErrorValue(theEnv);
+   
    if (! SingleNumberCheck(context,returnValue))
      { return; }
 
@@ -409,6 +422,8 @@ void AsinFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -438,6 +453,46 @@ void AtanFunction(
    returnValue->floatValue = CreateFloat(theEnv,atan(CVCoerceToFloat(returnValue)));
   }
 
+/***************************************/
+/* Atan2Function: H/L access routine   */
+/*   for the atan function.            */
+/***************************************/
+void Atan2Function(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
+  {
+   UDFValue value1, value2;
+   double x, y;
+   
+   ClearErrorValue(theEnv);
+
+   /*==================================*/
+   /* Check for two numeric arguments. */
+   /*==================================*/
+
+   if (! UDFNthArgument(context,1,NUMBER_BITS,&value1))
+     { return; }
+
+   if (! UDFNthArgument(context,2,NUMBER_BITS,&value2))
+     { return; }
+
+   y = CVCoerceToFloat(&value1);
+   x = CVCoerceToFloat(&value2);
+    
+   if ((x == 0.0) && (y == 0.0))
+     {
+      DomainErrorMessage(context,returnValue);
+      return;
+     }
+
+   /*============================*/
+   /* Compute and set the value. */
+   /*============================*/
+
+   returnValue->floatValue = CreateFloat(theEnv,atan2(y,x));
+  }
+
 /**************************************/
 /* AsecFunction: H/L access routine   */
 /*   for the asec function.           */
@@ -448,6 +503,8 @@ void AsecFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -473,6 +530,8 @@ void AcscFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -583,6 +642,8 @@ void CschFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -612,6 +673,8 @@ void CothFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -641,6 +704,8 @@ void AcoshFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -680,6 +745,8 @@ void AtanhFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -704,6 +771,8 @@ void AsechFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -728,6 +797,8 @@ void AcschFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -752,6 +823,8 @@ void AcothFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -791,6 +864,8 @@ void LogFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -820,6 +895,8 @@ void Log10Function(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -849,6 +926,8 @@ void SqrtFunction(
   UDFValue *returnValue)
   {
    double num;
+   
+   ClearErrorValue(theEnv);
 
    if (! SingleNumberCheck(context,returnValue))
      { return; }
@@ -874,6 +953,8 @@ void PowFunction(
   {
    UDFValue value1, value2;
    double num1, num2;
+   
+   ClearErrorValue(theEnv);
 
    /*==================================*/
    /* Check for two numeric arguments. */

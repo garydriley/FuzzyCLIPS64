@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.40  11/10/17            */
+   /*             CLIPS Version 6.40  07/17/18            */
    /*                                                     */
    /*          MISCELLANEOUS FUNCTIONS HEADER FILE        */
    /*******************************************************/
@@ -117,9 +117,11 @@
    void                           LocalTimeFunction(Environment *,UDFContext *,UDFValue *);
    void                           GMTimeFunction(Environment *,UDFContext *,UDFValue *);
    void                           GetErrorFunction(Environment *,UDFContext *,UDFValue *);
+   void                           ClearErrorValue(Environment *);
    void                           ClearErrorFunction(Environment *,UDFContext *,UDFValue *);
    void                           SetErrorFunction(Environment *,UDFContext *,UDFValue *);
    void                           SetErrorValue(Environment *,TypeHeader *);
+   void                           VoidFunction(Environment *,UDFContext *,UDFValue *);
 
 #endif /* _H_miscfun */
 

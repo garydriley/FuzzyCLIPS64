@@ -130,7 +130,7 @@ struct genericHashNode
    unsigned int bucket : 29;
   };
   
-#ifndef _H_fuzzyval // TBD
+#ifndef _H_fuzzyval
 #include "fuzzyval.h"
 #endif
 

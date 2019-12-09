@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  08/25/16             */
+   /*            CLIPS Version 6.40  08/19/18             */
    /*                                                     */
    /*              PREDICATE FUNCTIONS MODULE             */
    /*******************************************************/
@@ -43,6 +43,11 @@
 /*                                                           */
 /*            UDF redesign.                                  */
 /*                                                           */
+/*            Removed the wordp and sequencep functions.     */
+/*                                                           */
+/*            Deprecated the pointerp function and added     */
+/*            the external-addressp function.                */
+/*                                                           */
 /*************************************************************/
 
 #include <stdio.h>
@@ -81,7 +86,6 @@ void PredicateFunctionDefinitions(
    AddUDF(theEnv,"!=","b",2,UNBOUNDED ,"ld",NumericNotEqualFunction,"NumericNotEqualFunction",NULL);
 
    AddUDF(theEnv,"symbolp","b",1,1,NULL,SymbolpFunction,"SymbolpFunction",NULL);
-   AddUDF(theEnv,"wordp","b",1,1,NULL,SymbolpFunction,"SymbolpFunction",NULL);  // TBD Remove?
    AddUDF(theEnv,"stringp","b",1,1,NULL,StringpFunction,"StringpFunction",NULL);
    AddUDF(theEnv,"lexemep","b",1,1,NULL,LexemepFunction,"LexemepFunction",NULL);
    AddUDF(theEnv,"numberp","b",1,1,NULL,NumberpFunction,"NumberpFunction",NULL);
@@ -90,8 +94,8 @@ void PredicateFunctionDefinitions(
    AddUDF(theEnv,"oddp","b",1,1,"l",OddpFunction,"OddpFunction",NULL);
    AddUDF(theEnv,"evenp","b",1,1,"l",EvenpFunction,"EvenpFunction",NULL);
    AddUDF(theEnv,"multifieldp","b",1,1,NULL,MultifieldpFunction,"MultifieldpFunction",NULL);
-   AddUDF(theEnv,"sequencep","b",1,1,NULL,MultifieldpFunction,"MultifieldpFunction",NULL); // TBD Remove?
-   AddUDF(theEnv,"pointerp","b",1,1,NULL,PointerpFunction,"PointerpFunction",NULL);
+   AddUDF(theEnv,"pointerp","b",1,1,NULL,ExternalAddresspFunction,"ExternalAddresspFunction",NULL);
+   AddUDF(theEnv,"external-addressp","b",1,1,NULL,ExternalAddresspFunction,"ExternalAddresspFunction",NULL);
 #if FUZZY_DEFTEMPLATES
    AddUDF(theEnv,"fuzzyvaluep", "b",1,1,NULL,FuzzyvaluepFunction,"FuzzyvaluepFunction",NULL);
 #endif
@@ -405,11 +409,11 @@ void MultifieldpFunction(
      { returnValue->lexemeValue = FalseSymbol(theEnv); }
   }
 
-/******************************************/
-/* PointerpFunction: H/L access routine   */
-/*   for the pointerp function.           */
-/******************************************/
-void PointerpFunction(
+/************************************************/
+/* ExternalAddresspFunction: H/L access routine */
+/*   for the external-addressp function.        */
+/************************************************/
+void ExternalAddresspFunction(
   Environment *theEnv,
   UDFContext *context,
   UDFValue *returnValue)

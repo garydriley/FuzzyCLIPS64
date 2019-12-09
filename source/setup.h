@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*             CLIPS Version 6.40  08/23/17            */
+   /*             CLIPS Version 6.40  03/31/19            */
    /*                                                     */
    /*                  SETUP HEADER FILE                  */
    /*******************************************************/
@@ -114,15 +114,15 @@
 #endif              /* Fedora 26, Mint 18, and CentOS 7.     */
 
 #ifndef DARWIN
-#define DARWIN  0   /* Darwin Mac OS 10.12 with Console */
+#define DARWIN  0   /* Darwin Mac OS 10.14 with Console */
 #endif
 
 #ifndef MAC_XCD
-#define MAC_XCD 0   /* MacOS 10.12 with Xcode 8.3 */
+#define MAC_XCD 0   /* MacOS 10.14 with Xcode 10.2 */
 #endif
 
 #ifndef WIN_MVC
-#define WIN_MVC 0   /* Windows 7 or 10, with Visual Studio 2015 */
+#define WIN_MVC 0   /* Windows 7 or 10, with Visual Studio 2017 */
 #endif
 
 /* The following are untested: */

@@ -48,7 +48,7 @@ FuzzyCLIPS> (save-facts 10)
 FuzzyCLIPS> (save-facts "Temp//factscmd.tmp" 10)
 [ARGACCES2] Function 'save-facts' expected argument #2 to be of type symbol.
 FuzzyCLIPS> (save-facts "Temp//factscmd.tmp")
-TRUE
+6
 FuzzyCLIPS> (clear)
 FuzzyCLIPS> (facts)
 FuzzyCLIPS> (load-facts)
@@ -58,7 +58,7 @@ FuzzyCLIPS> (load-facts 10)
 FuzzyCLIPS> (load-facts "Temp//factscmd.tmp" 10)
 [ARGACCES1] Function 'load-facts' expected exactly 1 argument.
 FuzzyCLIPS> (load-facts "Temp//factscmd.tmp")
-TRUE
+6
 FuzzyCLIPS> (facts)
 f-1     (a) CF 1.00 
 f-2     (b) CF 1.00 
@@ -207,17 +207,37 @@ FuzzyCLIPS> (ppfact a)
 [ARGACCES2] Function 'ppfact' expected argument #1 to be of type integer or fact address.
 FuzzyCLIPS> (ppfact 2)
 [PRNTUTIL1] Unable to find fact f-2.
-FuzzyCLIPS> (assert (foo a b c d))
+FuzzyCLIPS> (deftemplate person (slot name)(slot age (default 0)))
+FuzzyCLIPS> (assert (person (name Me)))
 <Fact-1>
 FuzzyCLIPS> (ppfact 1)
-(foo a b c d) CF 1.00 
+(person 
+   (name Me) 
+   (age 0)) CF 1.00 
+FuzzyCLIPS> (ppfact 1 bogus)
+[ROUTER1] Logical name 'bogus' was not recognized by any routers.
 FuzzyCLIPS> (ppfact 1 nil)
+"(person 
+   (name Me) 
+   (age 0)) CF 1.00 "
 FuzzyCLIPS> (ppfact 1 t)
-(foo a b c d) CF 1.00 
+(person 
+   (name Me) 
+   (age 0)) CF 1.00 
 FuzzyCLIPS> (ppfact 1 t FALSE)
-(foo a b c d) CF 1.00 
+(person 
+   (name Me) 
+   (age 0)) CF 1.00 
 FuzzyCLIPS> (ppfact 1 t TRUE)
-(foo a b c d) CF 1.00 
+(person 
+   (name Me)) CF 1.00 
+FuzzyCLIPS> (ppfact 1 nil FALSE)
+"(person 
+   (name Me) 
+   (age 0)) CF 1.00 "
+FuzzyCLIPS> (ppfact 1 nil TRUE)
+"(person 
+   (name Me)) CF 1.00 "
 FuzzyCLIPS> 
 (deftemplate bar
    (slot w)

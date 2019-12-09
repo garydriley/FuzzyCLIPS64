@@ -86,6 +86,7 @@ struct defruleModule;
 #include "constrct.h"
 #include "expressn.h"
 #include "network.h"
+#include "ruledef.h"
 #include "symbol.h"
 
 #if FUZZY_DEFTEMPLATES 

@@ -77,7 +77,7 @@ struct fuzzyData
 #define LOCALE extern
 #endif
 
-   LOCALE void                           InitializeFuzzy(void *theEnv);
+   LOCALE void                           InitializeFuzzy(Environment *theEnv);
 
 
 #ifndef _FUZZYDEF_SOURCE_

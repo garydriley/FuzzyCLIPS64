@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  11/15/17             */
+   /*            CLIPS Version 6.40  05/03/19             */
    /*                                                     */
    /*                 FACT MANAGER MODULE                 */
    /*******************************************************/
@@ -86,6 +86,9 @@
 /*            Retracted and existing facts cannot be         */
 /*            asserted.                                      */
 /*                                                           */
+/*            Crash bug fix for modifying fact with invalid  */
+/*            slot name.                                     */
+/*                                                           */
 /*      6.40: Added Env prefix to GetEvaluationError and     */
 /*            SetEvaluationError functions.                  */
 /*                                                           */
@@ -112,6 +115,9 @@
 /*            Assert returns duplicate fact. FALSE is now    */
 /*            returned only if an error occurs.              */
 /*                                                           */
+/*            Pretty print functions accept optional logical */
+/*            name argument.                                 */
+/*                                                           */
 /*************************************************************/
 
 #include <stdio.h>
@@ -126,6 +132,7 @@
 #include "factbin.h"
 #include "factcmp.h"
 #include "factcom.h"
+#include "factfile.h"
 #include "factfun.h"
 #include "factmch.h"
 #include "factqury.h"
@@ -249,6 +256,7 @@ void InitializeFacts(
    /*=========================================*/
 
    FactCommandDefinitions(theEnv);
+   FactFileCommandDefinitions(theEnv);
    FactFunctionDefinitions(theEnv);
 
    /*==============================*/
@@ -1663,10 +1671,13 @@ void ReturnFact(
       if (theSegment->contents[i].header->type == MULTIFIELD_TYPE)
         {
          subSegment = theSegment->contents[i].multifieldValue;
-         if (subSegment->busyCount == 0)
-           { ReturnMultifield(theEnv,subSegment); }
-         else
-           { AddToMultifieldList(theEnv,subSegment); }
+         if (subSegment != NULL)
+           {
+            if (subSegment->busyCount == 0)
+              { ReturnMultifield(theEnv,subSegment); }
+            else
+              { AddToMultifieldList(theEnv,subSegment); }
+           }
         }
      }
 
@@ -1844,12 +1855,13 @@ Fact *GetNextFactInScope(
 /*************************************/
 void FactPPForm(
   Fact *theFact,
-  StringBuilder *theSB)
+  StringBuilder *theSB,
+  bool ignoreDefaults)
   {
    Environment *theEnv = theFact->whichDeftemplate->header.env;
    
    OpenStringBuilderDestination(theEnv,"FactPPForm",theSB);
-   PrintFactWithIdentifier(theEnv,"FactPPForm",theFact,NULL);
+   PrintFact(theEnv,"FactPPForm",theFact,true,ignoreDefaults,NULL);
    CloseStringBuilderDestination(theEnv,"FactPPForm");
   }
 

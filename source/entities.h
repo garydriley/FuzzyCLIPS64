@@ -26,6 +26,8 @@
 
 #define _H_entities
 
+#include "setup.h"
+
 typedef struct clipsVoid CLIPSVoid;
 typedef struct clipsLexeme CLIPSLexeme;
 typedef struct clipsFloat CLIPSFloat;

@@ -291,7 +291,7 @@ FuzzyCLIPS> (defmodule BAR)
 FuzzyCLIPS> (assert (bar))
 <Fact-2>
 FuzzyCLIPS> (save-facts "Temp//bug.tmp")
-TRUE
+1
 FuzzyCLIPS> (bsave "Temp//bug.bin")
 TRUE
 FuzzyCLIPS> (bload "Temp//bug.bin")
@@ -299,7 +299,7 @@ TRUE
 FuzzyCLIPS> (load-facts "Temp//bug.tmp") 
 [FACTRHS1] Implied deftemplate 'bar' cannot be created with binary load in effect.
 Function load-facts encountered an error
-FALSE
+-1
 FuzzyCLIPS> (facts)
 FuzzyCLIPS> (clear) ;; Case 20
 FuzzyCLIPS> 

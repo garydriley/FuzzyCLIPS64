@@ -756,7 +756,7 @@ void AtomInstall(
 #if FUZZY_DEFTEMPLATES
       /* fuzzy values have a name which is a symbol */
       case FUZZY_VALUE_TYPE:
-        InstallFuzzyValue(vPtr);
+        InstallFuzzyValue((CLIPSFuzzyValue *) vPtr);
         break;
 #endif
 
@@ -808,7 +808,7 @@ void AtomDeinstall(
         
 #if FUZZY_DEFTEMPLATES
       case FUZZY_VALUE_TYPE:
-            DeinstallFuzzyValue(theEnv,vPtr);
+            DeinstallFuzzyValue(theEnv,(CLIPSFuzzyValue *) vPtr);
         break;
 #endif
 

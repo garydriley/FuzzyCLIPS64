@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  11/09/17             */
+   /*            CLIPS Version 6.40  07/10/18             */
    /*                                                     */
    /*            MISCELLANEOUS FUNCTIONS MODULE           */
    /*******************************************************/
@@ -99,6 +99,11 @@
 /*                                                           */
 /*            Added get-error, set-error, and clear-error    */
 /*            functions.                                     */
+/*                                                           */
+/*            Added void function.                           */
+/*                                                           */
+/*            Function operating system returns MAC-OS       */
+/*            instead of MAC-OS-X.                           */
 /*                                                           */
 /*************************************************************/
 
@@ -202,6 +207,8 @@ void MiscFunctionDefinitions(
    AddUDF(theEnv,"get-error","*",0,0,NULL,GetErrorFunction,"GetErrorFunction",NULL);
    AddUDF(theEnv,"clear-error","*",0,0,NULL,ClearErrorFunction,"ClearErrorFunction",NULL);
    AddUDF(theEnv,"set-error","v",1,1,NULL,SetErrorFunction,"SetErrorFunction",NULL);
+
+   AddUDF(theEnv,"void","v",0,0,NULL,VoidFunction,"VoidFunction",NULL);
 #endif
   }
 
@@ -452,30 +459,14 @@ void LengthFunction(
    /* The length$ function expects exactly one argument. */
    /*====================================================*/
 
-   if (! UDFFirstArgument(context, LEXEME_BITS | MULTIFIELD_BIT, &theArg))
+   if (! UDFFirstArgument(context, MULTIFIELD_BIT, &theArg))
      { return; }
 
-   /*====================================================*/
-   /* If the argument is a string or symbol, then return */
-   /* the number of characters in the argument.          */
-   /*====================================================*/
+   /*==============================================*/
+   /* Return the number of fields in the argument. */
+   /*==============================================*/
 
-   if (CVIsType(&theArg,LEXEME_BITS))
-     {
-      returnValue->integerValue = CreateInteger(theEnv,(long long) strlen(theArg.lexemeValue->contents));
-      return;
-     }
-
-   /*====================================================*/
-   /* If the argument is a multifield value, then return */
-   /* the number of fields in the argument.              */
-   /*====================================================*/
-
-   else if (CVIsType(&theArg,MULTIFIELD_BIT))
-     {
-      returnValue->value = CreateInteger(theEnv,(long long) theArg.range);
-      return;
-     }
+   returnValue->value = CreateInteger(theEnv,(long long) theArg.range);
   }
 
 /*******************************************/
@@ -882,7 +873,7 @@ void OperatingSystemFunction(
 #elif DARWIN
    returnValue->lexemeValue = CreateSymbol(theEnv,"DARWIN");
 #elif MAC_XCD
-   returnValue->lexemeValue = CreateSymbol(theEnv,"MAC-OS-X");
+   returnValue->lexemeValue = CreateSymbol(theEnv,"MAC-OS");
 #elif IBM && (! WINDOW_INTERFACE)
    returnValue->lexemeValue = CreateSymbol(theEnv,"DOS");
 #elif IBM && WINDOW_INTERFACE
@@ -1165,6 +1156,9 @@ void GetFunctionRestrictions(
                                     stringBuffer,&bufferPosition,&bufferMaximum);
      }
 
+   stringBuffer = AppendToString(theEnv,";",
+                                 stringBuffer,&bufferPosition,&bufferMaximum);
+
    if (fptr->maxArgs == UNBOUNDED)
      {
       stringBuffer = AppendToString(theEnv,"*",
@@ -1175,6 +1169,9 @@ void GetFunctionRestrictions(
       stringBuffer = AppendToString(theEnv,LongIntegerToString(theEnv,fptr->maxArgs),
                                     stringBuffer,&bufferPosition,&bufferMaximum);
      }
+     
+   stringBuffer = AppendToString(theEnv,";",
+                                 stringBuffer,&bufferPosition,&bufferMaximum);
 
    if (fptr->restrictions == NULL)
      {
@@ -1745,6 +1742,17 @@ void SetErrorValue(
    Retain(theEnv,MiscFunctionData(theEnv)->errorCode.header);
   }
 
+/*******************/
+/* ClearErrorValue */
+/*******************/
+void ClearErrorValue(
+  Environment *theEnv)
+  {
+   Release(theEnv,MiscFunctionData(theEnv)->errorCode.header);
+   MiscFunctionData(theEnv)->errorCode.lexemeValue = FalseSymbol(theEnv);
+   Retain(theEnv,MiscFunctionData(theEnv)->errorCode.header);
+  }
+
 /******************************************/
 /* ClearErrorFunction: H/L access routine */
 /*   for the clear-error function.        */
@@ -1755,9 +1763,7 @@ void ClearErrorFunction(
   UDFValue *returnValue)
   {
    CLIPSToUDFValue(&MiscFunctionData(theEnv)->errorCode,returnValue);
-   Release(theEnv,MiscFunctionData(theEnv)->errorCode.header);
-   MiscFunctionData(theEnv)->errorCode.lexemeValue = FalseSymbol(theEnv);
-   Retain(theEnv,MiscFunctionData(theEnv)->errorCode.header);
+   ClearErrorValue(theEnv);
   }
 
 /****************************************/
@@ -1778,4 +1784,16 @@ void SetErrorFunction(
    NormalizeMultifield(theEnv,&theArg);
    cv.value = theArg.value;
    SetErrorValue(theEnv,cv.header);
+  }
+
+/************************************/
+/* VoidFunction: H/L access routine */
+/*   for the void function.         */
+/************************************/
+void VoidFunction(
+  Environment *theEnv,
+  UDFContext *context,
+  UDFValue *returnValue)
+  {
+   returnValue->voidValue = VoidConstant(theEnv);
   }

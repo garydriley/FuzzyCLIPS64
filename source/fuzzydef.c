@@ -101,7 +101,7 @@
 
 
 void InitializeFuzzy(
-  void *theEnv)
+  Environment *theEnv)
 {
   AllocateEnvironmentData(theEnv,FUZZY_DATA,sizeof(struct fuzzyData),DeallocateFuzzyData);
   FuzzyData(theEnv)->FuzzyInferenceType = MAXMIN;  /* inference type 'max-min' by default */
