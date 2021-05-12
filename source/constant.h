@@ -1,7 +1,7 @@
    /*******************************************************/
    /*      "C" Language Integrated Production System      */
    /*                                                     */
-   /*            CLIPS Version 6.40  12/02/19             */
+   /*            CLIPS Version 6.40  02/09/21             */
    /*                                                     */
    /*                CONSTANTS HEADER FILE                */
    /*******************************************************/
@@ -121,11 +121,11 @@ typedef enum
 #endif
 
 #ifndef CREATION_DATE_STRING
-#define CREATION_DATE_STRING "12/2/19"
+#define CREATION_DATE_STRING "2/9/21"
 #endif
 
 #ifndef BANNER_STRING
-#define BANNER_STRING "         FuzzyCLIPS (Cypher Beta 12/2/19)\n"
+#define BANNER_STRING "         FuzzyCLIPS (6.4 2/9/21)\n"
 #endif
 
 /*************************/

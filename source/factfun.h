@@ -75,4 +75,3 @@
    void                           FactAddresspFunction(Environment *,UDFContext *,UDFValue *);
 
 #endif /* _H_factfun */
-

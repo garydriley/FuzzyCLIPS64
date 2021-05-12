@@ -17,11 +17,11 @@ OBJS = agenda.o analysis.o argacces.o bload.o bmathfun.o bsave.o \
  	cstrnutl.o default.o defins.o developr.o dffctbin.o dffctbsc.o \
  	dffctcmp.o dffctdef.o dffctpsr.o dffnxbin.o dffnxcmp.o \
  	dffnxexe.o dffnxfun.o dffnxpsr.o dfinsbin.o dfinscmp.o drive.o \
- 	emathfun.o  envrnmnt.o \
- 	engine.o evaluatn.o expressn.o exprnbin.o exprnops.o \
- 	exprnpsr.o extnfunc.o factbin.o factbld.o factcmp.o factcom.o \
- 	factfun.o factgen.o facthsh.o factlhs.o factmch.o factmngr.o factqury.o factqpsr.o \
-	factprt.o factrete.o factrhs.o filecom.o filertr.o generate.o \
+ 	emathfun.o envrnbld.o envrnmnt.o engine.o evaluatn.o expressn.o exprnbin.o \
+ 	exprnops.o exprnpsr.o extnfunc.o factbin.o factbld.o factcmp.o \
+ 	factcom.o factfile.o factfun.o factgen.o facthsh.o factlhs.o \
+ 	factmch.o factmngr.o factqury.o factqpsr.o factprt.o \
+	factrete.o factrhs.o filecom.o filertr.o fileutil.o generate.o \
  	genrcbin.o genrccmp.o genrccom.o genrcexe.o genrcfun.o \
  	genrcpsr.o globlbin.o globlbsc.o globlcmp.o globlcom.o \
  	globldef.o globlpsr.o immthpsr.o incrrset.o inherpsr.o \
@@ -303,35 +303,6 @@ dfinscmp.o: setup.h conscomp.h symblcmp.h defins.h dfinscmp.h
 drive.o: setup.h constant.h memalloc.h reteutil.h prntutil.h router.h
 drive.o: agenda.h retract.h lgcldpnd.h match.h network.h ruledef.h cstrccom.h
 drive.o: pattern.h reorder.h incrrset.h drive.h expressn.h exprnops.h
-edbasic.o: setup.h ed.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
-edbasic.o: exprnops.h evaluatn.h constant.h userdata.h constrct.h moduldef.h
-edbasic.o: scanner.h pprint.h constrnt.h factbld.h pattern.h match.h
-edbasic.o: network.h ruledef.h cstrccom.h agenda.h reorder.h factmngr.h
-edbasic.o: multifld.h fuzzylv.h dffnxfun.h extnfunc.h memalloc.h router.h
-edbasic.o: prntutil.h
-edmain.o: setup.h ed.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
-edmain.o: exprnops.h evaluatn.h constant.h userdata.h constrct.h moduldef.h
-edmain.o: scanner.h pprint.h constrnt.h factbld.h pattern.h match.h network.h
-edmain.o: ruledef.h cstrccom.h agenda.h reorder.h factmngr.h multifld.h
-edmain.o: fuzzylv.h dffnxfun.h extnfunc.h memalloc.h router.h prntutil.h
-edmain.o: sysdep.h
-edmisc.o: setup.h ed.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
-edmisc.o: exprnops.h evaluatn.h constant.h userdata.h constrct.h moduldef.h
-edmisc.o: scanner.h pprint.h constrnt.h factbld.h pattern.h match.h network.h
-edmisc.o: ruledef.h cstrccom.h agenda.h reorder.h factmngr.h multifld.h
-edmisc.o: fuzzylv.h dffnxfun.h extnfunc.h memalloc.h router.h prntutil.h
-edmisc.o: cstrcpsr.h
-edstruct.o: setup.h ed.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
-edstruct.o: exprnops.h evaluatn.h constant.h userdata.h constrct.h moduldef.h
-edstruct.o: scanner.h pprint.h constrnt.h factbld.h pattern.h match.h
-edstruct.o: network.h ruledef.h cstrccom.h agenda.h reorder.h factmngr.h
-edstruct.o: multifld.h fuzzylv.h dffnxfun.h extnfunc.h memalloc.h router.h
-edstruct.o: prntutil.h
-edterm.o: setup.h ed.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
-edterm.o: exprnops.h evaluatn.h constant.h userdata.h constrct.h moduldef.h
-edterm.o: scanner.h pprint.h constrnt.h factbld.h pattern.h match.h network.h
-edterm.o: ruledef.h cstrccom.h agenda.h reorder.h factmngr.h multifld.h
-edterm.o: fuzzylv.h dffnxfun.h extnfunc.h memalloc.h router.h prntutil.h
 emathfun.o: setup.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
 emathfun.o: exprnops.h evaluatn.h constant.h userdata.h constrct.h moduldef.h
 emathfun.o: scanner.h pprint.h constrnt.h factbld.h pattern.h match.h
@@ -347,6 +318,16 @@ engine.o: memalloc.h modulutl.h prccode.h prcdrfun.h proflfun.h reteutil.h
 engine.o: retract.h router.h prntutil.h ruledlt.h sysdep.h utility.h watch.h
 engine.o: engine.h cfdef.h fuzzyutl.h
 envrnmnt.o: envrnmnt.h
+envrnbld.o: setup.h envrnmnt.h entities.h usrsetup.h
+envrnbld.o: bmathfun.h evaluatn.h constant.h commline.h emathfun.h engine.h
+envrnbld.o: lgcldpnd.h match.h network.h ruledef.h constrct.h userdata.h
+envrnbld.o: moduldef.h utility.h expressn.h exprnops.h agenda.h symbol.h
+envrnbld.o: crstrtgy.h conscomp.h extnfunc.h symblcmp.h constrnt.h cstrccom.h
+envrnbld.o: retract.h filecom.h iofun.h memalloc.h miscfun.h multifun.h parsefun.h
+envrnbld.o: pprint.h prccode.h scanner.h prcdrfun.h prdctfun.h prntutil.h
+envrnbld.o: proflfun.h router.h sortfun.h strngfun.h sysdep.h textpro.h watch.h
+envrnbld.o: dffctdef.h genrccom.h genrcfun.h dffnxfun.h globldef.h tmpltdef.h 
+envrnbld.o: factbld.h classini.h object.h multifld.h objrtmch.h envrnbld.h
 evaluatn.o: setup.h symbol.h fuzzyval.h tmpltdef.h expressn.h exprnops.h
 evaluatn.o: evaluatn.h constant.h userdata.h constrct.h moduldef.h scanner.h
 evaluatn.o: pprint.h constrnt.h factbld.h pattern.h match.h network.h
@@ -401,6 +382,13 @@ factcom.o: cstrccom.h agenda.h reorder.h fuzzylv.h dffnxfun.h extnfunc.h
 factcom.o: router.h prntutil.h factrhs.h factmch.h tmpltpsr.h tmpltutl.h
 factcom.o: facthsh.h modulutl.h strngrtr.h tmpltfun.h cfdef.h fuzzyutl.h
 factcom.o: bload.h exprnbin.h sysdep.h symblbin.h factcom.h
+factfile.o: setup.h envrnmnt.h entities.h usrsetup.h
+factfile.o: argacces.h expressn.h exprnops.h constrct.h userdata.h moduldef.h
+factfile.o: sysdep.h symblbin.h cstrcpsr.h strngfun.h factmngr.h conscomp.h
+factfile.o: symblcmp.h tmpltdef.h constrnt.h factbld.h network.h match.h ruledef.h
+factfile.o: agenda.h crstrtgy.h cstrccom.h facthsh.h factrhs.h scanner.h insmngr.h
+factfile.o: object.h multifld.h objrtmch.h inscom.h insfun.h memalloc.h modulpsr.h
+factfile.o: modulutl.h prntutil.h router.h strngrtr.h tmpltutl.h factfile.h
 factfun.o: setup.h extnfunc.h userdata.h argacces.h symbol.h fuzzyval.h
 factfun.o: tmpltdef.h expressn.h exprnops.h evaluatn.h constant.h constrct.h
 factfun.o: moduldef.h scanner.h pprint.h constrnt.h factbld.h pattern.h
@@ -470,6 +458,11 @@ filecom.o: factmngr.h multifld.h fuzzylv.h dffnxfun.h extnfunc.h router.h
 filecom.o: prntutil.h strngrtr.h cstrcpsr.h utility.h commline.h prcdrfun.h
 filecom.o: filecom.h bsave.h bload.h exprnbin.h sysdep.h symblbin.h
 filertr.o: setup.h constant.h memalloc.h router.h prntutil.h filertr.h
+fileutil.o: setup.h envrnmnt.h entities.h usrsetup.h
+fileutil.o: argacces.h expressn.h exprnops.h constrct.h userdata.h moduldef.h
+fileutil.o: utility.h evaluatn.h constant.h commline.h cstrcpsr.h strngfun.h
+fileutil.o: memalloc.h prcdrfun.h pprint.h prntutil.h router.h scanner.h
+fileutil.o: strngrtr.h sysdep.h filecom.h fileutil.h
 fuzzycom.o: setup.h extnfunc.h userdata.h evaluatn.h constant.h router.h
 fuzzycom.o: prntutil.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
 fuzzycom.o: exprnops.h constrct.h moduldef.h scanner.h pprint.h constrnt.h
@@ -850,7 +843,7 @@ proflfun.o: setup.h argacces.h symbol.h fuzzyval.h tmpltdef.h expressn.h
 proflfun.o: exprnops.h evaluatn.h constant.h userdata.h constrct.h moduldef.h
 proflfun.o: scanner.h pprint.h constrnt.h factbld.h pattern.h match.h
 proflfun.o: network.h ruledef.h cstrccom.h agenda.h reorder.h factmngr.h
-proflfun.o: multifld.h fuzzylv.h dffnxfun.h extnfunc.h classcom.h extobj.h
+proflfun.o: multifld.h fuzzylv.h dffnxfun.h extnfunc.h classcom.h
 proflfun.o: genrccom.h genrcfun.h object.h memalloc.h msgcom.h router.h
 proflfun.o: prntutil.h sysdep.h proflfun.h
 reorder.o: setup.h memalloc.h tmpltdef.h expressn.h exprnops.h evaluatn.h
@@ -980,7 +973,7 @@ sysdep.o: cstrcpsr.h emathfun.h filecom.h iofun.h memalloc.h miscfun.h
 sysdep.o: multifun.h parsefun.h prccode.h prdctfun.h proflfun.h prcdrfun.h
 sysdep.o: router.h prntutil.h sortfun.h strngfun.h textpro.h utility.h
 sysdep.o: watch.h sysdep.h dffctdef.h genrccom.h genrcfun.h object.h
-sysdep.o: globldef.h cfdef.h fuzzydef.h extobj.h developr.h
+sysdep.o: globldef.h cfdef.h fuzzydef.h developr.h
 textpro.o: setup.h commline.h memalloc.h argacces.h symbol.h fuzzyval.h
 textpro.o: tmpltdef.h expressn.h exprnops.h evaluatn.h constant.h userdata.h
 textpro.o: constrct.h moduldef.h scanner.h pprint.h constrnt.h factbld.h
@@ -1081,7 +1074,7 @@ xedit.o: router.h prntutil.h sysdep.h bmathfun.h exprnpsr.h utility.h watch.h
 xedit.o: modulbsc.h bload.h exprnbin.h symblbin.h bsave.h rulebsc.h engine.h
 xedit.o: drive.h incrrset.h rulecom.h crstrtgy.h dffctdef.h dffctbsc.h
 xedit.o: tmpltbsc.h factcom.h facthsh.h globldef.h globlbsc.h globlcom.h
-xedit.o: genrccom.h genrcfun.h object.h extobj.h commline.h xsetup.h xclips.h
+xedit.o: genrccom.h genrcfun.h object.h commline.h xsetup.h xclips.h
 xedit.o: xedit.h xmenu.h xmenu_file.h xclipstext.h
 xmain.o: setup.h sysdep.h commline.h symbol.h fuzzyval.h tmpltdef.h
 xmain.o: expressn.h exprnops.h evaluatn.h constant.h userdata.h constrct.h
