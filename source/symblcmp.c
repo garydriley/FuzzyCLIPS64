@@ -379,7 +379,8 @@ static unsigned int FuzzyValueArraysToCode(
   char *fileNameBuffer,
   unsigned int version)
   {
-   int i, j, k;
+   unsigned int i, j;
+   int k;
    CLIPSFuzzyValue *hashPtr;
    int count;
    int numberOfEntries;

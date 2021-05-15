@@ -213,6 +213,15 @@ struct engineData
    void                    SetHaltRules(Environment *,bool);
    Activation             *NextActivationToFire(Environment *);
 
+#if EXTENDED_RUN_OPTIONS
+   bool                    AddRunStartFunction(Environment *,const char *,VoidCallFunction *,
+                                               int,void *);
+   bool                    RemoveRunStartFunction(Environment *,const char *);
+   bool                    AddRunStopFunction(Environment *,const char *,VoidCallFunction *,
+                                              int,void *);
+   bool                    RemoveRunStopFunction(Environment *,const char *);
+#endif
+  
 #endif /* _H_engine */
 
 

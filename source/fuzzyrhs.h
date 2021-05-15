@@ -56,6 +56,8 @@
    void                FrtnArray ( Environment *theEnv, double *p, int length );
    int                *IgetArray ( Environment *theEnv, int length );
    void                IrtnArray ( Environment *theEnv, int *p, int length );
+   char               *CgetArray (Environment *theEnv, int length);
+   void                CrtnArray (Environment *theEnv, char *p, int length);
    struct expr        *tokenToFloatExpression(Environment *theEnv,const char *readSource,
                                                 struct token *tempToken,
                                                 bool  *error,

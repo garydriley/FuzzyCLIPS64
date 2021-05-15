@@ -376,9 +376,6 @@ static void CloseDeftemplateFiles(
 /************************************************************/
 /* LvUniverseToCode:                                        */
 /************************************************************/
-#if IBM_TBC
-#pragma argsused
-#endif
 static void LvUniverseToCode(
   Environment *theEnv,
   FILE *lvUniverseFile,
@@ -388,9 +385,6 @@ static void LvUniverseToCode(
   unsigned int primaryTermArrayCount,
   unsigned int primaryTermArrayVersion)
   {
-#if MAC_MPW
-#pragma unused(maxIndices)
-#endif
     fprintf(lvUniverseFile, "{%s, %s, ",
             FloatToString(theEnv,lvPtr->from), FloatToString(theEnv,lvPtr->to));
     PrintSymbolReference(theEnv,lvUniverseFile,lvPtr->units);

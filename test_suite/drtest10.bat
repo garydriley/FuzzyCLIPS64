@@ -673,7 +673,7 @@
   
 (deffacts hellos
    (hello))
-(clear) ; Source Ticket #56
+(clear) ; SourceForge Ticket #56
 
 (deftemplate maze
    (multislot open-list)
@@ -693,6 +693,94 @@
    (maze (open-list) 
          (goal ~nil))
    =>)
+(clear) ; SourceForge Ticket #58
+
+(defclass FOO (is-a USER)
+  (slot ins (type INSTANCE-ADDRESS)))
+(make-instance [foo] of FOO)
+(timetag (send [foo] get-ins))
+
+(deftemplate foo
+  (slot fct (type FACT-ADDRESS)))
+(assert (foo))   
+(timetag (fact-slot-value 1 fct))
+(clear) ; 2 variable comparison from right memory
+
+(deftemplate manifest
+   (slot origin)
+   (slot destination)) 
+
+(deftemplate shipzone
+    (slot zonename)
+    (multislot cities)
+    (slot city1)
+    (slot city2))
+
+(deffacts fact-data
+    (manifest (origin CHI) (destination WAS)) 
+    (manifest (origin HOU) (destination ATL)) 
+    (shipzone (cities CHI WAS BOS) (city1 CHI) (city2 WAS))
+    (shipzone (cities BOS HOU ATL)))
+
+(defclass MANIFEST
+   (is-a USER)
+   (slot origin)
+   (slot destination)) 
+
+(defclass SHIPZONE
+   (is-a USER)
+   (slot zonename)
+   (multislot cities)
+   (slot city1)
+   (slot city2))
+
+(definstances instance-data
+    (m1 of MANIFEST (origin CHI) (destination WAS)) 
+    (m2 of MANIFEST (origin HOU) (destination ATL)) 
+    (s1 of SHIPZONE (cities CHI WAS BOS) (city1 CHI) (city2 WAS))
+    (s2 of SHIPZONE (cities BOS HOU ATL)))
+
+(defrule city-group-f1
+    (manifest (origin ?x1) (destination ?x2))
+    (shipzone (city1 ?x3&?x1|?x2) (city2 ~?x3&?x1|?x2))
+    =>)
+
+(defrule city-group-f2
+    (manifest (origin ?x1) (destination ?x2))
+    (shipzone (cities $? ?x3&?x1|?x2 ~?x3&?x1|?x2))
+    =>)
+
+(defrule city-group-f3
+    (manifest (origin ?x1) (destination ?x2))
+    (shipzone (cities $? ?x3&?x1|?x2 ~?x3&?x1|?x2 $?))
+    =>)
+
+(defrule city-group-f4
+    (manifest (origin ?x1) (destination ?x2))
+    (shipzone (cities $? ?x3&?x1|?x2 $?) (city1 ~?x3&?x1|?x2))
+    =>)
+
+(defrule city-group-i1
+    (object (is-a MANIFEST) (origin ?x1) (destination ?x2))
+    (object (is-a SHIPZONE) (city1 ?x3&?x1|?x2) (city2 ~?x3&?x1|?x2))
+    =>)
+    
+(defrule city-group-i2 
+    (object (is-a MANIFEST) (origin ?x1) (destination ?x2))
+    (object (is-a SHIPZONE) (cities $? ?x3&?x1|?x2 ~?x3&?x1|?x2))
+    =>)
+
+(defrule city-group-i3
+    (object (is-a MANIFEST) (origin ?x1) (destination ?x2))
+    (object (is-a SHIPZONE) (cities $? ?x3&?x1|?x2 ~?x3&?x1|?x2 $?))
+    =>)
+    
+(defrule city-group-i4 
+    (object (is-a MANIFEST) (origin ?x1) (destination ?x2))
+    (object (is-a SHIPZONE) (cities $? ?x3&?x1|?x2 $?) (city1 ~?x3&?x1|?x2))
+    =>)
+(reset)
+(agenda)
 (clear) ; Error line count issue
 (load line_error_crlf.clp)
 (clear)
@@ -763,4 +851,86 @@
       $?after)))
 (reset)
 (run)
+(clear) ; SourceForge Ticket #61
+(defclass FOO (is-a USER))
+(deftemplate FOO)
+
+(deffunction test1()
+  (bind ?ins (make-instance of FOO))
+  (delayed-do-for-all-instances ((?f FOO)) TRUE
+    (str-cat "abc" "def")))
+
+(deffunction test2()
+  (assert(FOO))
+  (delayed-do-for-all-facts ((?f FOO)) TRUE
+    (str-cat "uvw" "xyz")))
+
+(deffunction test3()
+  (bind ?ins (make-instance of FOO))
+  (do-for-all-instances ((?f FOO)) TRUE
+    (str-cat "abc" "def")))
+
+(deffunction test4()
+  (assert(FOO))
+  (do-for-all-facts ((?f FOO)) TRUE
+    (str-cat "uvw" "xyz")))
+(test1)
+(test2)
+(test3)
+(test4)
+(clear) ; SourceForge Ticket #64
+
+(deftemplate adrs
+   (slot ia (type INSTANCE-ADDRESS))
+   (slot fa (type FACT-ADDRESS))
+   (slot ea (type EXTERNAL-ADDRESS)))
+
+(defclass ADRS (is-a USER)
+   (slot ia (type INSTANCE-ADDRESS))
+   (slot fa (type FACT-ADDRESS))
+   (slot ea (type EXTERNAL-ADDRESS)))
+
+(deffacts start
+   (adrs))
+   
+(definstances start
+   ([adrs] of ADRS))
+(bsave "Temp//ea1.bin")
+(set-dynamic-constraint-checking TRUE)
+(bsave "Temp//ea2.bin")
+(clear)
+(bload "Temp//ea1.bin")
+(assert (adrs))
+(make-instance [adrs] of ADRS)
+(ppfact 1)
+(send [adrs] print)
+(reset)
+(ppfact 1)
+(send [adrs] print)
+(clear)
+(bload "Temp//ea2.bin")
+(assert (adrs))
+(make-instance [adrs] of ADRS)
+(ppfact 1)
+(send [adrs] print)
+(reset)
+(ppfact 1)
+(send [adrs] print)
+(set-dynamic-constraint-checking FALSE)
+(clear) ; SourceForge Ticket #65
+(ppdefclass undefined nil)
+(ppdeftemplate undefined nil)
+(ppdefrule undefined nil)
+(ppdeffacts undefined nil)
+(ppdefinstances undefined nil)
+(ppdeffunction undefined nil)
+(ppdefgeneric undefined nil)
+(ppdefglobal undefined nil)
+(clear)
+(defglobal ?*x* = (create$ 1 2 3 4))
+(defglobal ?*y* = (subseq$ ?*x* 2 3))
+(defglobal ?*z* = (subseq$ (create$ 1 2 3 4) 2 3))
+?*x*
+?*y*
+?*z*
 (clear)

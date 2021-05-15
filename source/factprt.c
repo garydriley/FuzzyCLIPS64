@@ -502,9 +502,6 @@ void PrintFactPNConstant2(
 /***********************************************************************/
 /* PrintPNFUZZY_VALUE: Print routine for the PN_FUZZY_VALUE function.  */
 /***********************************************************************/
-#if IBM_TBC && (! DEVELOPER)
-#pragma argsused
-#endif
 void PrintPNFUZZY_VALUE(
   Environment *theEnv,
   const char *logicalName,
@@ -516,11 +513,6 @@ void PrintPNFUZZY_VALUE(
 
    PrintAtom(theEnv,logicalName,GetFirstArgument()->type,GetFirstArgument()->value);
    WriteString(theEnv,logicalName,")");
-#else
-#if MAC_MPW
-#pragma unused(logicalName)
-#pragma unused(theValue)
-#endif
 #endif
   }
 

@@ -266,13 +266,13 @@ bool FactWillBeAsserted(
 /*       the fuzzy slots all have the same FUZZY_VALUE */
 /*       type -- i.e. both temperature deftemplates    */
 /*******************************************************/
-unsigned long HandleExistingFuzzyFact(
+size_t HandleExistingFuzzyFact(
   Environment *theEnv,
   Fact **theFact)
   {
    struct fact *tempFact;
    struct factHashEntry *theFactHash;
-   unsigned long hashValue, bucket;
+   size_t hashValue, bucket;
    struct fact *theFactPtr = (struct fact *)*theFact;
 
    hashValue = HashFact(theFactPtr);

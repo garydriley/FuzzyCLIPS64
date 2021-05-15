@@ -862,7 +862,8 @@ CLIPSFuzzyValue *CreateFuzzyValue(
    Environment *theEnv,
    struct fuzzy_value *fv)
    {
-    size_t tally, i;
+    size_t tally;
+    int i;
     CLIPSFuzzyValue *past = NULL, *peek;
 
     /*=========================================*/
@@ -1096,8 +1097,9 @@ size_t HashFuzzyValue(
          } inner;
      } fis;
 
-   unsigned long count = 0;
-   size_t tally, i;
+   size_t count = 0;
+   size_t tally;
+   int i;
 
    count = HashSymbol(fv->name, range);
 

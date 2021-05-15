@@ -127,10 +127,10 @@ static void DeallocateDeftemplateBloadData(
 
 #if FUZZY_DEFTEMPLATES
    space =  DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms * sizeof(struct primary_term);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->NumberOfFuzzyPrimaryTerms,space);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->PrimaryTermArray,space);
 
    space =  DeftemplateBinaryData(theEnv)->NumberOfFuzzyTemplates * sizeof(struct fuzzyLv);
-   if (space != 0) genfree(theEnv,(void *) DeftemplateBinaryData(theEnv)->LvPlusUniverseArray,space);
+   if (space != 0) genfree(theEnv,DeftemplateBinaryData(theEnv)->LvPlusUniverseArray,space);
 #endif
   }
 

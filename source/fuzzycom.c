@@ -388,7 +388,7 @@ static struct fuzzyLv *getFuzzyUniversePtr(
      }
    else if (theResult->header->type == FUZZY_VALUE_TYPE)
      {
-      struct fuzzy_value *fvPtr = theResult->fuzzyValue->contents;
+      fvPtr = theResult->fuzzyValue->contents;
       return fvPtr->whichDeftemplate->fuzzyTemplate;
      }   
 
@@ -668,7 +668,7 @@ static char *fv_to_string(
     
    for (i=0; i < num; i++)
      {
-      if (strindex-string > *length_ptr-50)
+      if (((size_t) (strindex-string)) > *length_ptr-50)
         { /* we are in the string safety zone -- stop before overrun space */
           /* perhaps we should do this in a better way -- get each pair and
              append them to each other as needed
@@ -1690,7 +1690,7 @@ void plot_fuzzy_value(
        
       if (fv_ptr == NULL)  return;
 
-      if (numSymbols > fvNum) 
+      if (numSymbols > ((size_t) fvNum)) 
          theSymbol = theString[fvNum];
 
       /* MUST have same deftemplates for all fuzzy values to plot properly */

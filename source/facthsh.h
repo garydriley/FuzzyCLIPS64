@@ -74,7 +74,7 @@ struct factHashEntry
    bool                           RemoveHashedFact(Environment *,Fact *);
    size_t                         HandleFactDuplication(Environment *,Fact *,Fact **,long long);
 #if FUZZY_DEFTEMPLATES
-   unsigned long                  HandleExistingFuzzyFact(Environment *,Fact **);
+   size_t                         HandleExistingFuzzyFact(Environment *,Fact **);
 #endif
    bool                           GetFactDuplication(Environment *);
    bool                           SetFactDuplication(Environment *,bool);

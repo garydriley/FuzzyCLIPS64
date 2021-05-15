@@ -2296,7 +2296,7 @@ static void computeMinOfMaxmins(
     double currenty, minimumy;
     struct fuzzy_value *fact_fv, *antecedent_fv;
     struct fact *tmpFact;
-    int i;
+    unsigned short i;
     
     /**********************************************************
      Loop through all antecedents and calculate the max-min
@@ -2312,7 +2312,7 @@ static void computeMinOfMaxmins(
         
     minimumy = 1.0;
     
-    for (i=0; i<(unsigned int)EngineData(theEnv)->GlobalLHSBinds->bcount; i++)
+    for (i=0; i < EngineData(theEnv)->GlobalLHSBinds->bcount; i++)
       {
         unsigned int j;
 

@@ -267,10 +267,6 @@ void CompactFuzzyValue(
 /*       this code to use endType rather than RPAREN           */
 /***************************************************************/
 
-#if IBM_TBC
-#pragma argsused
-#endif
-
 struct expr *ParseAssertFuzzyFact(
   Environment *theEnv,
   const char *readSource,
@@ -281,9 +277,6 @@ struct expr *ParseAssertFuzzyFact(
   Deftemplate *theDeftemplate,
   int variablesAllowed)
 {
-#if MAC_MPW
-#pragma unused(endType)
-#endif
     struct fuzzyLv *lvp = theDeftemplate->fuzzyTemplate;
     struct expr *next_one, *temp;
     struct fuzzy_value *fv;

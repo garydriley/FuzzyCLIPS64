@@ -1061,18 +1061,11 @@ static void BloadBinaryItem(
 /*   in bloaded PatternFuzzyValue.            */
 /**********************************************/
 
-#if IBM_TBC
-#pragma argsused
-#endif
-
 static void UpdatePatternFuzzyValues(
   Environment *theEnv,
   void *buf,
   unsigned long obji)
   {
-#if MAC_MPW
-#pragma unused(obji)
-#endif
     /* we need to modify the values in PatternFuzzyValueArray based on the
        integer values stored in 'buf' just read in
     */

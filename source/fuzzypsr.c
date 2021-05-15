@@ -174,8 +174,8 @@ double sFunction(
   double beta,
   double gamma)
   {
-   register double gMinusa = gamma - alfa;
-   register double gMinusaSqr = gMinusa * gMinusa;
+   double gMinusa = gamma - alfa;
+   double gMinusaSqr = gMinusa * gMinusa;
    
    if (x <= alfa)
      { return(0.0); }
@@ -319,8 +319,6 @@ struct fuzzy_value *Get_S_Z_or_PI_FuzzyValue(
       }
     else
       { /* s or z function */
-        double h, deltah;
-        
         if (alfa == gamma) /* (S x x) or (Z x x) ? */
           {
            fv->x[0] = fv->x[1] = alfa;

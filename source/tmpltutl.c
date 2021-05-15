@@ -528,7 +528,7 @@ void PrintTemplateFact(
       ... UNLESS we are doing a fact save operation!
    */
    if (! FuzzyData(theEnv)->saveFactsInProgress)
-     for (i=0; i<(unsigned int)theDeftemplate->numberOfSlots; i++)
+     for (i=0; i< theDeftemplate->numberOfSlots; i++)
        {
         if (sublist[i].header->type == FUZZY_VALUE_TYPE)
           {
