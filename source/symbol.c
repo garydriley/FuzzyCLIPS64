@@ -912,7 +912,7 @@ CLIPSFuzzyValue *CreateFuzzyValue(
                }
             if (i == fv->n) /* found it */
                { return(peek); }
-                 }
+          }
         past = peek;
         peek = peek->next;
       }

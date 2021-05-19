@@ -410,7 +410,6 @@ static void DestroyDeftemplate(
       rtn_struct(theEnv,templateSlot,slotPtr);
       slotPtr = nextSlot;
      }
-#endif
 
 #if FUZZY_DEFTEMPLATES
    if (theDeftemplate->fuzzyTemplate != NULL)
@@ -428,7 +427,9 @@ static void DestroyDeftemplate(
       rtn_struct(theEnv,fuzzyLv,theDeftemplate->fuzzyTemplate);
      }
 #endif
-      
+
+#endif
+
    DestroyFactPatternNetwork(theEnv,theDeftemplate->patternNetwork);
 
    /*==================================*/
