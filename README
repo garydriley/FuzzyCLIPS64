@@ -2,4 +2,4 @@ Wikipedia: FuzzyCLIPS is a fuzzy logic extension of the CLIPS (C Language Integr
 
 Forked from https://github.com/garydriley/FuzzyCLIPS624.
 
-This fork updates the FuzzyCLIPS source code to be compatible with CLIPS 6.31.
+This fork updates the FuzzyCLIPS source code to be compatible with CLIPS 6.4.0.
